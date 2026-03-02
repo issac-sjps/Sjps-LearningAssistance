@@ -183,6 +183,20 @@
         /* ── 模式標籤 ─────────────────────────────────────── */
         .badge-view  { background: #fef3c7; color: #92400e; }
         .badge-admin { background: #d1fae5; color: #065f46; }
+
+        /* ── 篩選按鈕 ─────────────────────────────────────── */
+        .filter-btn-grade, .filter-btn-sub {
+            background: white; color: #6b7280; border-color: #d1d5db;
+        }
+        .filter-btn-grade:hover { background: #f3f4f6; }
+        .filter-btn-sub:hover   { background: #f3f4f6; }
+        .active-filter {
+            background: #1d4ed8 !important; color: white !important;
+            border-color: #1d4ed8 !important;
+        }
+        .active-filter-red   { background: #dc2626 !important; color: white !important; border-color: #dc2626 !important; }
+        .active-filter-blue  { background: #2563eb !important; color: white !important; border-color: #2563eb !important; }
+        .active-filter-green { background: #16a34a !important; color: white !important; border-color: #16a34a !important; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans flex flex-col">
@@ -292,6 +306,7 @@
         <button onclick="switchTab('class-settings')" class="px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm whitespace-nowrap">2. 班級設定</button>
         <button onclick="switchTab('arrange')"        class="px-3 py-1.5 bg-green-500  text-white rounded-lg hover:bg-green-600  text-sm whitespace-nowrap">3. 拖曳編班</button>
         <button onclick="switchTab('print')"          class="px-3 py-1.5 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm whitespace-nowrap">4. 列印與匯出</button>
+        <button onclick="switchTab('stats')"          class="px-3 py-1.5 bg-teal-500   text-white rounded-lg hover:bg-teal-600   text-sm whitespace-nowrap">5. 數據分析</button>
     </div>
 </div>
 
@@ -332,6 +347,40 @@
 
         <!-- 名單 -->
         <div class="flex-1">
+            <!-- 篩選器 -->
+            <div class="mb-3 space-y-2">
+                <!-- 年級篩選 -->
+                <div class="flex flex-wrap gap-1.5 items-center">
+                    <span class="text-xs text-gray-500 font-bold w-8">年級</span>
+                    <button onclick="setFilter('grade','all')" id="f-grade-all"
+                            class="filter-btn-grade active-filter px-3 py-1 text-xs rounded-full border font-bold transition">全部</button>
+                    <button onclick="setFilter('grade','1')" id="f-grade-1"
+                            class="filter-btn-grade px-3 py-1 text-xs rounded-full border font-bold transition">一年級</button>
+                    <button onclick="setFilter('grade','2')" id="f-grade-2"
+                            class="filter-btn-grade px-3 py-1 text-xs rounded-full border font-bold transition">二年級</button>
+                    <button onclick="setFilter('grade','3')" id="f-grade-3"
+                            class="filter-btn-grade px-3 py-1 text-xs rounded-full border font-bold transition">三年級</button>
+                    <button onclick="setFilter('grade','4')" id="f-grade-4"
+                            class="filter-btn-grade px-3 py-1 text-xs rounded-full border font-bold transition">四年級</button>
+                    <button onclick="setFilter('grade','5')" id="f-grade-5"
+                            class="filter-btn-grade px-3 py-1 text-xs rounded-full border font-bold transition">五年級</button>
+                    <button onclick="setFilter('grade','6')" id="f-grade-6"
+                            class="filter-btn-grade px-3 py-1 text-xs rounded-full border font-bold transition">六年級</button>
+                </div>
+                <!-- 科目篩選 -->
+                <div class="flex flex-wrap gap-1.5 items-center">
+                    <span class="text-xs text-gray-500 font-bold w-8">科目</span>
+                    <button onclick="setFilter('subject','all')" id="f-sub-all"
+                            class="filter-btn-sub active-filter px-3 py-1 text-xs rounded-full border font-bold transition">全部</button>
+                    <button onclick="setFilter('subject','國語')" id="f-sub-國語"
+                            class="filter-btn-sub px-3 py-1 text-xs rounded-full border font-bold transition text-red-600 border-red-300">國語</button>
+                    <button onclick="setFilter('subject','數學')" id="f-sub-數學"
+                            class="filter-btn-sub px-3 py-1 text-xs rounded-full border font-bold transition text-blue-600 border-blue-300">數學</button>
+                    <button onclick="setFilter('subject','英語')" id="f-sub-英語"
+                            class="filter-btn-sub px-3 py-1 text-xs rounded-full border font-bold transition text-green-600 border-green-300">英語</button>
+                </div>
+            </div>
+            <!-- 標題列 -->
             <div class="flex justify-between items-center mb-2 bg-gray-100 p-2 rounded-lg">
                 <h3 class="font-bold text-gray-700">已登錄名單</h3>
                 <div class="flex items-center gap-2">
@@ -339,7 +388,7 @@
                     <span id="count-badge" class="bg-gray-300 text-gray-700 text-xs px-2 py-1.5 rounded-lg font-bold">0 人</span>
                 </div>
             </div>
-            <div id="scanned-list" class="h-[450px] overflow-y-auto border p-2 rounded-lg bg-gray-50 space-y-1"></div>
+            <div id="scanned-list" class="h-[380px] overflow-y-auto border p-2 rounded-lg bg-gray-50 space-y-1"></div>
         </div>
     </div>
 </div>
@@ -515,6 +564,71 @@
 <div id="print-layout" class="print-area"></div>
 
 <!-- ══════════════════════════════════════════════════════════════
+     步驟5：數據分析
+══════════════════════════════════════════════════════════════ -->
+<div id="stats-section" class="no-print w-full max-w-6xl mx-auto bg-white p-6 rounded-xl shadow hidden mt-6 mb-10">
+    <h2 class="text-xl font-bold mb-6 border-b pb-2">📊 數據分析</h2>
+
+    <!-- 總覽卡片 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+            <div class="text-3xl font-black text-blue-600" id="st-total">0</div>
+            <div class="text-sm text-blue-700 font-bold mt-1">總登錄人數</div>
+        </div>
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+            <div class="text-3xl font-black text-green-600" id="st-assigned">0</div>
+            <div class="text-sm text-green-700 font-bold mt-1">已分班人數</div>
+        </div>
+        <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center">
+            <div class="text-3xl font-black text-orange-500" id="st-unassigned2">0</div>
+            <div class="text-sm text-orange-700 font-bold mt-1">待分班人數</div>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center">
+            <div class="text-3xl font-black text-purple-600" id="st-classes">0</div>
+            <div class="text-sm text-purple-700 font-bold mt-1">開設班數</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- 各年級人數 -->
+        <div class="border rounded-xl p-5 bg-gray-50">
+            <h3 class="font-bold text-gray-700 mb-4 text-base">📚 各年級人數</h3>
+            <div id="stats-grade-bars" class="space-y-3"></div>
+        </div>
+
+        <!-- 各科目人數 -->
+        <div class="border rounded-xl p-5 bg-gray-50">
+            <h3 class="font-bold text-gray-700 mb-4 text-base">📖 各科目報名人數</h3>
+            <div id="stats-subject-bars" class="space-y-3"></div>
+        </div>
+
+        <!-- 各扶助班人數 -->
+        <div class="border rounded-xl p-5 bg-gray-50 lg:col-span-2">
+            <h3 class="font-bold text-gray-700 mb-4 text-base">🏫 各扶助班人數</h3>
+            <div id="stats-class-bars" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3"></div>
+        </div>
+
+        <!-- 年級 × 科目交叉表 -->
+        <div class="border rounded-xl p-5 bg-gray-50 lg:col-span-2 overflow-x-auto">
+            <h3 class="font-bold text-gray-700 mb-4 text-base">📋 年級 × 科目 交叉統計</h3>
+            <table class="w-full text-sm text-center border-collapse" id="stats-cross-table">
+                <thead>
+                    <tr class="bg-gray-200">
+                        <th class="px-3 py-2 border text-left">年級</th>
+                        <th class="px-3 py-2 border text-red-600">國語</th>
+                        <th class="px-3 py-2 border text-blue-600">數學</th>
+                        <th class="px-3 py-2 border text-green-600">英語</th>
+                        <th class="px-3 py-2 border text-gray-600">合計</th>
+                    </tr>
+                </thead>
+                <tbody id="stats-cross-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
      主邏輯
 ══════════════════════════════════════════════════════════════ -->
 <script>
@@ -525,6 +639,8 @@ const ADMIN_PW = "admin";
 // ── 全域狀態 ──────────────────────────────────────────────────────
 let students = [], classes = [], settingsData = {};
 let IS_ADMIN = false;
+let filterGrade   = 'all';   // 'all' | '1'~'6'
+let filterSubject = 'all';   // 'all' | '國語' | '數學' | '英語'
 
 const SUB_BG   = { '國語':'bg-red-500',   '數學':'bg-blue-500',   '英語':'bg-green-500', '英文':'bg-green-500'  };
 const SUB_TEXT = { '國語':'text-red-600', '數學':'text-blue-600', '英語':'text-green-600','英文':'text-green-600' };
@@ -692,6 +808,28 @@ function _fbCopy(text, cb) {
     if (cb) cb();
 }
 
+// ── 篩選器 ────────────────────────────────────────────────────────
+function setFilter(type, val) {
+    if (type === 'grade') {
+        filterGrade = val;
+        document.querySelectorAll('.filter-btn-grade').forEach(b => {
+            b.classList.remove('active-filter');
+        });
+        document.getElementById(`f-grade-${val === 'all' ? 'all' : val}`).classList.add('active-filter');
+    } else {
+        filterSubject = val;
+        document.querySelectorAll('.filter-btn-sub').forEach(b => {
+            b.classList.remove('active-filter', 'active-filter-red', 'active-filter-blue', 'active-filter-green');
+        });
+        const el = document.getElementById(`f-sub-${val === 'all' ? 'all' : val}`);
+        if (val === 'all')  el.classList.add('active-filter');
+        if (val === '國語') el.classList.add('active-filter-red');
+        if (val === '數學') el.classList.add('active-filter-blue');
+        if (val === '英語') el.classList.add('active-filter-green');
+    }
+    renderScanList();
+}
+
 // ── 學生登錄 ──────────────────────────────────────────────────────
 function manualAdd() {
     if (!IS_ADMIN) return;
@@ -741,9 +879,24 @@ function sortRegisteredList() {
     renderScanList(); saveData();
 }
 function renderScanList() {
+    // 先排序：年級→班級
+    const sorted = [...students].sort((a, b) =>
+        (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass));
+
+    // 套用篩選
+    const filtered = sorted.filter(s => {
+        const gradeOk   = filterGrade   === 'all' || s.orgGrade === filterGrade;
+        const subjectOk = filterSubject === 'all' || s.subjects.includes(filterSubject);
+        return gradeOk && subjectOk;
+    });
+
     const list = document.getElementById('scanned-list');
-    document.getElementById('count-badge').innerText = `${students.length} 人`;
-    list.innerHTML = students.map(s => `
+    document.getElementById('count-badge').innerText =
+        filtered.length === students.length
+            ? `${students.length} 人`
+            : `${filtered.length} / ${students.length} 人`;
+
+    list.innerHTML = filtered.map(s => `
         <div class="scan-item flex justify-between items-center bg-white p-3 mb-1 border rounded-lg ${IS_ADMIN ? 'cursor-pointer' : ''}"
              ${IS_ADMIN ? `ondblclick="openEditModal(${s.id})"` : ''}>
             <div>
@@ -754,7 +907,7 @@ function renderScanList() {
                 <div>${s.subjects.map(sub => `<span class="dot ${SUB_BG[sub] || 'bg-gray-400'}"></span>`).join('')}</div>
                 ${IS_ADMIN ? `<button onclick="deleteStudent(${s.id})" class="text-red-400 hover:text-red-600 font-bold px-2 edit-only">×</button>` : ''}
             </div>
-        </div>`).join('');
+        </div>`).join('') || '<div class="text-center text-gray-400 py-10 text-sm">沒有符合條件的學生</div>';
 }
 
 // ── 班級設定 ──────────────────────────────────────────────────────
@@ -890,14 +1043,15 @@ function sortPool(type) {
 
 // ── Tab 切換 ──────────────────────────────────────────────────────
 function switchTab(t) {
-    ['scan-section', 'class-settings-section', 'arrange-section', 'print-section'].forEach(id => {
+    ['scan-section', 'class-settings-section', 'arrange-section', 'print-section', 'stats-section'].forEach(id => {
         const el = document.getElementById(id); el.classList.add('hidden'); el.classList.remove('flex');
     });
-    const map = { scan: 'scan-section', 'class-settings': 'class-settings-section', arrange: 'arrange-section', print: 'print-section' };
+    const map = { scan: 'scan-section', 'class-settings': 'class-settings-section', arrange: 'arrange-section', print: 'print-section', stats: 'stats-section' };
     const el = document.getElementById(map[t]); el.classList.remove('hidden');
     if (t === 'class-settings' || t === 'arrange') el.classList.add('flex');
     if (t === 'arrange') renderDragBoard();
     if (t === 'class-settings') renderClassSettings();
+    if (t === 'stats') renderStats();
 }
 
 // ── 匯出 ──────────────────────────────────────────────────────────
@@ -973,11 +1127,33 @@ function importSystemBackup(input) {
     const file = input.files[0]; if (!file) return;
     if (!confirm('還原備份將覆蓋目前所有資料，確定？')) { input.value = ''; return; }
     const r = new FileReader();
-    r.onload = function(e) {
+    r.onload = async function(e) {
         try {
             const d = JSON.parse(e.target.result);
-            students = d.students || []; classes = d.classes || []; settingsData = d.settings || {};
-            saveData(); loadSettingsToUI(); renderAll(); toast('✅ 還原成功');
+            students     = d.students || [];
+            classes      = d.classes  || [];
+            settingsData = d.settings || {};
+            applyDefaultSettings(settingsData);
+
+            if (typeof window._fbSave !== 'function') {
+                alert('Firebase 尚未就緒，請稍後再試（重新整理頁面後再匯入）');
+                input.value = ''; return;
+            }
+
+            const el = document.getElementById('save-status');
+            el.innerText = '(存檔中…)';
+            const ok = await window._fbSave({ students, classes, settings: settingsData });
+
+            if (ok) {
+                el.innerText = '(已存檔 ☁️)';
+                setTimeout(() => el.innerText = '', 2500);
+                loadSettingsToUI();
+                renderAll();
+                toast('✅ 備份還原成功，已同步至雲端');
+            } else {
+                el.innerText = '(存檔失敗)';
+                alert('本機資料已還原，但同步至 Firebase 失敗，請檢查網路');
+            }
         } catch (err) { alert('還原失敗：' + err.message); }
         input.value = '';
     };
@@ -1077,6 +1253,103 @@ function preparePrint(sortMode) {
         container.appendChild(page);
     });
     window.print();
+}// ── 數據分析 ──────────────────────────────────────────────────────
+function renderStats() {
+    const total      = students.length;
+    const assigned   = students.filter(s =>  s.classId).length;
+    const unassigned = students.filter(s => !s.classId).length;
+
+    document.getElementById('st-total').innerText       = total;
+    document.getElementById('st-assigned').innerText    = assigned;
+    document.getElementById('st-unassigned2').innerText = unassigned;
+    document.getElementById('st-classes').innerText     = classes.length;
+
+    // helper：橫條圖
+    function bar(label, count, max, colorClass, extra = '') {
+        const pct = max > 0 ? Math.round(count / max * 100) : 0;
+        return `<div>
+            <div class="flex justify-between text-xs font-bold mb-1">
+                <span>${label}${extra}</span>
+                <span>${count} 人 (${pct}%)</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-4">
+                <div class="${colorClass} h-4 rounded-full transition-all" style="width:${pct}%"></div>
+            </div>
+        </div>`;
+    }
+
+    // ── 各年級 ─────────────────────────────────────────────────
+    const gradeContainer = document.getElementById('stats-grade-bars');
+    const gradeCounts = {};
+    students.forEach(s => { gradeCounts[s.orgGrade] = (gradeCounts[s.orgGrade] || 0) + 1; });
+    const gradeMax = Math.max(...Object.values(gradeCounts), 1);
+    const gradeNames = { '1':'一年級','2':'二年級','3':'三年級','4':'四年級','5':'五年級','6':'六年級' };
+    gradeContainer.innerHTML = ['1','2','3','4','5','6'].map(g =>
+        bar(gradeNames[g] || `${g}年級`, gradeCounts[g] || 0, gradeMax, 'bg-blue-400')
+    ).join('');
+
+    // ── 各科目（一個學生可能有多科）────────────────────────────
+    const subContainer = document.getElementById('stats-subject-bars');
+    const subCounts = { '國語': 0, '數學': 0, '英語': 0 };
+    students.forEach(s => s.subjects.forEach(sub => {
+        if (sub === '英文') subCounts['英語'] = (subCounts['英語'] || 0) + 1;
+        else if (subCounts[sub] !== undefined) subCounts[sub]++;
+    }));
+    const subMax = Math.max(...Object.values(subCounts), 1);
+    subContainer.innerHTML = [
+        bar('國語', subCounts['國語'], subMax, 'bg-red-400'),
+        bar('數學', subCounts['數學'], subMax, 'bg-blue-400'),
+        bar('英語', subCounts['英語'], subMax, 'bg-green-400'),
+    ].join('');
+
+    // ── 各扶助班 ───────────────────────────────────────────────
+    const classContainer = document.getElementById('stats-class-bars');
+    const classMax = Math.max(...classes.map(c => students.filter(s => s.classId === c.id).length), 1);
+    classContainer.innerHTML = classes.map(c => {
+        const cnt = students.filter(s => s.classId === c.id).length;
+        const pct = classMax > 0 ? Math.round(cnt / classMax * 100) : 0;
+        const subColor = { '國語':'bg-red-100 border-red-300','數學':'bg-blue-100 border-blue-300','英語':'bg-green-100 border-green-300' }[c.subject] || 'bg-gray-100 border-gray-300';
+        const barColor = { '國語':'bg-red-400','數學':'bg-blue-400','英語':'bg-green-400' }[c.subject] || 'bg-gray-400';
+        return `<div class="border rounded-xl p-3 ${subColor} text-center">
+            <div class="font-black text-2xl">${cnt}</div>
+            <div class="font-bold text-sm">${c.name}</div>
+            <div class="text-xs text-gray-500">${c.grade || '?'}年・${c.subject}</div>
+            <div class="w-full bg-white/60 rounded-full h-2 mt-2">
+                <div class="${barColor} h-2 rounded-full" style="width:${pct}%"></div>
+            </div>
+        </div>`;
+    }).join('') || '<div class="col-span-5 text-center text-gray-400 py-4 text-sm">尚未設定班級</div>';
+
+    // ── 年級 × 科目 交叉表 ─────────────────────────────────────
+    const tbody = document.getElementById('stats-cross-tbody');
+    const SUBS = ['國語','數學','英語'];
+    let grandTotal = 0, grandSub = { '國語':0, '數學':0, '英語':0 };
+    const rows = ['1','2','3','4','5','6'].map(g => {
+        const inGrade = students.filter(s => s.orgGrade === g);
+        if (!inGrade.length) return '';
+        const counts = {};
+        SUBS.forEach(sub => {
+            counts[sub] = inGrade.filter(s => s.subjects.includes(sub) || (sub === '英語' && s.subjects.includes('英文'))).length;
+            grandSub[sub] = (grandSub[sub] || 0) + counts[sub];
+        });
+        const rowTotal = inGrade.length;
+        grandTotal += rowTotal;
+        return `<tr class="hover:bg-gray-50">
+            <td class="px-3 py-2 border font-bold text-left">${gradeNames[g]}</td>
+            <td class="px-3 py-2 border ${counts['國語']?'text-red-600 font-bold':' text-gray-300'}">${counts['國語'] || '—'}</td>
+            <td class="px-3 py-2 border ${counts['數學']?'text-blue-600 font-bold':'text-gray-300'}">${counts['數學'] || '—'}</td>
+            <td class="px-3 py-2 border ${counts['英語']?'text-green-600 font-bold':'text-gray-300'}">${counts['英語'] || '—'}</td>
+            <td class="px-3 py-2 border font-black text-gray-700">${rowTotal}</td>
+        </tr>`;
+    });
+    rows.push(`<tr class="bg-gray-100 font-black">
+        <td class="px-3 py-2 border">合計</td>
+        <td class="px-3 py-2 border text-red-600">${grandSub['國語']}</td>
+        <td class="px-3 py-2 border text-blue-600">${grandSub['數學']}</td>
+        <td class="px-3 py-2 border text-green-600">${grandSub['英語']}</td>
+        <td class="px-3 py-2 border text-gray-800">${grandTotal}</td>
+    </tr>`);
+    tbody.innerHTML = rows.join('');
 }
 </script>
 </body>

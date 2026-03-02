@@ -758,9 +758,9 @@ let IS_ADMIN = false;
 let filterGrade   = 'all';   // 'all' | '1'~'6'
 let filterSubject = 'all';   // 'all' | '國語' | '數學' | '英語'
 
-const SUB_BG   = { '國語':'bg-red-500',   '數學':'bg-blue-500',   '英語':'bg-green-500', '英文':'bg-green-500'  };
-const SUB_TEXT = { '國語':'text-red-600', '數學':'text-blue-600', '英語':'text-green-600','英文':'text-green-600' };
-const SUBJECTS = ['國語','數學','英語'];
+const SUB_BG   = { '國語':'bg-red-500',   '數學':'bg-blue-500',   '英語':'bg-green-500', '英文':'bg-green-500', '國數':'bg-purple-500' };
+const SUB_TEXT = { '國語':'text-red-600', '數學':'text-blue-600', '英語':'text-green-600','英文':'text-green-600','國數':'text-purple-600' };
+const SUBJECTS = ['國語','數學','英語','國數'];
 
 // ── 通關碼 ────────────────────────────────────────────────────────
 function submitGate() {
@@ -1430,8 +1430,8 @@ function renderStats() {
     classContainer.innerHTML = classes.map(c => {
         const cnt = students.filter(s => s.classId === c.id).length;
         const pct = classMax > 0 ? Math.round(cnt / classMax * 100) : 0;
-        const subColor = { '國語':'bg-red-100 border-red-300','數學':'bg-blue-100 border-blue-300','英語':'bg-green-100 border-green-300' }[c.subject] || 'bg-gray-100 border-gray-300';
-        const barColor = { '國語':'bg-red-400','數學':'bg-blue-400','英語':'bg-green-400' }[c.subject] || 'bg-gray-400';
+        const subColor = { '國語':'bg-red-100 border-red-300','數學':'bg-blue-100 border-blue-300','英語':'bg-green-100 border-green-300','國數':'bg-purple-100 border-purple-300' }[c.subject] || 'bg-gray-100 border-gray-300';
+        const barColor = { '國語':'bg-red-400','數學':'bg-blue-400','英語':'bg-green-400','國數':'bg-purple-400' }[c.subject] || 'bg-gray-400';
         return `<div class="border rounded-xl p-3 ${subColor} text-center">
             <div class="font-black text-2xl">${cnt}</div>
             <div class="font-bold text-sm">${c.name}</div>
@@ -1451,7 +1451,9 @@ function renderStats() {
         if (!inGrade.length) return '';
         const counts = {};
         SUBS.forEach(sub => {
-            counts[sub] = inGrade.filter(s => s.subjects.includes(sub) || (sub === '英語' && s.subjects.includes('英文'))).length;
+            counts[sub] = inGrade.filter(s =>
+                s.subjects.includes(sub) || (sub === '英語' && s.subjects.includes('英文'))
+            ).length;
             grandSub[sub] = (grandSub[sub] || 0) + counts[sub];
         });
         const rowTotal = inGrade.length;
@@ -1523,8 +1525,8 @@ function renderMobStudents() {
         return gOk && sOk;
     });
 
-    const SUB_BORDER = { '國語':'border-red-400','數學':'border-blue-400','英語':'border-green-400','英文':'border-green-400' };
-    const SUB_DOT    = { '國語':'bg-red-500','數學':'bg-blue-500','英語':'bg-green-500','英文':'bg-green-500' };
+    const SUB_BORDER = { '國語':'border-red-400','數學':'border-blue-400','英語':'border-green-400','英文':'border-green-400','國數':'border-purple-400' };
+    const SUB_DOT    = { '國語':'bg-red-500','數學':'bg-blue-500','英語':'bg-green-500','英文':'bg-green-500','國數':'bg-purple-500' };
 
     document.getElementById('mob-student-count').innerText =
         filtered.length === students.length
@@ -1572,9 +1574,9 @@ function renderMobStudents() {
 
 // ── 手機版班級資訊渲染 ────────────────────────────────────────────
 function renderMobClasses() {
-    const SUB_TOP = { '國語':'border-red-400','數學':'border-blue-400','英語':'border-green-400' };
-    const SUB_BG2 = { '國語':'bg-red-50','數學':'bg-blue-50','英語':'bg-green-50' };
-    const SUB_TAG = { '國語':'bg-red-100 text-red-700','數學':'bg-blue-100 text-blue-700','英語':'bg-green-100 text-green-700' };
+    const SUB_TOP = { '國語':'border-red-400','數學':'border-blue-400','英語':'border-green-400','國數':'border-purple-400' };
+    const SUB_BG2 = { '國語':'bg-red-50','數學':'bg-blue-50','英語':'bg-green-50','國數':'bg-purple-50' };
+    const SUB_TAG = { '國語':'bg-red-100 text-red-700','數學':'bg-blue-100 text-blue-700','英語':'bg-green-100 text-green-700','國數':'bg-purple-100 text-purple-700' };
 
     const list = document.getElementById('mob-class-list');
     if (!classes.length) {
@@ -1617,7 +1619,8 @@ function renderMobClasses() {
             <div class="border-t border-white/50 pt-3">
                 <div class="text-xs font-bold text-gray-500 mb-2">學生 ${inClass.length} 人</div>
                 ${inClass.length ? `<div class="flex flex-wrap gap-1.5">
-                    ${inClass.map(s => `<span class="bg-white text-gray-700 text-xs px-2 py-1 rounded-lg border font-medium">
+                    ${inClass.map(s => `<span class="bg-white text-gray-700 text-xs px-2 py-1 rounded-lg border font-medium flex items-center gap-1">
+                        ${s.subjects.map(sub => `<span class="inline-block w-2 h-2 rounded-full ${SUB_DOT[sub]||'bg-gray-400'}"></span>`).join('')}
                         ${s.orgGrade}年${s.orgClass}班 ${s.name}
                     </span>`).join('')}
                 </div>` : '<div class="text-xs text-gray-400">尚無學生</div>'}

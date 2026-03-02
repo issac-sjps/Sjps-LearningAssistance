@@ -1384,7 +1384,32 @@ function preparePrint(sortMode) {
             <div class="page-break"></div>`;
         container.appendChild(page);
     });
-    window.print();
+
+    // 開新視窗列印，完全避免手機版或其他 UI 干擾
+    const printWin = window.open('', '_blank', 'width=900,height=700');
+    printWin.document.write(`<!DOCTYPE html>
+<html lang="zh-TW"><head>
+<meta charset="UTF-8">
+<title>學習扶助開課通知單</title>
+<style>
+    @media print { .page-break { page-break-after: always; } }
+    body { margin: 0; padding: 0; font-family: "BiauKai","DFKai-SB",serif; background: white; }
+    .notice-box {
+        border: 2px solid black; padding: 20px;
+        font-size: 16px; line-height: 1.5;
+        max-width: 800px; margin: 0 auto 20px auto;
+    }
+    .notice-header { text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 15px; }
+    .cut-line { border-top: 1px dashed black; margin: 20px 0; text-align: center; position: relative; }
+    .cut-line span { background: white; padding: 0 10px; position: relative; top: -12px; font-size: 14px; }
+    .page-break { page-break-after: always; }
+    p { margin: 4px 0; }
+</style>
+</head><body>
+${container.innerHTML}
+<script>window.onload=function(){window.print();window.onafterprint=function(){window.close();}}<\/script>
+</body></html>`);
+    printWin.document.close();
 }// ── 數據分析 ──────────────────────────────────────────────────────
 function renderStats() {
     const total      = students.length;

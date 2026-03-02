@@ -59,6 +59,8 @@
         @media print {
             .no-print { display: none !important; }
             .print-area { display: block !important; }
+            #mobile-app { display: none !important; }
+            #desktop-app { display: block !important; }
             body { background: white; }
             .page-break { page-break-after: always; }
             -webkit-print-color-adjust: exact;
@@ -1335,43 +1337,50 @@ function preparePrint(sortMode) {
         const fullCls = `${c.name} (${c.grade}年級 ${c.subject})`;
         let room = c.roomName || ''; if (c.code) room += ` (${c.code})`; if (c.floor) room += ` - ${c.floor}`;
         const page = document.createElement('div');
-        page.innerHTML = `<div class="notice-box">
-            <div class="notice-header">${S.title}</div>
-            <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:18px;">
-                <tr>
-                    <td style="padding:5px">班級：<strong>${st.orgGrade}年 ${st.orgClass}班</strong></td>
-                    <td style="padding:5px;text-align:right">學生姓名：<strong>${st.name}</strong></td>
-                </tr>
-            </table>
-            <div style="border:1px solid black;padding:15px;margin-bottom:15px">
-                <p>上課班級：<strong>${fullCls}</strong></p>
-                <p>上課日期：${S.date}</p>
-                <p>上課時間：<strong>${S.time}</strong></p>
-                <p>上課教師：${c.teacher} 老師</p>
-                <p>上課教室：${room}</p>
-                <p>教室分機：${ext}</p>
-                <br><p>備註：</p><div style="padding-left:20px">${S.note}</div>
+        page.innerHTML = `
+            <div class="notice-box">
+                <div class="notice-header">${S.title}</div>
+                <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:18px;">
+                    <tr>
+                        <td style="padding:5px">班級：<strong>${st.orgGrade}年 ${st.orgClass}班</strong></td>
+                        <td style="padding:5px;text-align:right">學生姓名：<strong>${st.name}</strong></td>
+                    </tr>
+                </table>
+                <div style="border:1px solid black;padding:15px;margin-bottom:15px">
+                    <p>上課班級：<strong>${fullCls}</strong></p>
+                    <p>上課日期：${S.date}</p>
+                    <p>上課時間：<strong>${S.time}</strong></p>
+                    <p>上課教師：${c.teacher} 老師</p>
+                    <p>上課教室：${room}</p>
+                    <p>教室分機：${ext}</p>
+                    <br>
+                    <p>備註：</p>
+                    <div style="padding-left:20px">${S.note}</div>
+                </div>
+                <div class="mb-4">${S.footer}</div>
+                <div class="cut-line"><span>請沿線剪下繳交給任課老師方便協助聯絡---上方資料家長自行留存</span></div>
+                <div style="border:2px solid black;padding:10px;text-align:center;margin:20px 0">
+                    <h3 style="margin:0">回 條 ${S.deadline} 交予授課學扶教師或註冊組</h3>
+                </div>
+                <div style="text-align:center;margin-bottom:10px;font-size:18px">
+                    <span>${st.orgGrade}年${st.orgClass}班 ${st.name}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+                    <span>上課班級：${fullCls}</span>
+                    <span>上課教師：${c.teacher}</span>
+                </div>
+                <div style="text-align:center;font-weight:bold;margin-bottom:15px">
+                    ※學習扶助課後接送者(請務必填寫並繳交，以利確認學生安全)
+                </div>
+                <div style="line-height:2.2;font-size:16px">
+                    <div>□ 家人，稱謂(　　　　)，連絡電話(　　　　　　　　)</div>
+                    <div>□ 校外安親班_名稱(　　　　)，連絡電話(　　　　　　　　)</div>
+                    <div>□ 校內安親班老師電話或教室分機(　　　　　　　　)</div>
+                    <div>□ 其他，請說明(　　　　　　　　)</div>
+                </div>
+                <div style="margin-top:30px;text-align:right;font-size:16px">家長簽名 ______________________</div>
             </div>
-            <div class="mb-4">${S.footer}</div>
-            <div class="cut-line"><span>請沿線剪下繳交給任課老師---上方資料家長自行留存</span></div>
-            <div style="border:2px solid black;padding:10px;text-align:center;margin:20px 0">
-                <h3 style="margin:0">回 條 ${S.deadline} 交予授課學扶教師或註冊組</h3>
-            </div>
-            <div style="text-align:center;margin-bottom:10px;font-size:18px">${st.orgGrade}年${st.orgClass}班 ${st.name}</div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-                <span>上課班級：${fullCls}</span><span>上課教師：${c.teacher}</span>
-            </div>
-            <div style="text-align:center;font-weight:bold;margin-bottom:15px">
-                ※學習扶助課後接送者(請務必填寫並繳交，以利確認學生安全)
-            </div>
-            <div style="line-height:2.2;font-size:16px">
-                <div>□ 家人，稱謂(　　　　)，連絡電話(　　　　　　　　)</div>
-                <div>□ 校外安親班_名稱(　　　　)，連絡電話(　　　　　　　　)</div>
-                <div>□ 校內安親班老師電話或教室分機(　　　　　　　　)</div>
-                <div>□ 其他，請說明(　　　　　　　　)</div>
-            </div>
-            <div style="margin-top:30px;text-align:right;font-size:16px">家長簽名 ______________________</div>
-        </div><div class="page-break"></div>`;
+            <div class="page-break"></div>`;
         container.appendChild(page);
     });
     window.print();

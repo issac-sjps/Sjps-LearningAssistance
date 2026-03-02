@@ -197,9 +197,125 @@
         .active-filter-red   { background: #dc2626 !important; color: white !important; border-color: #dc2626 !important; }
         .active-filter-blue  { background: #2563eb !important; color: white !important; border-color: #2563eb !important; }
         .active-filter-green { background: #16a34a !important; color: white !important; border-color: #16a34a !important; }
+
+        /* ── 手機版 ───────────────────────────────────────── */
+        /* 桌機預設：手機介面隱藏 */
+        #mobile-app  { display: none; }
+        #desktop-app { display: block; }
+
+        @media (max-width: 767px) {
+            /* 手機：隱藏桌機介面，顯示手機介面 */
+            #desktop-app { display: none !important; }
+            #mobile-app  { display: flex !important; flex-direction: column; min-height: 100vh; }
+        }
+
+        /* 手機底部導覽列 */
+        .mob-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white;
+            border-top: 1px solid #e5e7eb; display: flex; z-index: 50;
+            padding-bottom: env(safe-area-inset-bottom); }
+        .mob-nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; padding: 10px 4px 8px; font-size: 10px; font-weight: 700;
+            color: #9ca3af; border: none; background: none; cursor: pointer; transition: color .15s; }
+        .mob-nav-btn.active { color: #2563eb; }
+        .mob-nav-btn .icon { font-size: 22px; margin-bottom: 2px; }
+
+        /* 手機頁面通用 */
+        .mob-page { display: none; flex: 1; flex-direction: column; overflow-y: auto;
+            padding: 16px; padding-bottom: 80px; }
+        .mob-page.active { display: flex; }
+
+        /* 手機篩選 pill */
+        .mob-pill { padding: 6px 14px; border-radius: 99px; border: 1.5px solid #d1d5db;
+            font-size: 12px; font-weight: 700; background: white; color: #6b7280;
+            white-space: nowrap; cursor: pointer; transition: all .15s; }
+        .mob-pill.on-blue  { background: #2563eb; color: white; border-color: #2563eb; }
+        .mob-pill.on-red   { background: #dc2626; color: white; border-color: #dc2626; }
+        .mob-pill.on-green { background: #16a34a; color: white; border-color: #16a34a; }
+
+        /* 手機學生卡片 */
+        .mob-student-card { background: white; border-radius: 12px; padding: 12px 14px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08); border-left: 4px solid #d1d5db; }
+
+        /* 手機班級卡片 */
+        .mob-class-card { background: white; border-radius: 14px; padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08); border-top: 4px solid #d1d5db; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans flex flex-col">
+<body class="bg-gray-100 min-h-screen font-sans">
+
+<!-- ══════════════════════════════════════════════════════════════
+     手機版介面（< 768px 才顯示）
+══════════════════════════════════════════════════════════════ -->
+<div id="mobile-app" class="bg-gray-100">
+
+    <!-- 手機通關碼畫面（與桌機共用同一個 gate-screen，透過 JS 控制） -->
+
+    <!-- 手機頂部標題列 -->
+    <div class="bg-white shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-40 border-b">
+        <div>
+            <div class="font-black text-gray-800 text-base leading-tight">新莊國小</div>
+            <div class="text-xs text-blue-600 font-bold">學習扶助編班系統</div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span id="mob-mode-badge" class="text-xs font-bold px-2 py-1 rounded-full badge-view">👁️ 瀏覽</span>
+            <button id="mob-btn-login" onclick="openAdminModal()"
+                    class="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold">🔐</button>
+            <button id="mob-btn-logout" onclick="adminLogout()"
+                    class="hidden text-xs bg-gray-500 text-white px-3 py-1.5 rounded-lg">登出</button>
+        </div>
+    </div>
+
+    <!-- ── 手機頁面：學生名單 ───────────────────────────────── -->
+    <div id="mob-page-students" class="mob-page active">
+        <h2 class="font-black text-gray-700 text-base mb-3">📋 學生名單</h2>
+
+        <!-- 年級篩選 -->
+        <div class="flex gap-2 overflow-x-auto pb-2 mb-2" style="scrollbar-width:none">
+            <button onclick="mobSetGrade('all')"  id="mob-g-all" class="mob-pill on-blue">全部</button>
+            <button onclick="mobSetGrade('1')"    id="mob-g-1"   class="mob-pill">一年</button>
+            <button onclick="mobSetGrade('2')"    id="mob-g-2"   class="mob-pill">二年</button>
+            <button onclick="mobSetGrade('3')"    id="mob-g-3"   class="mob-pill">三年</button>
+            <button onclick="mobSetGrade('4')"    id="mob-g-4"   class="mob-pill">四年</button>
+            <button onclick="mobSetGrade('5')"    id="mob-g-5"   class="mob-pill">五年</button>
+            <button onclick="mobSetGrade('6')"    id="mob-g-6"   class="mob-pill">六年</button>
+        </div>
+        <!-- 科目篩選 -->
+        <div class="flex gap-2 mb-4">
+            <button onclick="mobSetSub('all')"  id="mob-s-all"  class="mob-pill on-blue">全科</button>
+            <button onclick="mobSetSub('國語')" id="mob-s-chi"  class="mob-pill text-red-600 border-red-300">國語</button>
+            <button onclick="mobSetSub('數學')" id="mob-s-math" class="mob-pill text-blue-600 border-blue-300">數學</button>
+            <button onclick="mobSetSub('英語')" id="mob-s-eng"  class="mob-pill text-green-600 border-green-300">英語</button>
+        </div>
+
+        <!-- 人數顯示 -->
+        <div class="text-xs text-gray-500 mb-3 font-bold" id="mob-student-count">共 0 人</div>
+
+        <!-- 學生清單 -->
+        <div id="mob-student-list" class="space-y-2"></div>
+    </div>
+
+    <!-- ── 手機頁面：班級資訊 ───────────────────────────────── -->
+    <div id="mob-page-classes" class="mob-page">
+        <h2 class="font-black text-gray-700 text-base mb-4">🏫 班級資訊</h2>
+        <div id="mob-class-list" class="space-y-3"></div>
+    </div>
+
+    <!-- ── 手機底部導覽列 ────────────────────────────────────── -->
+    <nav class="mob-nav">
+        <button class="mob-nav-btn active" id="mob-nav-students" onclick="mobSwitchTab('students')">
+            <span class="icon">👥</span>學生名單
+        </button>
+        <button class="mob-nav-btn" id="mob-nav-classes" onclick="mobSwitchTab('classes')">
+            <span class="icon">🏫</span>班級資訊
+        </button>
+    </nav>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     桌機版介面（>= 768px 才顯示）
+══════════════════════════════════════════════════════════════ -->
+<div id="desktop-app" class="bg-gray-100 min-h-screen flex flex-col">
 
 <!-- ══ Toast ════════════════════════════════════════════════════ -->
 <div id="toast"></div>
@@ -1357,6 +1473,198 @@ function renderStats() {
     </tr>`);
     tbody.innerHTML = rows.join('');
 }
+</script>
+
+</div><!-- end #desktop-app -->
+
+<!-- ══════════════════════════════════════════════════════════════
+     手機版 JS
+══════════════════════════════════════════════════════════════ -->
+<script>
+// ── 手機版狀態 ────────────────────────────────────────────────────
+let mobFilterGrade = 'all';
+let mobFilterSub   = 'all';
+
+// ── 手機版 Tab 切換 ───────────────────────────────────────────────
+function mobSwitchTab(tab) {
+    ['students','classes'].forEach(t => {
+        document.getElementById(`mob-page-${t}`).classList.remove('active');
+        document.getElementById(`mob-nav-${t}`).classList.remove('active');
+    });
+    document.getElementById(`mob-page-${tab}`).classList.add('active');
+    document.getElementById(`mob-nav-${tab}`).classList.add('active');
+    if (tab === 'classes') renderMobClasses();
+}
+
+// ── 手機版篩選 ────────────────────────────────────────────────────
+function mobSetGrade(val) {
+    mobFilterGrade = val;
+    document.querySelectorAll('[id^="mob-g-"]').forEach(b => b.classList.remove('on-blue'));
+    document.getElementById(`mob-g-${val === 'all' ? 'all' : val}`).classList.add('on-blue');
+    renderMobStudents();
+}
+function mobSetSub(val) {
+    mobFilterSub = val;
+    document.querySelectorAll('[id^="mob-s-"]').forEach(b =>
+        b.classList.remove('on-blue','on-red','on-green'));
+    const map = { 'all':'on-blue', '國語':'on-red', '數學':'on-blue', '英語':'on-green' };
+    const idMap = { 'all':'all', '國語':'chi', '數學':'math', '英語':'eng' };
+    document.getElementById(`mob-s-${idMap[val]}`).classList.add(map[val]);
+    renderMobStudents();
+}
+
+// ── 手機版學生名單渲染 ────────────────────────────────────────────
+function renderMobStudents() {
+    const sorted = [...students].sort((a,b) =>
+        (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass));
+    const filtered = sorted.filter(s => {
+        const gOk = mobFilterGrade === 'all' || s.orgGrade === mobFilterGrade;
+        const sOk = mobFilterSub   === 'all' || s.subjects.includes(mobFilterSub);
+        return gOk && sOk;
+    });
+
+    const SUB_BORDER = { '國語':'border-red-400','數學':'border-blue-400','英語':'border-green-400','英文':'border-green-400' };
+    const SUB_DOT    = { '國語':'bg-red-500','數學':'bg-blue-500','英語':'bg-green-500','英文':'bg-green-500' };
+
+    document.getElementById('mob-student-count').innerText =
+        filtered.length === students.length
+            ? `共 ${students.length} 人`
+            : `顯示 ${filtered.length} / ${students.length} 人`;
+
+    const list = document.getElementById('mob-student-list');
+    if (!filtered.length) {
+        list.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">沒有符合條件的學生</div>';
+        return;
+    }
+
+    // 依年級分組
+    const groups = {};
+    filtered.forEach(s => {
+        const g = s.orgGrade;
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(s);
+    });
+    const gradeLabel = {'1':'一年級','2':'二年級','3':'三年級','4':'四年級','5':'五年級','6':'六年級'};
+    list.innerHTML = Object.keys(groups).sort((a,b) => +a - +b).map(g => `
+        <div class="mb-4">
+            <div class="text-xs font-black text-gray-500 uppercase tracking-wider mb-2 px-1">
+                ${gradeLabel[g] || g+'年級'} · ${groups[g].length} 人
+            </div>
+            <div class="space-y-2">
+                ${groups[g].map(s => {
+                    const borderCls = SUB_BORDER[s.subjects[0]] || 'border-gray-300';
+                    const cls = classes.find(c => c.id === s.classId);
+                    return `<div class="mob-student-card ${borderCls}">
+                        <div>
+                            <div class="font-bold text-gray-800 text-sm">${s.name}</div>
+                            <div class="text-xs text-gray-400 mt-0.5">${s.orgGrade}年${s.orgClass}班
+                                ${cls ? `· <span class="text-blue-600">${cls.name}</span>` : '· 未分班'}
+                            </div>
+                        </div>
+                        <div class="flex gap-1">
+                            ${s.subjects.map(sub => `<span class="w-2.5 h-2.5 rounded-full ${SUB_DOT[sub]||'bg-gray-400'}"></span>`).join('')}
+                        </div>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>`).join('');
+}
+
+// ── 手機版班級資訊渲染 ────────────────────────────────────────────
+function renderMobClasses() {
+    const SUB_TOP = { '國語':'border-red-400','數學':'border-blue-400','英語':'border-green-400' };
+    const SUB_BG2 = { '國語':'bg-red-50','數學':'bg-blue-50','英語':'bg-green-50' };
+    const SUB_TAG = { '國語':'bg-red-100 text-red-700','數學':'bg-blue-100 text-blue-700','英語':'bg-green-100 text-green-700' };
+
+    const list = document.getElementById('mob-class-list');
+    if (!classes.length) {
+        list.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">尚未設定班級</div>';
+        return;
+    }
+    list.innerHTML = classes.map(c => {
+        const inClass = students.filter(s => s.classId === c.id)
+            .sort((a,b) => (+a.orgGrade - +b.orgGrade)||(+a.orgClass - +b.orgClass));
+        const topCls = SUB_TOP[c.subject] || 'border-gray-300';
+        const bgCls  = SUB_BG2[c.subject] || 'bg-gray-50';
+        const tagCls = SUB_TAG[c.subject] || 'bg-gray-100 text-gray-700';
+        const ext    = c.extension ? `3411373#${c.extension}` : '—';
+        let room = c.roomName || '—'; if (c.code) room += ` (${c.code})`; if (c.floor) room += ` ${c.floor}`;
+        return `<div class="mob-class-card ${topCls} ${bgCls}">
+            <!-- 班級標題 -->
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <span class="text-xl font-black text-gray-800">${c.name}</span>
+                    <span class="ml-2 text-sm font-bold text-gray-500">${c.grade || '?'} 年級</span>
+                </div>
+                <span class="text-xs font-bold px-2.5 py-1 rounded-full ${tagCls}">${c.subject}</span>
+            </div>
+            <!-- 資訊列 -->
+            <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+                <div class="bg-white/70 rounded-lg p-2.5">
+                    <div class="text-gray-400 mb-0.5">授課教師</div>
+                    <div class="font-bold text-gray-700">${c.teacher || '—'}</div>
+                </div>
+                <div class="bg-white/70 rounded-lg p-2.5">
+                    <div class="text-gray-400 mb-0.5">分機</div>
+                    <div class="font-bold text-gray-700">${ext}</div>
+                </div>
+                <div class="bg-white/70 rounded-lg p-2.5 col-span-2">
+                    <div class="text-gray-400 mb-0.5">教室</div>
+                    <div class="font-bold text-gray-700">${room}</div>
+                </div>
+            </div>
+            <!-- 學生人數與名單 -->
+            <div class="border-t border-white/50 pt-3">
+                <div class="text-xs font-bold text-gray-500 mb-2">學生 ${inClass.length} 人</div>
+                ${inClass.length ? `<div class="flex flex-wrap gap-1.5">
+                    ${inClass.map(s => `<span class="bg-white text-gray-700 text-xs px-2 py-1 rounded-lg border font-medium">
+                        ${s.orgGrade}年${s.orgClass}班 ${s.name}
+                    </span>`).join('')}
+                </div>` : '<div class="text-xs text-gray-400">尚無學生</div>'}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ── 手機版模式 UI 同步 ────────────────────────────────────────────
+const _origApplyModeUI = applyModeUI;
+applyModeUI = function() {
+    _origApplyModeUI();
+    // 同步手機版標籤和按鈕
+    const badge  = document.getElementById('mob-mode-badge');
+    const btnIn  = document.getElementById('mob-btn-login');
+    const btnOut = document.getElementById('mob-btn-logout');
+    if (!badge) return;
+    if (IS_ADMIN) {
+        badge.className = 'text-xs font-bold px-2 py-1 rounded-full badge-admin';
+        badge.innerText = '✏️ 管理員';
+        btnIn.classList.add('hidden');
+        btnOut.classList.remove('hidden');
+    } else {
+        badge.className = 'text-xs font-bold px-2 py-1 rounded-full badge-view';
+        badge.innerText = '👁️ 瀏覽';
+        btnIn.classList.remove('hidden');
+        btnOut.classList.add('hidden');
+    }
+};
+
+// ── 資料更新時同步手機版 ─────────────────────────────────────────
+const _origOnRemoteUpdate = window._onRemoteUpdate;
+window._onRemoteUpdate = function(data) {
+    _origOnRemoteUpdate(data);
+    // 如果手機版頁面是活躍的也更新
+    const stuPage = document.getElementById('mob-page-students');
+    const clsPage = document.getElementById('mob-page-classes');
+    if (stuPage && stuPage.classList.contains('active')) renderMobStudents();
+    if (clsPage && clsPage.classList.contains('active')) renderMobClasses();
+};
+
+// ── bootApp 後初始化手機版 ────────────────────────────────────────
+const _origBootApp = bootApp;
+bootApp = function() {
+    _origBootApp();
+    renderMobStudents();
+};
 </script>
 </body>
 </html>

@@ -57,13 +57,10 @@
     <style>
         /* ── 列印 ─────────────────────────────────────────── */
         @media print {
-            /* 列印時隱藏所有畫面元素 */
-            body * { visibility: hidden; }
-            /* 只顯示通知單內容 */
-            #print-layout, #print-layout * { visibility: visible; }
+            body > * { display: none !important; }
             #print-layout {
-                position: fixed;
-                top: 0; left: 0;
+                display: block !important;
+                position: static;
                 width: 100%;
             }
             .page-break { page-break-after: always; }
@@ -684,7 +681,6 @@
     </div>
 </div>
 
-<div id="print-layout" class="print-area"></div>
 
 <!-- ══════════════════════════════════════════════════════════════
      步驟5：數據分析
@@ -1492,6 +1488,8 @@ function renderStats() {
 </script>
 
 </div><!-- end #desktop-app -->
+
+<div id="print-layout"></div>
 
 <!-- ══════════════════════════════════════════════════════════════
      手機版 JS

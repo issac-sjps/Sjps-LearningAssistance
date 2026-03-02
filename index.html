@@ -755,7 +755,8 @@ function applyDefaultSettings(s) {
 // ── 存檔 ──────────────────────────────────────────────────────────
 async function saveData() {
     if (!IS_ADMIN) return;
-    settingsData = {
+    // 從畫面欄位讀值，但只取非空的（避免不在列印頁時把設定清空）
+    const fromUI = {
         title:    document.getElementById('setting-title').value,
         date:     document.getElementById('setting-date').value,
         time:     document.getElementById('setting-time').value,
@@ -763,6 +764,10 @@ async function saveData() {
         note:     document.getElementById('setting-note').value,
         footer:   document.getElementById('setting-footer').value,
     };
+    // 有值才更新，沒值保留 settingsData 原本的
+    Object.keys(fromUI).forEach(k => {
+        if (fromUI[k] !== '' && fromUI[k] !== undefined) settingsData[k] = fromUI[k];
+    });
     const el = document.getElementById('save-status');
     el.innerText = '(存檔中…)';
     const ok = await window._fbSave({ students, classes, settings: settingsData });
@@ -1142,12 +1147,13 @@ function importSystemBackup(input) {
 
             const el = document.getElementById('save-status');
             el.innerText = '(存檔中…)';
+            // 直接用備份的 settingsData 存，不從畫面欄位讀（避免覆蓋成空值）
             const ok = await window._fbSave({ students, classes, settings: settingsData });
 
             if (ok) {
                 el.innerText = '(已存檔 ☁️)';
                 setTimeout(() => el.innerText = '', 2500);
-                loadSettingsToUI();
+                loadSettingsToUI();  // 存完後才更新畫面欄位
                 renderAll();
                 toast('✅ 備份還原成功，已同步至雲端');
             } else {

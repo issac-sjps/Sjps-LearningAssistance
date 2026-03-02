@@ -1317,14 +1317,14 @@ function preparePrint(sortMode) {
         });
     }
 
-    // ── 通知單設定 ───────────────────────────────────────────────
+    // ── 通知單設定（直接從 settingsData 讀，不依賴畫面欄位）────────
     const S = {
-        title:    document.getElementById('setting-title').value,
-        date:     document.getElementById('setting-date').value,
-        time:     document.getElementById('setting-time').value,
-        deadline: document.getElementById('setting-deadline').value,
-        note:     document.getElementById('setting-note').value.replace(/\n/g, '<br>'),
-        footer:   document.getElementById('setting-footer').value.replace(/\n/g, '<p>')
+        title:    settingsData.title    || '',
+        date:     settingsData.date     || '',
+        time:     settingsData.time     || '',
+        deadline: settingsData.deadline || '',
+        note:    (settingsData.note     || '').replace(/\n/g, '<br>'),
+        footer:  (settingsData.footer   || '').replace(/\n/g, '<p>')
     };
 
     // ── 產生通知單 HTML ─────────────────────────────────────────

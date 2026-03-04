@@ -911,6 +911,9 @@ function applyModeUI() {
         document.body.classList.add('read-only-mode');
         hint.classList.add('flex'); hint.classList.remove('hidden');
     }
+    // 電話頁面開著時重新渲染，讓編輯/唯讀即時切換
+    const phoneSection = document.getElementById('phone-section');
+    if (phoneSection && !phoneSection.classList.contains('hidden')) renderPhoneTable();
 }
 
 // ── 預設值 ────────────────────────────────────────────────────────
@@ -1792,7 +1795,6 @@ function printPhoneList() {
                 <td style="padding:7px 10px;border:1px solid #e5e7eb;color:#6b7280">${s.orgGrade}年${s.orgClass}班</td>
                 <td style="padding:7px 10px;border:1px solid #e5e7eb;font-family:monospace">${s.phone1||'—'}</td>
                 <td style="padding:7px 10px;border:1px solid #e5e7eb;font-family:monospace">${s.phone2||'—'}</td>
-                <td style="padding:7px 10px;border:1px solid #e5e7eb"></td>
             </tr>`).join('');
 
         html += `
@@ -1816,7 +1818,6 @@ function printPhoneList() {
                         <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;width:80px">原班級</th>
                         <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left">家長一電話</th>
                         <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left">家長二電話</th>
-                        <th style="padding:8px 10px;border:1px solid #e5e7eb;text-align:left;width:80px">備註</th>
                     </tr>
                 </thead>
                 <tbody>${rows}</tbody>

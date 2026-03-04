@@ -1149,7 +1149,7 @@ function createCard(s, box, wSel = false, opts = '') {
             <div class="flex items-center gap-1">
                 <strong class="${IS_ADMIN ? 'cursor-pointer hover:text-blue-600' : ''}"
                         ${IS_ADMIN ? `ondblclick="copyText('${s.name}')"` : ''}>${s.name}</strong>
-                ${IS_ADMIN ? `<button onclick="copyText('${s.name}',this)" class="text-gray-400 hover:text-blue-600 text-xs p-0.5 rounded edit-only">📋</button>` : ''}
+                <button onclick="copyText('${s.name}',this)" class="text-gray-400 hover:text-blue-600 text-xs p-0.5 rounded" title="複製姓名">📋</button>
             </div>
             <div>${s.subjects.map(su => `<span class="dot ${SUB_BG[su] || 'bg-gray-400'}"></span>`).join('')}</div>
         </div>
@@ -1410,6 +1410,8 @@ ${container.innerHTML}
 <script>window.onload=function(){window.print();window.onafterprint=function(){window.close();}}<\/script>
 </body></html>`);
     printWin.document.close();
+    // 清空殘留的通知單 HTML，避免顯示在其他頁面下方
+    setTimeout(() => { container.innerHTML = ''; }, 500);
 }// ── 數據分析 ──────────────────────────────────────────────────────
 function renderStats() {
     const total      = students.length;

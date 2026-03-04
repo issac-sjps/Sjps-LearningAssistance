@@ -1724,8 +1724,8 @@ function importPhoneExcel(input) {
             const sample = rows[0];
             const keys = Object.keys(sample);
             const nameKey = keys.find(k => k.includes('姓名'));
-            const p1Key   = keys.find(k => /家長?一|家1|parent.?1/i.test(k));
-            const p2Key   = keys.find(k => /家長?二|家2|parent.?2/i.test(k));
+            const p1Key   = keys.find(k => /家長?一|家1|parent.?1/i.test(k) && !k.includes('姓名'));
+            const p2Key   = keys.find(k => /家長?二|家2|parent.?2/i.test(k) && !k.includes('姓名'));
 
             if (!nameKey) { alert('找不到「姓名」欄位，請確認 Excel 格式'); input.value = ''; return; }
 

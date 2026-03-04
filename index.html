@@ -1605,21 +1605,19 @@ function renderPhoneTable() {
             return `<tr class="hover:bg-rose-50 border-b border-gray-100">
                 <td class="px-3 py-2 text-sm font-bold text-gray-800 whitespace-nowrap">${s.name}</td>
                 <td class="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">${s.orgGrade}年${s.orgClass}班</td>
-                <td class="px-2 py-1">
-                    <input type="text" value="${p1}" placeholder="家長一電話"
-                           oninput="updatePhone(${s.id},'phone1',this.value)"
-                           class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:border-rose-400 focus:outline-none">
+                <td class="px-2 py-2 cursor-pointer" onclick="phoneInlineEdit(this,${s.id},'phone1')">
+                    <span class="block w-full rounded-lg px-2 py-1.5 text-sm font-mono
+                                 ${p1 ? 'text-gray-800' : 'text-gray-300 italic'}
+                                 hover:bg-rose-50 hover:ring-1 hover:ring-rose-300 transition">
+                        ${p1 || '點擊輸入…'}
+                    </span>
                 </td>
-                <td class="px-2 py-1">
-                    <input type="text" value="${p2}" placeholder="家長二電話"
-                           oninput="updatePhone(${s.id},'phone2',this.value)"
-                           class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:border-rose-400 focus:outline-none">
-                </td>
-                <td class="px-3 py-2 text-center">
-                    <button onclick="copyText('${p1}',this)" ${!p1?'disabled':''} title="複製家長一"
-                            class="text-gray-400 hover:text-rose-600 disabled:opacity-30 mr-1">📋</button>
-                    <button onclick="copyText('${p2}',this)" ${!p2?'disabled':''} title="複製家長二"
-                            class="text-gray-400 hover:text-rose-600 disabled:opacity-30">📋</button>
+                <td class="px-2 py-2 cursor-pointer" onclick="phoneInlineEdit(this,${s.id},'phone2')">
+                    <span class="block w-full rounded-lg px-2 py-1.5 text-sm font-mono
+                                 ${p2 ? 'text-gray-800' : 'text-gray-300 italic'}
+                                 hover:bg-rose-50 hover:ring-1 hover:ring-rose-300 transition">
+                        ${p2 || '點擊輸入…'}
+                    </span>
                 </td>
             </tr>`;
         } else {
@@ -1628,12 +1626,6 @@ function renderPhoneTable() {
                 <td class="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">${s.orgGrade}年${s.orgClass}班</td>
                 <td class="px-3 py-2 text-sm font-mono ${p1?'text-gray-800':'text-gray-300'}">${p1||'—'}</td>
                 <td class="px-3 py-2 text-sm font-mono ${p2?'text-gray-800':'text-gray-300'}">${p2||'—'}</td>
-                <td class="px-3 py-2 text-center">
-                    <button onclick="copyText('${p1}',this)" ${!p1?'disabled':''} title="複製家長一"
-                            class="text-gray-400 hover:text-rose-600 disabled:opacity-30 mr-1">📋</button>
-                    <button onclick="copyText('${p2}',this)" ${!p2?'disabled':''} title="複製家長二"
-                            class="text-gray-400 hover:text-rose-600 disabled:opacity-30">📋</button>
-                </td>
             </tr>`;
         }
     }).join('');
@@ -1652,7 +1644,6 @@ function renderPhoneTable() {
                         <th class="px-3 py-2 text-left w-20">原班</th>
                         <th class="px-3 py-2 text-left">家長一電話</th>
                         <th class="px-3 py-2 text-left">家長二電話</th>
-                        <th class="px-3 py-2 text-center w-16">複製</th>
                     </tr>
                 </thead>
                 <tbody>${renderRows(list)}</tbody>
@@ -1675,6 +1666,34 @@ function renderPhoneTable() {
             inp.addEventListener('blur', () => saveData());
         });
     }
+}
+
+// 點擊 inline 編輯電話
+function phoneInlineEdit(td, id, field) {
+    // 已經是 input 就不重複建立
+    if (td.querySelector('input')) return;
+    const s = students.find(s => s.id == id); if (!s) return;
+    const current = s[field] || '';
+    td.innerHTML = `<input type="text" value="${current}"
+        placeholder="輸入電話"
+        class="w-full border-2 border-rose-400 rounded-lg px-2 py-1.5 text-sm font-mono focus:outline-none bg-white"
+        autofocus>`;
+    const inp = td.querySelector('input');
+    inp.focus(); inp.select();
+    const finish = () => {
+        const val = inp.value.trim();
+        s[field] = val;
+        saveData();
+        // 更新顯示
+        td.innerHTML = `<span class="block w-full rounded-lg px-2 py-1.5 text-sm font-mono
+            ${val ? 'text-gray-800' : 'text-gray-300 italic'}
+            hover:bg-rose-50 hover:ring-1 hover:ring-rose-300 transition cursor-pointer">
+            ${val || '點擊輸入…'}
+        </span>`;
+        td.onclick = () => phoneInlineEdit(td, id, field);
+    };
+    inp.addEventListener('blur', finish);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); if (e.key === 'Escape') { inp.value = s[field]||''; inp.blur(); } });
 }
 
 // 即時更新學生電話（不立刻存，blur 才存）

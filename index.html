@@ -1965,25 +1965,71 @@ function renderMobPhone() {
     const list = document.getElementById('mob-phone-list');
     if (!list) return;
 
-    const SUB_DOT_MOB = { '國語':'bg-red-500','數學':'bg-blue-500','英語':'bg-green-500','英文':'bg-green-500','國數':'bg-purple-500' };
+    const SUB_TOP = { '國語':'border-red-400',  '數學':'border-blue-400',  '英語':'border-green-400', '國數':'border-purple-400' };
+    const SUB_BG2 = { '國語':'bg-red-50',        '數學':'bg-blue-50',        '英語':'bg-green-50',       '國數':'bg-purple-50'      };
+    const SUB_TAG = { '國語':'bg-red-100 text-red-700','數學':'bg-blue-100 text-blue-700','英語':'bg-green-100 text-green-700','國數':'bg-purple-100 text-purple-700' };
 
-    // 照班級順序組裝
-    let items = [];
+    // 照班級順序分組
+    const groups = [];
     classes.forEach(c => {
-        students.filter(s => s.classId === c.id)
+        const inClass = students
+            .filter(s => s.classId === c.id)
             .filter(s => !keyword || s.name.includes(keyword))
-            .sort((a,b) => (+a.orgGrade - +b.orgGrade)||(+a.orgClass - +b.orgClass))
-            .forEach(s => items.push({ s, clsName: c.name }));
+            .sort((a,b) => (+a.orgGrade - +b.orgGrade)||(+a.orgClass - +b.orgClass));
+        if (inClass.length) groups.push({ cls: c, list: inClass });
     });
-    students.filter(s => !s.classId)
+    const unassigned = students
+        .filter(s => !s.classId)
         .filter(s => !keyword || s.name.includes(keyword))
-        .sort((a,b) => (+a.orgGrade - +b.orgGrade)||(+a.orgClass - +b.orgClass))
-        .forEach(s => items.push({ s, clsName: '未分班' }));
+        .sort((a,b) => (+a.orgGrade - +b.orgGrade)||(+a.orgClass - +b.orgClass));
 
-    if (!items.length) {
+    if (!groups.length && !unassigned.length) {
         list.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">沒有符合的學生</div>';
         return;
     }
+
+    const renderGroup = (cls, students) => {
+        const topCls = cls ? (SUB_TOP[cls.subject] || 'border-gray-300') : 'border-gray-300';
+        const bgCls  = cls ? (SUB_BG2[cls.subject] || 'bg-gray-50')      : 'bg-gray-50';
+        const tagCls = cls ? (SUB_TAG[cls.subject] || 'bg-gray-100 text-gray-600') : 'bg-gray-100 text-gray-600';
+        const clsTitle = cls ? `${cls.name}（${cls.grade}年級）` : '未分班';
+        const subject  = cls ? cls.subject : '';
+
+        const rows = students.map(s => {
+            const p1 = s.phone1 || '';
+            const p2 = s.phone2 || '';
+            return `<div class="border-b border-white/60 py-2.5 last:border-0">
+                <div class="flex justify-between items-center mb-1.5">
+                    <span class="font-bold text-gray-800 text-sm">${s.name}</span>
+                    <span class="text-xs text-gray-400">${s.orgGrade}年${s.orgClass}班</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="bg-white/70 rounded-lg px-2.5 py-2">
+                        <div class="text-gray-400 mb-0.5">家長一</div>
+                        <div class="font-mono font-bold ${p1?'text-gray-800':'text-gray-300'}">${p1||'—'}</div>
+                    </div>
+                    <div class="bg-white/70 rounded-lg px-2.5 py-2">
+                        <div class="text-gray-400 mb-0.5">家長二</div>
+                        <div class="font-mono font-bold ${p2?'text-gray-800':'text-gray-300'}">${p2||'—'}</div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        return `<div class="mob-class-card ${topCls} ${bgCls} mb-4">
+            <div class="flex justify-between items-center mb-3">
+                <span class="font-black text-gray-800 text-base">${clsTitle}</span>
+                ${subject ? `<span class="text-xs font-bold px-2.5 py-1 rounded-full ${tagCls}">${subject}</span>` : ''}
+            </div>
+            <div class="text-xs text-gray-500 font-bold mb-2">${students.length} 人</div>
+            ${rows}
+        </div>`;
+    };
+
+    list.innerHTML =
+        groups.map(({ cls, list: g }) => renderGroup(cls, g)).join('') +
+        (unassigned.length ? renderGroup(null, unassigned) : '');
+}
 
     list.innerHTML = items.map(({ s, clsName }) => {
         const p1 = s.phone1 || '';

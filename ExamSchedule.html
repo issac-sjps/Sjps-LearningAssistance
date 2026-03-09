@@ -53,8 +53,29 @@ header{
   font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;
   transition:all .2s;white-space:nowrap;
 }
-.toggle-teacher-btn:hover{background:rgba(255,255,255,.12);color:#FFF}
-.toggle-teacher-btn.on{background:rgba(255,255,255,.15);color:#FFF;border-color:rgba(255,255,255,.35)}
+.edit-mode-btn{
+  padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);
+  font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .2s;white-space:nowrap;margin-left:8px;
+}
+.edit-mode-btn:hover{background:rgba(255,255,255,.18);color:#FFF}
+.edit-mode-btn.unlocked{background:#D97706;border-color:#F59E0B;color:#FFF}
+
+/* Edit-only elements hidden in view mode */
+.edit-only{display:none}
+body.edit-mode .edit-only{display:block}
+body.edit-mode .s-section.edit-only{display:block}
+body.edit-mode aside.sidebar{display:flex;flex-direction:column}
+/* Sidebar hidden entirely in view mode except card pool labels */
+aside.sidebar{display:none}
+body.edit-mode aside.sidebar{display:flex;flex-direction:column}
+
+/* Dragging disabled in view mode */
+body:not(.edit-mode) .pool-card,
+body:not(.edit-mode) .placed{cursor:default;pointer-events:none}
+body:not(.edit-mode) .p-rm{display:none}
+body:not(.edit-mode) .drop-empty{pointer-events:none}
 
 /* ── Layout ─────────────────────────────── */
 .layout{display:flex;align-items:flex-start}
@@ -273,6 +294,7 @@ tr.teacher-row.visible{display:table-row}
     <div class="save-dot" id="saveDot"></div>
     <span id="saveStatus">已儲存</span>
   </div>
+  <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">🔒 瀏覽模式</button>
 </header>
 
 <div class="layout">
@@ -665,7 +687,33 @@ window.toggleTeacherRows = ()=>{
     btn.classList.toggle('on', ST.showTeacher);
   }
 };
-window.cycleWeekSubj = (w)=>{  const ws=ST.weekSubjs[ST.testType];
+// ─────────────────────────────────────────────────────────
+//  Edit Mode
+// ─────────────────────────────────────────────────────────
+let isEditMode = false;
+window.toggleEditMode = ()=>{
+  if(isEditMode){
+    // Lock
+    isEditMode = false;
+    document.body.classList.remove('edit-mode');
+    document.getElementById('editModeBtn').textContent='🔒 瀏覽模式';
+    document.getElementById('editModeBtn').classList.remove('unlocked');
+  } else {
+    // Unlock with password
+    const pw = prompt('請輸入編輯密碼：');
+    if(pw === 'admin'){
+      isEditMode = true;
+      document.body.classList.add('edit-mode');
+      document.getElementById('editModeBtn').textContent='🔓 編輯模式';
+      document.getElementById('editModeBtn').classList.add('unlocked');
+    } else if(pw !== null){
+      alert('密碼錯誤');
+    }
+  }
+};
+window.cycleWeekSubj = (w)=>{
+  if(!isEditMode) return;
+  const ws=ST.weekSubjs[ST.testType];
   const cur=ws[w]||'未定';
   const idx=SUBJ_CYCLE.indexOf(cur);
   ws[w]=SUBJ_CYCLE[(idx+1)%SUBJ_CYCLE.length];
@@ -687,6 +735,7 @@ window.doReset     = ()=>{
 //  Drag & Drop
 // ─────────────────────────────────────────────────────────
 window.onDragStart = (ev,id,src)=>{
+  if(!isEditMode){ev.preventDefault();return;}
   drag={id,src};
   ev.dataTransfer.effectAllowed='move';
   setTimeout(()=>{const el=document.querySelector(`[data-id="${id}"]`);if(el)el.classList.add('dragging');},0);
@@ -695,7 +744,7 @@ window.ev_over = (ev)=>{ev.preventDefault();ev.dataTransfer.dropEffect='move'};
 window.ev_drop = (ev,targetKey)=>{
   ev.preventDefault();
   ev.currentTarget.classList.remove('over');
-  if(!drag)return;
+  if(!drag||!isEditMode)return;
   const sc=ST.sched[ST.testType];
   const existing=sc[targetKey];
   if(drag.src==='pool'){

@@ -640,12 +640,12 @@ function renderSlots(w,sc,tc){
       </td>`;
     }
     if(isFirstSlot){
-      html+=`<td class="loc-cell" rowspan="2" style="vertical-align:middle">
+      html+=`<td class="loc-cell" style="vertical-align:middle">
         <div style="font-size:9px;color:var(--text-muted);margin-bottom:2px;font-weight:600">早自修</div>
         <input class="loc-input" value="${ST.rooms.morning.replace(/"/g,'&quot;')}" onchange="onRoom('morning',this.value)">
       </td>`;
     } else {
-      html+=`<td class="loc-cell" rowspan="2" style="vertical-align:middle">
+      html+=`<td class="loc-cell" style="vertical-align:middle">
         <div style="font-size:9px;color:var(--text-muted);margin-bottom:2px;font-weight:600">午休</div>
         <input class="loc-input" value="${ST.rooms.lunch.replace(/"/g,'&quot;')}" onchange="onRoom('lunch',this.value)">
       </td>`;
@@ -663,6 +663,7 @@ function renderSlots(w,sc,tc){
           onchange="onTeacher('${key}',this.value)">
       </td>`;
     }
+    html+=`<td class="loc-cell" style="background:var(--teacher-bg);border-color:var(--border)"></td>`;
     html+='</tr>';
   }
   return html;

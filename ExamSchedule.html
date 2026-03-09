@@ -124,7 +124,9 @@ header{
 .week-subj-tag{
   font-size:11px;padding:2px 9px;border-radius:20px;
   font-weight:700;border:1.5px solid;
+  transition:opacity .15s,transform .15s;
 }
+.week-subj-tag:hover{opacity:.75;transform:translateY(-1px)}
 
 table.sch{
   border-collapse:collapse;
@@ -329,6 +331,7 @@ let ST   = mkDefault();
 let drag = null;
 let saveTimer = null;
 
+const SUBJ_CYCLE=['國語','數學','英語','未定'];
 function mkDefault(){
   return {
     testType:'篩選',
@@ -336,17 +339,18 @@ function mkDefault(){
     counts:{1:0,2:0,3:0,4:0,5:0,6:0},
     rooms:{morning:'3F-E化教室',lunch:'4F-電腦教室2'},
     sched:{'篩選':mkEmptySched(),'成長':mkEmptySched()},
-    teachers:{'篩選':mkEmptyTeachers(),'成長':mkEmptyTeachers()}
+    teachers:{'篩選':mkEmptyTeachers(),'成長':mkEmptyTeachers()},
+    weekSubjs:{'篩選':['國語','數學','英語','未定'],'成長':['國語','數學','英語','未定']}
   };
 }
 function mkEmptySched(){
   const s={};
-  for(let w=0;w<3;w++) for(let d=0;d<5;d++) for(const sl of['morning','lunch']) s[`${w}-${d}-${sl}`]=null;
+  for(let w=0;w<4;w++) for(let d=0;d<5;d++) for(const sl of['morning','lunch']) s[`${w}-${d}-${sl}`]=null;
   return s;
 }
 function mkEmptyTeachers(){
   const t={};
-  for(let w=0;w<3;w++) for(let d=0;d<5;d++) for(const sl of['morning','lunch']) t[`${w}-${d}-${sl}`]='';
+  for(let w=0;w<4;w++) for(let d=0;d<5;d++) for(const sl of['morning','lunch']) t[`${w}-${d}-${sl}`]='';
   return t;
 }
 function setStatus(color, text){
@@ -381,6 +385,7 @@ async function loadST(){
       for(const tt of['篩選','成長']){
         if(data.sched?.[tt])    ST.sched[tt]    = Object.assign(mkEmptySched(),    data.sched[tt]);
         if(data.teachers?.[tt]) ST.teachers[tt] = Object.assign(mkEmptyTeachers(),data.teachers[tt]);
+        if(data.weekSubjs?.[tt]) ST.weekSubjs[tt] = data.weekSubjs[tt];
       }
     }
     setStatus('#10B981','已載入');
@@ -434,10 +439,10 @@ function findInSched(id){
 function weekDates(wi){
   if(!ST.startDate) return Array(5).fill(null);
   const base=new Date(ST.startDate+'T00:00:00');
-  // find next monday at or after base
-  const dow=base.getDay(); // 0=Sun,1=Mon...
-  const toMon=dow===0?1:(dow===1?0:(8-dow)%7);
-  if(dow!==1) base.setDate(base.getDate()+toMon);
+  // Go to Monday of the week containing base (week starts Mon)
+  const dow=base.getDay(); // 0=Sun,1=Mon...6=Sat
+  const toMon=dow===0?-6:1-dow; // how many days to Monday
+  base.setDate(base.getDate()+toMon);
   base.setDate(base.getDate()+wi*7);
   return Array.from({length:5},(_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return d;});
 }
@@ -521,23 +526,31 @@ function placedCardHTML(c){
   </div>`;
 }
 
+function subjTagStyle(subj){
+  if(subj==='未定') return 'color:#9CA3AF;border-color:#D1D5DB;background:#F3F4F6';
+  const c=SCOLORS[subj[0]];
+  return `color:${c};border-color:${c};background:${c}15`;
+}
 function renderSchedule(){
   const area=document.getElementById('scheduleArea');
   const sc=ST.sched[ST.testType];
   const tc=ST.teachers[ST.testType];
-  const wNums=['一','二','三'];
+  const ws=ST.weekSubjs[ST.testType];
+  const wNums=['一','二','三','四'];
   let html='';
 
-  for(let w=0;w<3;w++){
-    const subjName=WEEKS[w];
-    const subjKey=subjName[0]; // 國/數/英
-    const col=SCOLORS[subjKey];
+  for(let w=0;w<4;w++){
+    const subj=ws[w]||'未定';
     const dates=weekDates(w);
+    const tagStyle=subjTagStyle(subj);
+    const label=subj==='未定'?'未定（點擊切換）':'考'+subj+'（點擊切換）';
 
     html+=`<div class="week-block">
       <div class="week-head">
         <div class="week-label">第${wNums[w]}週</div>
-        <div class="week-subj-tag" style="color:${col};border-color:${col};background:${col}15">考${subjName}</div>
+        <div class="week-subj-tag" style="${tagStyle};cursor:pointer"
+          title="點擊切換科目"
+          onclick="cycleWeekSubj(${w})">${label}</div>
       </div>
       <table class="sch">
         <colgroup>
@@ -612,7 +625,13 @@ function renderSlots(w,sc,tc){
 // ─────────────────────────────────────────────────────────
 //  Event handlers  (exposed to window for inline HTML handlers)
 // ─────────────────────────────────────────────────────────
-window.switchTab   = (tt)=>{ST.testType=tt;saveST();renderAll()};
+window.cycleWeekSubj = (w)=>{
+  const ws=ST.weekSubjs[ST.testType];
+  const cur=ws[w]||'未定';
+  const idx=SUBJ_CYCLE.indexOf(cur);
+  ws[w]=SUBJ_CYCLE[(idx+1)%SUBJ_CYCLE.length];
+  saveST();renderSchedule();
+};
 window.onStartDate = ()=>{ST.startDate=document.getElementById('startDate').value;saveST();renderSchedule()};
 window.onClassroom = ()=>{ST.rooms.morning=document.getElementById('morningRoom').value;ST.rooms.lunch=document.getElementById('lunchRoom').value;saveST();renderSchedule()};
 window.onRoom      = (field,val)=>{ST.rooms[field]=val;document.getElementById(field==='morning'?'morningRoom':'lunchRoom').value=val;saveST();renderSchedule()};

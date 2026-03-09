@@ -188,7 +188,7 @@ table.sch th,table.sch td{border:1px solid var(--border)}
 .placed[data-s="國"]{border-color:var(--kuo);background:#FEF2F2}
 .placed[data-s="數"]{border-color:var(--shu);background:#EFF6FF}
 .placed[data-s="英"]{border-color:var(--ying);background:#F0FDF4}
-.p-name{font-size:11px;font-weight:800;line-height:1.2}
+.p-name{font-size:11px;font-weight:800;line-height:1.3;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .placed[data-s="國"] .p-name{color:var(--kuo)}
 .placed[data-s="數"] .p-name{color:var(--shu)}
 .placed[data-s="英"] .p-name{color:var(--ying)}
@@ -518,10 +518,10 @@ function placedCardHTML(c){
     ondragstart="onDragStart(event,'${c.id}','placed')"
     ondragend="this.classList.remove('dragging')">
     <span class="p-rm" onclick="removeCard('${c.id}')">✕</span>
-    <div class="p-name">${GRADES[c.grade-1]}年 ${c.subj}</div>
-    <div class="p-meta">
-      ${cn?`<span class="p-count">${cn}人</span>`:''}
+    <div class="p-name">
+      <span>${GRADES[c.grade-1]}年 ${c.subj}</span>
       <span class="badge ${c.paper?'b-paper':'b-pc'}">${c.paper?'紙本':'電腦'}</span>
+      ${cn?`<span class="p-count">${cn}人</span>`:''}
     </div>
   </div>`;
 }

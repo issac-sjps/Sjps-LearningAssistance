@@ -53,7 +53,7 @@ header{
 
 /* ── Sidebar ─────────────────────────────── */
 .sidebar{
-  width:260px;min-width:260px;
+  width:220px;min-width:220px;
   background:var(--surface);border-right:1px solid var(--border);
   min-height:calc(100vh - 56px);
   padding:16px 14px;
@@ -115,14 +115,14 @@ header{
 .b-pc{background:#DBEAFE;color:#1E40AF}
 
 /* ── Main ─────────────────────────────── */
-.main-content{flex:1;padding:18px;overflow-x:auto;min-width:0}
+.main-content{flex:1;padding:10px 12px;overflow-x:auto;min-width:0}
 
 /* ── Week block ─────────────────────────────── */
-.week-block{margin-bottom:24px}
-.week-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.week-label{font-size:13px;font-weight:800;color:var(--text)}
+.week-block{margin-bottom:10px}
+.week-head{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.week-label{font-size:12px;font-weight:800;color:var(--text)}
 .week-subj-tag{
-  font-size:11px;padding:2px 9px;border-radius:20px;
+  font-size:10px;padding:1px 8px;border-radius:20px;
   font-weight:700;border:1.5px solid;
   transition:opacity .15s,transform .15s;
 }
@@ -131,40 +131,40 @@ header{
 table.sch{
   border-collapse:collapse;
   background:var(--surface);
-  border-radius:10px;overflow:hidden;
+  border-radius:8px;overflow:hidden;
   box-shadow:var(--shadow);
-  min-width:800px;width:100%;
+  width:100%;table-layout:fixed;
 }
 table.sch th,table.sch td{border:1px solid var(--border)}
 
 /* Column headers */
 .th-head{
   background:#292524;color:#FFF;
-  font-size:12px;font-weight:700;
-  padding:8px 10px;text-align:left;
+  font-size:11px;font-weight:700;
+  padding:5px 7px;text-align:left;
   white-space:nowrap;
 }
 .th-day{
-  text-align:center;padding:7px 4px;
+  text-align:center;padding:4px 2px;
   background:#FAFAF8;vertical-align:middle;
 }
-.th-date{font-weight:700;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text)}
-.th-dow{font-size:10px;color:var(--text-muted);margin-top:1px}
+.th-date{font-weight:700;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.th-dow{font-size:9px;color:var(--text-muted);margin-top:0}
 .th-loc{
-  font-size:10px;font-weight:600;color:var(--text-muted);
-  padding:4px;text-align:center;background:#FAFAF8;
+  font-size:9px;font-weight:600;color:var(--text-muted);
+  padding:3px;text-align:center;background:#FAFAF8;
 }
 
 /* Row labels */
-.rl{font-size:11px;font-weight:700;padding:6px 8px;vertical-align:middle;white-space:nowrap;width:72px}
+.rl{font-size:10px;font-weight:700;padding:4px 5px;vertical-align:middle;white-space:nowrap;width:52px}
 .rl-morning{background:var(--morning-bg);color:#0369A1}
 .rl-lunch{background:var(--lunch-bg);color:#B45309}
-.rl-teacher{background:var(--teacher-bg);color:#94A3B8;font-size:10px;font-weight:400}
+.rl-teacher{background:var(--teacher-bg);color:#94A3B8;font-size:9px;font-weight:400}
 
 /* Drop cells */
 .dc{
-  vertical-align:middle;padding:5px;
-  transition:background .15s;width:148px;
+  vertical-align:middle;padding:3px;
+  transition:background .15s;
 }
 .dc-morning{background:var(--morning-row)}
 .dc-lunch{background:var(--lunch-row)}
@@ -172,31 +172,31 @@ table.sch th,table.sch td{border:1px solid var(--border)}
 .dc.over{background:#BFDBFE !important;outline:2px dashed #3B82F6;outline-offset:-2px}
 
 .drop-empty{
-  height:58px;display:flex;align-items:center;justify-content:center;
-  color:#D1D5DB;font-size:11px;border:1.5px dashed #E5E7EB;border-radius:6px;
+  height:42px;display:flex;align-items:center;justify-content:center;
+  color:#D1D5DB;font-size:10px;border:1.5px dashed #E5E7EB;border-radius:5px;
   transition:border-color .15s;
 }
 .dc.over .drop-empty{border-color:#93C5FD;color:#93C5FD}
 
 /* Placed card */
 .placed{
-  border-radius:6px;padding:5px 7px;border:1.5px solid;
-  cursor:grab;user-select:none;position:relative;min-height:58px;
+  border-radius:5px;padding:3px 5px;border:1.5px solid;
+  cursor:grab;user-select:none;position:relative;min-height:42px;
   display:flex;flex-direction:column;justify-content:center;
 }
 .placed.dragging{opacity:.35}
 .placed[data-s="國"]{border-color:var(--kuo);background:#FEF2F2}
 .placed[data-s="數"]{border-color:var(--shu);background:#EFF6FF}
 .placed[data-s="英"]{border-color:var(--ying);background:#F0FDF4}
-.p-name{font-size:13px;font-weight:800;line-height:1.2}
+.p-name{font-size:11px;font-weight:800;line-height:1.2}
 .placed[data-s="國"] .p-name{color:var(--kuo)}
 .placed[data-s="數"] .p-name{color:var(--shu)}
 .placed[data-s="英"] .p-name{color:var(--ying)}
-.p-meta{display:flex;gap:4px;align-items:center;margin-top:3px}
-.p-count{font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+.p-meta{display:flex;gap:3px;align-items:center;margin-top:2px}
+.p-count{font-size:9px;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
 .p-rm{
-  position:absolute;top:3px;right:5px;
-  cursor:pointer;font-size:11px;color:#D1D5DB;line-height:1;
+  position:absolute;top:2px;right:3px;
+  cursor:pointer;font-size:10px;color:#D1D5DB;line-height:1;
   padding:1px 2px;border-radius:2px;
 }
 .p-rm:hover{color:#EF4444;background:#FEE2E2}
@@ -204,8 +204,8 @@ table.sch th,table.sch td{border:1px solid var(--border)}
 /* Teacher input */
 .teacher-input{
   width:100%;border:none;background:transparent;
-  font-family:inherit;font-size:11px;color:var(--text-muted);
-  padding:3px 5px;border-radius:3px;
+  font-family:inherit;font-size:10px;color:var(--text-muted);
+  padding:2px 4px;border-radius:3px;
 }
 .teacher-input:focus{outline:none;background:#F1F5F9}
 .teacher-input::placeholder{color:#D1D5DB}
@@ -213,13 +213,13 @@ table.sch th,table.sch td{border:1px solid var(--border)}
 /* Location cell */
 .loc-cell{
   vertical-align:middle;text-align:center;
-  padding:4px;border:1px solid var(--border);
+  padding:3px;border:1px solid var(--border);
   background:#FAFAF8;
 }
 .loc-input{
   border:none;background:transparent;font-family:inherit;
-  font-size:10px;text-align:center;color:var(--text-muted);
-  width:82px;cursor:pointer;font-weight:500;
+  font-size:9px;text-align:center;color:var(--text-muted);
+  width:70px;cursor:pointer;font-weight:500;
 }
 .loc-input:focus{outline:1px solid var(--border);background:var(--bg);border-radius:3px}
 
@@ -233,7 +233,7 @@ table.sch th,table.sch td{border:1px solid var(--border)}
 .reset-btn:hover{border-color:#EF4444;color:#EF4444;background:#FEF2F2}
 .pool-empty{font-size:12px;color:#94A3B8;text-align:center;padding:14px;background:#F8FAFC;border-radius:6px}
 
-.legend{display:flex;gap:12px;margin-bottom:16px;padding:10px 14px;background:var(--surface);border-radius:8px;box-shadow:var(--shadow)}
+.legend{display:flex;gap:8px;margin-bottom:8px;padding:6px 10px;background:var(--surface);border-radius:6px;box-shadow:var(--shadow);flex-wrap:wrap}
 .leg-item{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600}
 .leg-dot{width:10px;height:10px;border-radius:50%}
 </style>
@@ -554,9 +554,9 @@ function renderSchedule(){
       </div>
       <table class="sch">
         <colgroup>
+          <col style="width:52px">
+          ${Array(5).fill('<col>').join('')}
           <col style="width:72px">
-          ${Array(5).fill('<col style="width:148px">').join('')}
-          <col style="width:88px">
         </colgroup>
         <thead>
           <tr>
@@ -609,7 +609,7 @@ function renderSlots(w,sc,tc){
     for(let d=0;d<5;d++){
       const key=`${w}-${d}-${slot}`;
       const tv=(tc[key]||'').replace(/"/g,'&quot;');
-      html+=`<td class="dc dc-teacher" style="padding:3px 5px">
+      html+=`<td class="dc dc-teacher" style="padding:2px 3px">
         <input class="teacher-input" placeholder="輸入姓名" value="${tv}"
           onchange="onTeacher('${key}',this.value)">
       </td>`;

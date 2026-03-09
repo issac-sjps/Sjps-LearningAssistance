@@ -618,15 +618,14 @@ function renderSlots(w,sc,tc){
       </td>`;
     }
     if(isFirstSlot){
-      html+=`<td class="loc-cell" rowspan="4" style="vertical-align:middle">
-        <div style="margin-bottom:6px">
-          <div style="font-size:9px;color:var(--text-muted);margin-bottom:2px">早自修</div>
-          <input class="loc-input" value="${ST.rooms.morning.replace(/"/g,'&quot;')}" onchange="onRoom('morning',this.value)">
-        </div>
-        <div>
-          <div style="font-size:9px;color:var(--text-muted);margin-bottom:2px">午休</div>
-          <input class="loc-input" value="${ST.rooms.lunch.replace(/"/g,'&quot;')}" onchange="onRoom('lunch',this.value)">
-        </div>
+      html+=`<td class="loc-cell" rowspan="2" style="vertical-align:middle">
+        <div style="font-size:9px;color:var(--text-muted);margin-bottom:2px;font-weight:600">早自修</div>
+        <input class="loc-input" value="${ST.rooms.morning.replace(/"/g,'&quot;')}" onchange="onRoom('morning',this.value)">
+      </td>`;
+    } else {
+      html+=`<td class="loc-cell" rowspan="2" style="vertical-align:middle">
+        <div style="font-size:9px;color:var(--text-muted);margin-bottom:2px;font-weight:600">午休</div>
+        <input class="loc-input" value="${ST.rooms.lunch.replace(/"/g,'&quot;')}" onchange="onRoom('lunch',this.value)">
       </td>`;
     }
     html+=`</tr>`;

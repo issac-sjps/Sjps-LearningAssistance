@@ -243,9 +243,13 @@ tr.teacher-row.visible{display:table-row}
 .reset-btn:hover{border-color:#EF4444;color:#EF4444;background:#FEF2F2}
 .pool-empty{font-size:12px;color:#94A3B8;text-align:center;padding:14px;background:#F8FAFC;border-radius:6px}
 
-.legend{display:flex;gap:8px;margin-bottom:8px;padding:6px 10px;background:var(--surface);border-radius:6px;box-shadow:var(--shadow);flex-wrap:wrap}
-.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600}
-.leg-dot{width:10px;height:10px;border-radius:50%}
+.legend{display:none}
+.header-legend{display:flex;align-items:center;gap:8px}
+.header-legend .leg-item span{color:rgba(255,255,255,.75)!important}
+.header-legend .b-paper{background:rgba(254,243,199,.2);color:#FDE68A}
+.header-legend .b-pc{background:rgba(219,234,254,.2);color:#93C5FD}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600}
+.leg-dot{width:8px;height:8px;border-radius:50%}
 </style>
 </head>
 <body>
@@ -257,6 +261,14 @@ tr.teacher-row.visible{display:table-row}
     <button class="tab-btn" onclick="switchTab('成長')" id="tab-成長">成長測驗</button>
   </div>
   <button class="toggle-teacher-btn" id="teacherToggleBtn" onclick="toggleTeacherRows()">👤 顯示實習教師</button>
+  <div class="header-legend">
+    <div class="leg-item"><div class="leg-dot" style="background:var(--kuo)"></div><span style="color:var(--kuo)">國語</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--shu)"></div><span style="color:var(--shu)">數學</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--ying)"></div><span style="color:var(--ying)">英語</span></div>
+    <div style="width:1px;height:14px;background:rgba(255,255,255,.2)"></div>
+    <div class="leg-item"><span class="badge b-paper">紙本</span></div>
+    <div class="leg-item"><span class="badge b-pc">電腦</span></div>
+  </div>
   <div class="save-badge">
     <div class="save-dot" id="saveDot"></div>
     <span id="saveStatus">已儲存</span>
@@ -296,15 +308,6 @@ tr.teacher-row.visible{display:table-row}
   </aside>
 
   <main class="main-content">
-    <div class="legend">
-      <span style="font-size:11px;color:var(--text-muted);font-weight:600">科目：</span>
-      <div class="leg-item"><div class="leg-dot" style="background:var(--kuo)"></div><span style="color:var(--kuo)">國語</span></div>
-      <div class="leg-item"><div class="leg-dot" style="background:var(--shu)"></div><span style="color:var(--shu)">數學</span></div>
-      <div class="leg-item"><div class="leg-dot" style="background:var(--ying)"></div><span style="color:var(--ying)">英語</span></div>
-      <span style="margin-left:16px;font-size:11px;color:var(--text-muted);font-weight:600">測驗方式：</span>
-      <div class="leg-item"><span class="badge b-paper">紙本</span></div>
-      <div class="leg-item"><span class="badge b-pc">電腦</span></div>
-    </div>
     <div id="scheduleArea"></div>
   </main>
 </div>

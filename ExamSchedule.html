@@ -47,6 +47,14 @@ header{
   display:flex;align-items:center;gap:5px;
 }
 .save-dot{width:6px;height:6px;border-radius:50%;background:#10B981;transition:background .3s}
+.toggle-teacher-btn{
+  padding:4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.2);
+  background:transparent;color:rgba(255,255,255,.6);
+  font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+}
+.toggle-teacher-btn:hover{background:rgba(255,255,255,.12);color:#FFF}
+.toggle-teacher-btn.on{background:rgba(255,255,255,.15);color:#FFF;border-color:rgba(255,255,255,.35)}
 
 /* ── Layout ─────────────────────────────── */
 .layout{display:flex;align-items:flex-start}
@@ -156,10 +164,12 @@ table.sch th,table.sch td{border:1px solid var(--border)}
 }
 
 /* Row labels */
-.rl{font-size:10px;font-weight:700;padding:4px 5px;vertical-align:middle;white-space:nowrap;width:52px}
+.rl{font-size:10px;font-weight:700;padding:4px 5px;vertical-align:middle;white-space:normal;word-break:keep-all;width:52px;line-height:1.3}
 .rl-morning{background:var(--morning-bg);color:#0369A1}
 .rl-lunch{background:var(--lunch-bg);color:#B45309}
 .rl-teacher{background:var(--teacher-bg);color:#94A3B8;font-size:9px;font-weight:400}
+tr.teacher-row{display:none}
+tr.teacher-row.visible{display:table-row}
 
 /* Drop cells */
 .dc{
@@ -246,6 +256,7 @@ table.sch th,table.sch td{border:1px solid var(--border)}
     <button class="tab-btn active" onclick="switchTab('篩選')" id="tab-篩選">篩選測驗</button>
     <button class="tab-btn" onclick="switchTab('成長')" id="tab-成長">成長測驗</button>
   </div>
+  <button class="toggle-teacher-btn" id="teacherToggleBtn" onclick="toggleTeacherRows()">👤 顯示實習教師</button>
   <div class="save-badge">
     <div class="save-dot" id="saveDot"></div>
     <span id="saveStatus">已儲存</span>
@@ -340,7 +351,8 @@ function mkDefault(){
     rooms:{morning:'3F-E化教室',lunch:'4F-電腦教室2'},
     sched:{'篩選':mkEmptySched(),'成長':mkEmptySched()},
     teachers:{'篩選':mkEmptyTeachers(),'成長':mkEmptyTeachers()},
-    weekSubjs:{'篩選':['國語','數學','英語','未定'],'成長':['國語','數學','英語','未定']}
+    weekSubjs:{'篩選':['國語','數學','英語','未定'],'成長':['國語','數學','英語','未定']},
+    showTeacher: false
   };
 }
 function mkEmptySched(){
@@ -387,6 +399,7 @@ async function loadST(){
         if(data.teachers?.[tt]) ST.teachers[tt] = Object.assign(mkEmptyTeachers(),data.teachers[tt]);
         if(data.weekSubjs?.[tt]) ST.weekSubjs[tt] = data.weekSubjs[tt];
       }
+      ST.showTeacher = data.showTeacher ?? false;
     }
     setStatus('#10B981','已載入');
   }catch(e){
@@ -464,6 +477,8 @@ function renderSettings(){
   document.getElementById('lunchRoom').value=ST.rooms.lunch;
   document.getElementById('tab-篩選').className='tab-btn'+(ST.testType==='篩選'?' active':'');
   document.getElementById('tab-成長').className='tab-btn'+(ST.testType==='成長'?' active':'');
+  const btn=document.getElementById('teacherToggleBtn');
+  if(btn){btn.textContent=ST.showTeacher?'👤 隱藏實習教師':'👤 顯示實習教師';btn.classList.toggle('on',ST.showTeacher);}
 }
 
 function renderCountGrid(){
@@ -604,8 +619,8 @@ function renderSlots(w,sc,tc){
     </td></tr>`;
 
     // Teacher row
-    html+=`<tr>
-      <td class="rl rl-teacher">支援實習教師</td>`;
+    html+=`<tr class="teacher-row${ST.showTeacher?' visible':''}">
+      <td class="rl rl-teacher">實習教師</td>`;
     for(let d=0;d<5;d++){
       const key=`${w}-${d}-${slot}`;
       const tv=(tc[key]||'').replace(/"/g,'&quot;');
@@ -625,8 +640,20 @@ function renderSlots(w,sc,tc){
 // ─────────────────────────────────────────────────────────
 //  Event handlers  (exposed to window for inline HTML handlers)
 // ─────────────────────────────────────────────────────────
-window.cycleWeekSubj = (w)=>{
-  const ws=ST.weekSubjs[ST.testType];
+window.toggleTeacherRows = ()=>{
+  ST.showTeacher = !ST.showTeacher;
+  saveST();
+  // Toggle all teacher rows without full re-render
+  document.querySelectorAll('tr.teacher-row').forEach(r=>{
+    r.classList.toggle('visible', ST.showTeacher);
+  });
+  const btn=document.getElementById('teacherToggleBtn');
+  if(btn){
+    btn.textContent = ST.showTeacher ? '👤 隱藏實習教師' : '👤 顯示實習教師';
+    btn.classList.toggle('on', ST.showTeacher);
+  }
+};
+window.cycleWeekSubj = (w)=>{  const ws=ST.weekSubjs[ST.testType];
   const cur=ws[w]||'未定';
   const idx=SUBJ_CYCLE.indexOf(cur);
   ws[w]=SUBJ_CYCLE[(idx+1)%SUBJ_CYCLE.length];

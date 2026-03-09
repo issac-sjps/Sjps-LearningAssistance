@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>考試排程系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F2EFE9;
+  --surface: #FFFFFF;
+  --border: #DDD8D0;
+  --text: #1C1917;
+  --text-muted: #78716C;
+  --kuo: #D92B2B;
+  --shu: #1D55D4;
+  --ying: #158A45;
+  --morning-bg: #E8F4FC;
+  --lunch-bg: #FFF4E6;
+  --morning-row: #EAF5FD;
+  --lunch-row: #FFF8EF;
+  --teacher-bg: #FAFAF8;
+  --shadow: 0 1px 3px rgba(0,0,0,.09),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 8px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* ── Header ─────────────────────────────── */
+header{
+  background:#1C1917;color:#FFF;
+  padding:0 20px;height:56px;
+  display:flex;align-items:center;gap:16px;
+  position:sticky;top:0;z-index:200;
+}
+.app-logo{font-size:20px;font-weight:900;letter-spacing:-.5px;white-space:nowrap}
+.app-logo span{color:#F59E0B}
+.tabs{display:flex;gap:3px;background:rgba(255,255,255,.12);padding:4px;border-radius:8px}
+.tab-btn{
+  padding:5px 18px;border-radius:6px;border:none;cursor:pointer;
+  font-family:inherit;font-size:13px;font-weight:600;transition:all .2s;
+  background:transparent;color:rgba(255,255,255,.6);
+}
+.tab-btn.active{background:#FFF;color:#1C1917}
+.save-badge{
+  margin-left:auto;font-size:11px;color:rgba(255,255,255,.55);
+  display:flex;align-items:center;gap:5px;
+}
+.save-dot{width:6px;height:6px;border-radius:50%;background:#10B981;transition:background .3s}
+
+/* ── Layout ─────────────────────────────── */
+.layout{display:flex;align-items:flex-start}
+
+/* ── Sidebar ─────────────────────────────── */
+.sidebar{
+  width:260px;min-width:260px;
+  background:var(--surface);border-right:1px solid var(--border);
+  min-height:calc(100vh - 56px);
+  padding:16px 14px;
+  position:sticky;top:56px;overflow-y:auto;
+  max-height:calc(100vh - 56px);
+}
+.s-section{margin-bottom:20px}
+.s-title{
+  font-size:10px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text-muted);margin-bottom:10px;
+  display:flex;align-items:center;gap:6px;
+}
+.s-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.s-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;gap:6px}
+.s-label{font-size:12px;color:var(--text-muted);white-space:nowrap}
+.s-input{
+  width:140px;padding:5px 8px;border:1px solid var(--border);
+  border-radius:5px;font-family:inherit;font-size:12px;
+  background:var(--bg);color:var(--text);
+}
+.s-input:focus{outline:none;border-color:#94A3B8}
+.count-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.count-item{display:flex;align-items:center;gap:4px}
+.count-grade{font-size:11px;color:var(--text-muted);width:34px;font-weight:500}
+.count-input{
+  width:58px;padding:4px 6px;border:1px solid var(--border);
+  border-radius:4px;font-family:inherit;font-size:12px;
+  text-align:center;background:var(--bg);
+}
+.count-input:disabled{opacity:.3}
+
+/* ── Card Pool ─────────────────────────────── */
+.subj-group{margin-bottom:8px}
+.subj-group-title{
+  font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:4px;
+  display:flex;align-items:center;gap:5px;
+}
+.s-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+.pool-card{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 9px;border-radius:6px;cursor:grab;
+  border:1.5px solid;background:#FFF;
+  font-size:12px;font-weight:600;
+  transition:transform .15s,box-shadow .15s;
+  user-select:none;margin-bottom:3px;
+}
+.pool-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.pool-card.dragging{opacity:.35;cursor:grabbing}
+.pool-card[data-s="國"]{border-color:var(--kuo);color:var(--kuo)}
+.pool-card[data-s="數"]{border-color:var(--shu);color:var(--shu)}
+.pool-card[data-s="英"]{border-color:var(--ying);color:var(--ying)}
+
+.pool-count{font-size:10px;opacity:.7;margin-left:auto;font-weight:400;font-family:'JetBrains Mono',monospace}
+.badge{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700}
+.b-paper{background:#FEF3C7;color:#92400E}
+.b-pc{background:#DBEAFE;color:#1E40AF}
+
+/* ── Main ─────────────────────────────── */
+.main-content{flex:1;padding:18px;overflow-x:auto;min-width:0}
+
+/* ── Week block ─────────────────────────────── */
+.week-block{margin-bottom:24px}
+.week-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.week-label{font-size:13px;font-weight:800;color:var(--text)}
+.week-subj-tag{
+  font-size:11px;padding:2px 9px;border-radius:20px;
+  font-weight:700;border:1.5px solid;
+}
+
+table.sch{
+  border-collapse:collapse;
+  background:var(--surface);
+  border-radius:10px;overflow:hidden;
+  box-shadow:var(--shadow);
+  min-width:800px;width:100%;
+}
+table.sch th,table.sch td{border:1px solid var(--border)}
+
+/* Column headers */
+.th-head{
+  background:#292524;color:#FFF;
+  font-size:12px;font-weight:700;
+  padding:8px 10px;text-align:left;
+  white-space:nowrap;
+}
+.th-day{
+  text-align:center;padding:7px 4px;
+  background:#FAFAF8;vertical-align:middle;
+}
+.th-date{font-weight:700;font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.th-dow{font-size:10px;color:var(--text-muted);margin-top:1px}
+.th-loc{
+  font-size:10px;font-weight:600;color:var(--text-muted);
+  padding:4px;text-align:center;background:#FAFAF8;
+}
+
+/* Row labels */
+.rl{font-size:11px;font-weight:700;padding:6px 8px;vertical-align:middle;white-space:nowrap;width:72px}
+.rl-morning{background:var(--morning-bg);color:#0369A1}
+.rl-lunch{background:var(--lunch-bg);color:#B45309}
+.rl-teacher{background:var(--teacher-bg);color:#94A3B8;font-size:10px;font-weight:400}
+
+/* Drop cells */
+.dc{
+  vertical-align:middle;padding:5px;
+  transition:background .15s;width:148px;
+}
+.dc-morning{background:var(--morning-row)}
+.dc-lunch{background:var(--lunch-row)}
+.dc-teacher{background:var(--teacher-bg)}
+.dc.over{background:#BFDBFE !important;outline:2px dashed #3B82F6;outline-offset:-2px}
+
+.drop-empty{
+  height:58px;display:flex;align-items:center;justify-content:center;
+  color:#D1D5DB;font-size:11px;border:1.5px dashed #E5E7EB;border-radius:6px;
+  transition:border-color .15s;
+}
+.dc.over .drop-empty{border-color:#93C5FD;color:#93C5FD}
+
+/* Placed card */
+.placed{
+  border-radius:6px;padding:5px 7px;border:1.5px solid;
+  cursor:grab;user-select:none;position:relative;min-height:58px;
+  display:flex;flex-direction:column;justify-content:center;
+}
+.placed.dragging{opacity:.35}
+.placed[data-s="國"]{border-color:var(--kuo);background:#FEF2F2}
+.placed[data-s="數"]{border-color:var(--shu);background:#EFF6FF}
+.placed[data-s="英"]{border-color:var(--ying);background:#F0FDF4}
+.p-name{font-size:13px;font-weight:800;line-height:1.2}
+.placed[data-s="國"] .p-name{color:var(--kuo)}
+.placed[data-s="數"] .p-name{color:var(--shu)}
+.placed[data-s="英"] .p-name{color:var(--ying)}
+.p-meta{display:flex;gap:4px;align-items:center;margin-top:3px}
+.p-count{font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+.p-rm{
+  position:absolute;top:3px;right:5px;
+  cursor:pointer;font-size:11px;color:#D1D5DB;line-height:1;
+  padding:1px 2px;border-radius:2px;
+}
+.p-rm:hover{color:#EF4444;background:#FEE2E2}
+
+/* Teacher input */
+.teacher-input{
+  width:100%;border:none;background:transparent;
+  font-family:inherit;font-size:11px;color:var(--text-muted);
+  padding:3px 5px;border-radius:3px;
+}
+.teacher-input:focus{outline:none;background:#F1F5F9}
+.teacher-input::placeholder{color:#D1D5DB}
+
+/* Location cell */
+.loc-cell{
+  vertical-align:middle;text-align:center;
+  padding:4px;border:1px solid var(--border);
+  background:#FAFAF8;
+}
+.loc-input{
+  border:none;background:transparent;font-family:inherit;
+  font-size:10px;text-align:center;color:var(--text-muted);
+  width:82px;cursor:pointer;font-weight:500;
+}
+.loc-input:focus{outline:1px solid var(--border);background:var(--bg);border-radius:3px}
+
+/* Misc */
+.reset-btn{
+  width:100%;padding:7px;border:1px solid var(--border);
+  background:var(--bg);border-radius:6px;cursor:pointer;
+  font-family:inherit;font-size:12px;color:var(--text-muted);
+  transition:all .15s;margin-top:4px;
+}
+.reset-btn:hover{border-color:#EF4444;color:#EF4444;background:#FEF2F2}
+.pool-empty{font-size:12px;color:#94A3B8;text-align:center;padding:14px;background:#F8FAFC;border-radius:6px}
+
+.legend{display:flex;gap:12px;margin-bottom:16px;padding:10px 14px;background:var(--surface);border-radius:8px;box-shadow:var(--shadow)}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600}
+.leg-dot{width:10px;height:10px;border-radius:50%}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="app-logo">考試<span>排程</span></div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('篩選')" id="tab-篩選">篩選測驗</button>
+    <button class="tab-btn" onclick="switchTab('成長')" id="tab-成長">成長測驗</button>
+  </div>
+  <div class="save-badge">
+    <div class="save-dot" id="saveDot"></div>
+    <span id="saveStatus">已儲存</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+
+    <div class="s-section">
+      <div class="s-title">基本設定</div>
+      <div class="s-row">
+        <span class="s-label">起始日期</span>
+        <input type="date" class="s-input" id="startDate" onchange="onStartDate()">
+      </div>
+      <div class="s-row">
+        <span class="s-label">早自修教室</span>
+        <input type="text" class="s-input" id="morningRoom" onchange="onClassroom()">
+      </div>
+      <div class="s-row">
+        <span class="s-label">午休教室</span>
+        <input type="text" class="s-input" id="lunchRoom" onchange="onClassroom()">
+      </div>
+    </div>
+
+    <div class="s-section">
+      <div class="s-title">各年級人數</div>
+      <div class="count-grid" id="countGrid"></div>
+    </div>
+
+    <div class="s-section">
+      <div class="s-title">待排卡片</div>
+      <div id="cardPool"></div>
+    </div>
+
+    <button class="reset-btn" onclick="doReset()">🗑 清除此測驗排程</button>
+  </aside>
+
+  <main class="main-content">
+    <div class="legend">
+      <span style="font-size:11px;color:var(--text-muted);font-weight:600">科目：</span>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--kuo)"></div><span style="color:var(--kuo)">國語</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--shu)"></div><span style="color:var(--shu)">數學</span></div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--ying)"></div><span style="color:var(--ying)">英語</span></div>
+      <span style="margin-left:16px;font-size:11px;color:var(--text-muted);font-weight:600">測驗方式：</span>
+      <div class="leg-item"><span class="badge b-paper">紙本</span></div>
+      <div class="leg-item"><span class="badge b-pc">電腦</span></div>
+    </div>
+    <div id="scheduleArea"></div>
+  </main>
+</div>
+
+<script type="module">
+import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc }
+                                   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyDqbYCxLjRSbEhrqNlTNl6GXx6a45LdFvQ",
+  authDomain:        "sjps-examschedule.firebaseapp.com",
+  projectId:         "sjps-examschedule",
+  storageBucket:     "sjps-examschedule.firebasestorage.app",
+  messagingSenderId: "164163436928",
+  appId:             "1:164163436928:web:4127c8585667a59941c165",
+  measurementId:     "G-84TREHND08"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+const DOC_REF = doc(db, 'schedule', 'main');
+
+// ─────────────────────────────────────────────────────────
+//  Constants
+// ─────────────────────────────────────────────────────────
+const WEEKS   = ['國語','數學','英語'];
+const WDAYS   = ['一','二','三','四','五'];
+const GRADES  = ['一','二','三','四','五','六'];
+const SCOLORS = {'國':'var(--kuo)','數':'var(--shu)','英':'var(--ying)'};
+
+// ─────────────────────────────────────────────────────────
+//  State
+// ─────────────────────────────────────────────────────────
+let ST   = mkDefault();
+let drag = null;
+let saveTimer = null;
+
+function mkDefault(){
+  return {
+    testType:'篩選',
+    startDate:'',
+    counts:{1:0,2:0,3:0,4:0,5:0,6:0},
+    rooms:{morning:'3F-E化教室',lunch:'4F-電腦教室2'},
+    sched:{'篩選':mkEmptySched(),'成長':mkEmptySched()},
+    teachers:{'篩選':mkEmptyTeachers(),'成長':mkEmptyTeachers()}
+  };
+}
+function mkEmptySched(){
+  const s={};
+  for(let w=0;w<3;w++) for(let d=0;d<5;d++) for(const sl of['morning','lunch']) s[`${w}-${d}-${sl}`]=null;
+  return s;
+}
+function mkEmptyTeachers(){
+  const t={};
+  for(let w=0;w<3;w++) for(let d=0;d<5;d++) for(const sl of['morning','lunch']) t[`${w}-${d}-${sl}`]='';
+  return t;
+}
+function setStatus(color, text){
+  const dot=document.getElementById('saveDot');
+  const lbl=document.getElementById('saveStatus');
+  if(dot){dot.style.background=color; lbl.textContent=text;}
+}
+function saveST(){
+  clearTimeout(saveTimer);
+  setStatus('#F59E0B','同步中...');
+  saveTimer=setTimeout(async()=>{
+    try{
+      await setDoc(DOC_REF, ST);
+      setStatus('#10B981','已同步至雲端');
+    }catch(e){
+      console.error(e);
+      setStatus('#EF4444','同步失敗');
+    }
+  },600);
+}
+async function loadST(){
+  setStatus('#F59E0B','載入中...');
+  try{
+    const snap = await getDoc(DOC_REF);
+    if(snap.exists()){
+      const data = snap.data();
+      // merge to ensure all keys exist
+      ST.testType  = data.testType  ?? ST.testType;
+      ST.startDate = data.startDate ?? ST.startDate;
+      ST.counts    = Object.assign({...ST.counts},  data.counts   ?? {});
+      ST.rooms     = Object.assign({...ST.rooms},   data.rooms    ?? {});
+      for(const tt of['篩選','成長']){
+        if(data.sched?.[tt])    ST.sched[tt]    = Object.assign(mkEmptySched(),    data.sched[tt]);
+        if(data.teachers?.[tt]) ST.teachers[tt] = Object.assign(mkEmptyTeachers(),data.teachers[tt]);
+      }
+    }
+    setStatus('#10B981','已載入');
+  }catch(e){
+    console.error(e);
+    setStatus('#EF4444','載入失敗（離線模式）');
+  }
+  renderAll();
+}
+
+// ─────────────────────────────────────────────────────────
+//  Card logic
+// ─────────────────────────────────────────────────────────
+function allCards(tt){
+  const r=[];
+  if(tt==='篩選'){
+    for(let g=1;g<=6;g++){
+      const p=g<=2;
+      for(const s of(g>=3?['國','數','英']:['國','數']))
+        r.push({id:`${tt}-${g}-${s}`,grade:g,subj:s,paper:p});
+    }
+  } else {
+    for(let g=2;g<=6;g++){
+      const p=g<=3;
+      for(const s of(g>=4?['國','數','英']:['國','數']))
+        r.push({id:`${tt}-${g}-${s}`,grade:g,subj:s,paper:p});
+    }
+  }
+  return r;
+}
+function placedIds(tt){
+  return new Set(Object.values(ST.sched[tt]).filter(Boolean).map(c=>c.id));
+}
+function poolCards(tt){
+  return allCards(tt).filter(c=>!placedIds(tt).has(c.id));
+}
+function cardById(id){
+  const parts=id.split('-');
+  const tt=parts[0]; const g=parseInt(parts[1]); const s=parts[2];
+  const p=tt==='篩選'?g<=2:g<=3;
+  return {id,grade:g,subj:s,paper:p,tt};
+}
+function findInSched(id){
+  const sc=ST.sched[ST.testType];
+  return Object.keys(sc).find(k=>sc[k]&&sc[k].id===id)||null;
+}
+
+// ─────────────────────────────────────────────────────────
+//  Date helpers
+// ─────────────────────────────────────────────────────────
+function weekDates(wi){
+  if(!ST.startDate) return Array(5).fill(null);
+  const base=new Date(ST.startDate+'T00:00:00');
+  // find next monday at or after base
+  const dow=base.getDay(); // 0=Sun,1=Mon...
+  const toMon=dow===0?1:(dow===1?0:(8-dow)%7);
+  if(dow!==1) base.setDate(base.getDate()+toMon);
+  base.setDate(base.getDate()+wi*7);
+  return Array.from({length:5},(_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return d;});
+}
+function fmt(d){return d?`${d.getMonth()+1}/${d.getDate()}`:'—'}
+
+// ─────────────────────────────────────────────────────────
+//  Render
+// ─────────────────────────────────────────────────────────
+function renderAll(){
+  renderSettings();
+  renderCountGrid();
+  renderPool();
+  renderSchedule();
+}
+
+function renderSettings(){
+  document.getElementById('startDate').value=ST.startDate||'';
+  document.getElementById('morningRoom').value=ST.rooms.morning;
+  document.getElementById('lunchRoom').value=ST.rooms.lunch;
+  document.getElementById('tab-篩選').className='tab-btn'+(ST.testType==='篩選'?' active':'');
+  document.getElementById('tab-成長').className='tab-btn'+(ST.testType==='成長'?' active':'');
+}
+
+function renderCountGrid(){
+  const g=document.getElementById('countGrid');
+  g.innerHTML='';
+  for(let i=1;i<=6;i++){
+    const dis=(ST.testType==='成長'&&i===1)?'disabled':'';
+    const item=document.createElement('div');
+    item.className='count-item';
+    item.innerHTML=`<span class="count-grade">${GRADES[i-1]}年級</span>
+      <input type="number" class="count-input" min="0" ${dis}
+        value="${ST.counts[i]||0}" onchange="onCount(${i},this.value)"
+        style="${dis?'opacity:.3':''}">`;
+    g.appendChild(item);
+  }
+}
+
+function poolCardHTML(c){
+  const cn=ST.counts[c.grade]||0;
+  return `<div class="pool-card" data-s="${c.subj}" data-id="${c.id}"
+    draggable="true"
+    ondragstart="onDragStart(event,'${c.id}','pool')"
+    ondragend="this.classList.remove('dragging')">
+    <span>${GRADES[c.grade-1]}年 ${c.subj}</span>
+    ${cn?`<span class="pool-count">${cn}人</span>`:''}
+    <span class="badge ${c.paper?'b-paper':'b-pc'}">${c.paper?'紙本':'電腦'}</span>
+  </div>`;
+}
+
+function renderPool(){
+  const el=document.getElementById('cardPool');
+  const cards=poolCards(ST.testType);
+  if(!cards.length){el.innerHTML='<div class="pool-empty">✓ 全部卡片已排入</div>';return;}
+  const by={'國':[],'數':[],'英':[]};
+  cards.forEach(c=>by[c.subj].push(c));
+  const names={'國':'國語','數':'數學','英':'英語'};
+  const cols={'國':'var(--kuo)','數':'var(--shu)','英':'var(--ying)'};
+  el.innerHTML=Object.entries(by).filter(([,cs])=>cs.length>0).map(([s,cs])=>`
+    <div class="subj-group">
+      <div class="subj-group-title" style="color:${cols[s]}">
+        <div class="s-dot" style="background:${cols[s]}"></div>${names[s]}
+      </div>
+      ${cs.map(poolCardHTML).join('')}
+    </div>
+  `).join('');
+}
+
+function placedCardHTML(c){
+  const cn=ST.counts[c.grade]||0;
+  return `<div class="placed" data-s="${c.subj}" data-id="${c.id}"
+    draggable="true"
+    ondragstart="onDragStart(event,'${c.id}','placed')"
+    ondragend="this.classList.remove('dragging')">
+    <span class="p-rm" onclick="removeCard('${c.id}')">✕</span>
+    <div class="p-name">${GRADES[c.grade-1]}年 ${c.subj}</div>
+    <div class="p-meta">
+      ${cn?`<span class="p-count">${cn}人</span>`:''}
+      <span class="badge ${c.paper?'b-paper':'b-pc'}">${c.paper?'紙本':'電腦'}</span>
+    </div>
+  </div>`;
+}
+
+function renderSchedule(){
+  const area=document.getElementById('scheduleArea');
+  const sc=ST.sched[ST.testType];
+  const tc=ST.teachers[ST.testType];
+  const wNums=['一','二','三'];
+  let html='';
+
+  for(let w=0;w<3;w++){
+    const subjName=WEEKS[w];
+    const subjKey=subjName[0]; // 國/數/英
+    const col=SCOLORS[subjKey];
+    const dates=weekDates(w);
+
+    html+=`<div class="week-block">
+      <div class="week-head">
+        <div class="week-label">第${wNums[w]}週</div>
+        <div class="week-subj-tag" style="color:${col};border-color:${col};background:${col}15">考${subjName}</div>
+      </div>
+      <table class="sch">
+        <colgroup>
+          <col style="width:72px">
+          ${Array(5).fill('<col style="width:148px">').join('')}
+          <col style="width:88px">
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="th-head">第${wNums[w]}週</th>
+            ${dates.map((d,i)=>`<th class="th-day"><div class="th-date">${fmt(d)}</div><div class="th-dow">${d?'（'+WDAYS[i]+'）':''}</div></th>`).join('')}
+            <th class="th-loc">地點</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${renderSlots(w,sc,tc)}
+        </tbody>
+      </table>
+    </div>`;
+  }
+  area.innerHTML=html;
+}
+
+function renderSlots(w,sc,tc){
+  let html='';
+  for(const [slot,rlClass,rlText,dcClass] of [
+    ['morning','rl-morning','早自修','dc-morning'],
+    ['lunch','rl-lunch','午休時間','dc-lunch']
+  ]){
+    const roomVal=slot==='morning'?ST.rooms.morning:ST.rooms.lunch;
+    const roomField=slot==='morning'?'morning':'lunch';
+
+    // Time slot row
+    html+=`<tr>
+      <td class="rl ${rlClass}">${rlText}</td>`;
+    for(let d=0;d<5;d++){
+      const key=`${w}-${d}-${slot}`;
+      const card=sc[key];
+      const cd=card?cardById(card.id):null;
+      html+=`<td class="dc ${dcClass}" data-key="${key}"
+        ondragover="ev_over(event)"
+        ondrop="ev_drop(event,'${key}')"
+        ondragenter="this.classList.add('over')"
+        ondragleave="this.classList.remove('over')">
+        ${cd?placedCardHTML(cd):'<div class="drop-empty">拖放此處</div>'}
+      </td>`;
+    }
+    html+=`<td class="loc-cell" rowspan="2" style="vertical-align:middle">
+      <input class="loc-input" value="${roomVal.replace(/"/g,'&quot;')}"
+        onchange="onRoom('${roomField}',this.value)">
+    </td></tr>`;
+
+    // Teacher row
+    html+=`<tr>
+      <td class="rl rl-teacher">支援實習教師</td>`;
+    for(let d=0;d<5;d++){
+      const key=`${w}-${d}-${slot}`;
+      const tv=(tc[key]||'').replace(/"/g,'&quot;');
+      html+=`<td class="dc dc-teacher" style="padding:3px 5px">
+        <input class="teacher-input" placeholder="輸入姓名" value="${tv}"
+          onchange="onTeacher('${key}',this.value)">
+      </td>`;
+    }
+    html+='</tr>';
+  }
+  return html;
+}
+
+// ─────────────────────────────────────────────────────────
+//  Event handlers
+// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
+//  Event handlers  (exposed to window for inline HTML handlers)
+// ─────────────────────────────────────────────────────────
+window.switchTab   = (tt)=>{ST.testType=tt;saveST();renderAll()};
+window.onStartDate = ()=>{ST.startDate=document.getElementById('startDate').value;saveST();renderSchedule()};
+window.onClassroom = ()=>{ST.rooms.morning=document.getElementById('morningRoom').value;ST.rooms.lunch=document.getElementById('lunchRoom').value;saveST();renderSchedule()};
+window.onRoom      = (field,val)=>{ST.rooms[field]=val;document.getElementById(field==='morning'?'morningRoom':'lunchRoom').value=val;saveST();renderSchedule()};
+window.onCount     = (g,v)=>{ST.counts[g]=parseInt(v)||0;saveST();renderPool();renderSchedule()};
+window.onTeacher   = (key,val)=>{ST.teachers[ST.testType][key]=val;saveST()};
+window.doReset     = ()=>{
+  if(!confirm(`確定清除「${ST.testType}測驗」的全部排程？`))return;
+  ST.sched[ST.testType]=mkEmptySched();
+  ST.teachers[ST.testType]=mkEmptyTeachers();
+  saveST();renderPool();renderSchedule();
+};
+
+// ─────────────────────────────────────────────────────────
+//  Drag & Drop
+// ─────────────────────────────────────────────────────────
+window.onDragStart = (ev,id,src)=>{
+  drag={id,src};
+  ev.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{const el=document.querySelector(`[data-id="${id}"]`);if(el)el.classList.add('dragging');},0);
+};
+window.ev_over = (ev)=>{ev.preventDefault();ev.dataTransfer.dropEffect='move'};
+window.ev_drop = (ev,targetKey)=>{
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('over');
+  if(!drag)return;
+  const sc=ST.sched[ST.testType];
+  const existing=sc[targetKey];
+  if(drag.src==='pool'){
+    sc[targetKey]={id:drag.id};
+  } else {
+    const srcKey=findInSched(drag.id);
+    if(srcKey){
+      sc[srcKey]=existing?{id:existing.id}:null;
+      sc[targetKey]={id:drag.id};
+    }
+  }
+  drag=null;
+  saveST();renderPool();renderSchedule();
+};
+window.removeCard = (id)=>{
+  const k=findInSched(id);
+  if(k){ST.sched[ST.testType][k]=null;saveST();renderPool();renderSchedule();}
+};
+
+// ─────────────────────────────────────────────────────────
+//  Boot — load from Firestore then render
+// ─────────────────────────────────────────────────────────
+loadST();
+</script>
+</body>
+</html>

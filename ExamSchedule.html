@@ -157,7 +157,7 @@ table.sch th,table.sch td{border:1px solid var(--border)}
   background:#FAFAF8;vertical-align:middle;
 }
 .th-date{font-weight:700;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text)}
-.th-dow{font-size:9px;color:var(--text-muted);margin-top:0}
+.th-dow{font-size:9px;color:var(--text-muted)}
 .th-loc{
   font-size:9px;font-weight:600;color:var(--text-muted);
   padding:3px;text-align:center;background:#FAFAF8;
@@ -223,13 +223,13 @@ tr.teacher-row.visible{display:table-row}
 /* Location cell */
 .loc-cell{
   vertical-align:middle;text-align:center;
-  padding:3px;border:1px solid var(--border);
+  padding:5px 3px;border:1px solid var(--border);
   background:#FAFAF8;
 }
 .loc-input{
   border:none;background:transparent;font-family:inherit;
-  font-size:9px;text-align:center;color:var(--text-muted);
-  width:70px;cursor:pointer;font-weight:500;
+  font-size:9px;text-align:center;color:var(--text);
+  width:70px;cursor:pointer;font-weight:600;display:block;
 }
 .loc-input:focus{outline:1px solid var(--border);background:var(--bg);border-radius:3px}
 
@@ -576,7 +576,7 @@ function renderSchedule(){
         <thead>
           <tr>
             <th class="th-head">第${wNums[w]}週</th>
-            ${dates.map((d,i)=>`<th class="th-day"><div class="th-date">${fmt(d)}</div><div class="th-dow">${d?'（'+WDAYS[i]+'）':''}</div></th>`).join('')}
+            ${dates.map((d,i)=>`<th class="th-day"><span class="th-date">${fmt(d)}</span><span class="th-dow">${d?' （'+WDAYS[i]+'）':''}</span></th>`).join('')}
             <th class="th-loc">地點</th>
           </tr>
         </thead>
@@ -599,6 +599,7 @@ function renderSlots(w,sc,tc){
     const roomField=slot==='morning'?'morning':'lunch';
 
     // Time slot row
+    const isFirstSlot = slot === 'morning';
     html+=`<tr>
       <td class="rl ${rlClass}">${rlText}</td>`;
     for(let d=0;d<5;d++){
@@ -613,10 +614,19 @@ function renderSlots(w,sc,tc){
         ${cd?placedCardHTML(cd):'<div class="drop-empty">拖放此處</div>'}
       </td>`;
     }
-    html+=`<td class="loc-cell" rowspan="2" style="vertical-align:middle">
-      <input class="loc-input" value="${roomVal.replace(/"/g,'&quot;')}"
-        onchange="onRoom('${roomField}',this.value)">
-    </td></tr>`;
+    if(isFirstSlot){
+      html+=`<td class="loc-cell" rowspan="4" style="vertical-align:middle">
+        <div style="margin-bottom:6px">
+          <div style="font-size:9px;color:var(--text-muted);margin-bottom:2px">早自修</div>
+          <input class="loc-input" value="${ST.rooms.morning.replace(/"/g,'&quot;')}" onchange="onRoom('morning',this.value)">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text-muted);margin-bottom:2px">午休</div>
+          <input class="loc-input" value="${ST.rooms.lunch.replace(/"/g,'&quot;')}" onchange="onRoom('lunch',this.value)">
+        </div>
+      </td>`;
+    }
+    html+=`</tr>`;
 
     // Teacher row
     html+=`<tr class="teacher-row${ST.showTeacher?' visible':''}">

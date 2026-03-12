@@ -825,17 +825,28 @@ function subjEffective(grade,subj){
 }
 
 // 計算某年級某科「目標人數」
+// 一年級國語/數學：二年級同科比例換算 + 一年級5%
+// 三年級英語：四年級英語比例換算 + 三年級5%
+// 其餘：ceil(年級人數×5%)
 function subjTarget(grade,subj){
-  if(grade===3&&subj==='english'){
-    // 四年級英語必考比例換算到三年級 + 三年級5%
-    const gr4EnReq=REQ.filter(r=>r.grade===4&&String(r.english||'').trim().toUpperCase()==='X').length;
-    const gr4Pop=GRADE_TOTALS[4];
-    const gr3Pop=GRADE_TOTALS[3];
-    const fromGr4=Math.round(gr4EnReq/gr4Pop*gr3Pop);
-    const fivePct=Math.ceil(gr3Pop*0.05);
-    return{total:fromGr4+fivePct,fromGr4,fivePct,note:`四年級英語比例(${gr4EnReq}/${gr4Pop})換算${fromGr4}人 + 3年級5%(${fivePct}人)`};
+  if(grade===1&&(subj==='chinese'||subj==='math')){
+    const refReq=REQ.filter(r=>r.grade===2&&String(r[subj]||'').trim().toUpperCase()==='X').length;
+    const refPop=GRADE_TOTALS[2];
+    const gr1Pop=GRADE_TOTALS[1];
+    const fromRef=Math.round(refReq/refPop*gr1Pop);
+    const fivePct=Math.ceil(gr1Pop*0.05);
+    const subjName=subj==='chinese'?'國語':'數學';
+    return{total:fromRef+fivePct,note:`二年級${subjName}比例(${refReq}/${refPop})換算${fromRef}人 + 1年級5%(${fivePct}人)`};
   }
-  return{total:Math.ceil(GRADE_TOTALS[grade]*0.05),fromGr4:null,fivePct:null,note:''};
+  if(grade===3&&subj==='english'){
+    const refReq=REQ.filter(r=>r.grade===4&&String(r.english||'').trim().toUpperCase()==='X').length;
+    const refPop=GRADE_TOTALS[4];
+    const gr3Pop=GRADE_TOTALS[3];
+    const fromRef=Math.round(refReq/refPop*gr3Pop);
+    const fivePct=Math.ceil(gr3Pop*0.05);
+    return{total:fromRef+fivePct,note:`四年級英語比例(${refReq}/${refPop})換算${fromRef}人 + 3年級5%(${fivePct}人)`};
+  }
+  return{total:Math.ceil(GRADE_TOTALS[grade]*0.05),note:''};
 }
 
 function renderRate(){
@@ -843,8 +854,8 @@ function renderRate(){
 
   // ── 說明提示 ──
   let html=`
-  <div class="al al-warn">⚠️ <strong>一年級</strong>（國語、數學）為本學期首次施測，無既有必考名單，本次提報率從後35%名單直接選取計算。</div>
-  <div class="al al-info">ℹ️ <strong>三年級英語</strong>為首次施測，目標人數 = 四年級英語必考人數換算比例 + 三年級5%。</div>`;
+  <div class="al al-warn">⚠️ <strong>一年級國語/數學</strong>：目標人數 = 二年級同科比例換算到一年級 + 一年級5%，無既有必考名單，從後35%名單直接選取。</div>
+  <div class="al al-info">ℹ️ <strong>三年級英語</strong>：目標人數 = 四年級英語比例換算到三年級 + 三年級5%，首次施測無既有必考名單。</div>`;
 
   // ── 三個科目分開 ──
   const subjList=[

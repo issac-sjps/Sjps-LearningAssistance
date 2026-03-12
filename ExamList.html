@@ -425,13 +425,15 @@ function buildExamList(){
   });
   B35.forEach(b=>{
     if(!b.selected)return;
-    if(isInREQ(b.name,b.grade))return; // already in required
+    const isGr1=b.grade===1&&GRADE1_FIRST_EXAM;
+    // Grade 1: all selected are in exam list (no req to deduplicate against)
+    if(!isGr1&&isInREQ(b.name,b.grade))return;
     const key=`${b.grade}|${b.classNum}|${b.seat}|${b.name}`;
     if(!map.has(key)){
       map.set(key,{
         id:b.id,name:b.name,grade:b.grade,classNum:b.classNum,seat:b.seat,
         identity:b.note||'',
-        source:'5pct',
+        source:isGr1?'5pct_gr1':'5pct',
         needChinese:b.chinese!==null&&b.chinese!==undefined,
         needMath:b.math!==null&&b.math!==undefined,
         needEnglish:b.grade>=3&&b.english!==null&&b.english!==undefined,
@@ -799,54 +801,140 @@ function subjBadge(v){
 }
 
 // ─── RENDER: RATE TAB ───
+// 特殊規則：
+//   一年級國語/數學：首次施測，無必考名單，從後35%直接選取，目標 = ceil(161×5%)
+//   三年級英語：首次施測，目標 = round(四年級英語必考人數/220 × 198) + ceil(198×5%)
+//   其餘：必考名單各科X人數 + 後35%已選有該科成績人數，目標 = ceil(年級人數×5%)
+const GRADE1_FIRST_EXAM=true;
+
+// 計算某年級某科「目前有效提報人數」
+function subjEffective(grade,subj){
+  const isGr1=grade===1&&GRADE1_FIRST_EXAM;
+  const isGr3Eng=grade===3&&subj==='english';
+  // 必考名單中該科X的人數
+  const reqCnt=isGr1?0:REQ.filter(r=>r.grade===grade&&String(r[subj]||'').trim().toUpperCase()==='X').length;
+  // 後35%中已勾選、且有該科成績的人（排除已在必考名單者）
+  const selCnt=B35.filter(b=>{
+    if(b.grade!==grade)return false;
+    if(!b.selected)return false;
+    if(b[subj]===null||b[subj]===undefined)return false;
+    if(!isGr1&&isInREQ(b.name,b.grade))return false;
+    return true;
+  }).length;
+  return{reqCnt,selCnt,total:reqCnt+selCnt};
+}
+
+// 計算某年級某科「目標人數」
+function subjTarget(grade,subj){
+  if(grade===3&&subj==='english'){
+    // 四年級英語必考比例換算到三年級 + 三年級5%
+    const gr4EnReq=REQ.filter(r=>r.grade===4&&String(r.english||'').trim().toUpperCase()==='X').length;
+    const gr4Pop=GRADE_TOTALS[4];
+    const gr3Pop=GRADE_TOTALS[3];
+    const fromGr4=Math.round(gr4EnReq/gr4Pop*gr3Pop);
+    const fivePct=Math.ceil(gr3Pop*0.05);
+    return{total:fromGr4+fivePct,fromGr4,fivePct,note:`四年級英語比例(${gr4EnReq}/${gr4Pop})換算${fromGr4}人 + 3年級5%(${fivePct}人)`};
+  }
+  return{total:Math.ceil(GRADE_TOTALS[grade]*0.05),fromGr4:null,fivePct:null,note:''};
+}
+
 function renderRate(){
   const el=document.getElementById('rate-content');
-  const grades=[1,2,3,4,5,6];
-  
-  let totalPop=0,totalReq=0,totalTarget=0,totalNeed=0;
-  let html='<div class="sgrid">';
-  
-  grades.forEach(g=>{
-    const pop=GRADE_TOTALS[g];
-    const cnt=REQ.filter(r=>r.grade===g).length;
-    const target=get5Target(g);
-    const need=Math.max(0,target-0); // always show how many 5% targets needed to add
-    const pct=pop>0?((cnt/pop)*100).toFixed(1):0;
-    totalPop+=pop;totalReq+=cnt;totalTarget+=target;totalNeed+=target;
-    const barPct=Math.min(100,(cnt/pop)*100);
-    html+=`<div class="sc${pct>=5?' green':''}">
-      <div class="lbl">${g} 年級（共${pop}人）</div>
-      <div class="val">${cnt}</div>
-      <div class="sub">已提報 ${pct}%，5%目標需新增 <strong>${target}</strong> 人</div>
-      <div class="bar"><div class="fill" style="width:${barPct}%"></div></div>
-    </div>`;
+
+  // ── 說明提示 ──
+  let html=`
+  <div class="al al-warn">⚠️ <strong>一年級</strong>（國語、數學）為本學期首次施測，無既有必考名單，本次提報率從後35%名單直接選取計算。</div>
+  <div class="al al-info">ℹ️ <strong>三年級英語</strong>為首次施測，目標人數 = 四年級英語必考人數換算比例 + 三年級5%。</div>`;
+
+  // ── 三個科目分開 ──
+  const subjList=[
+    {key:'chinese',label:'📖 國語',color:'#b91c1c',bg:'#fef2f2',border:'#fecaca',grades:[1,2,3,4,5,6]},
+    {key:'math',   label:'🔢 數學',color:'#1d4ed8',bg:'#eff6ff',border:'#bfdbfe',grades:[1,2,3,4,5,6]},
+    {key:'english',label:'🌍 英語',color:'#065f46',bg:'#f0fdf4',border:'#bbf7d0',grades:[3,4,5,6]},
+  ];
+
+  subjList.forEach(({key,label,color,bg,border,grades})=>{
+    const totalPop=grades.reduce((a,g)=>a+GRADE_TOTALS[g],0);
+    let totalEff=0,totalTgt=0;
+
+    html+=`<div class="card" style="border-left:4px solid ${color};padding:0 0 14px 0;overflow:hidden;margin-bottom:16px">
+      <div style="background:${color};color:#fff;padding:10px 16px;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:space-between">
+        <span>${label} 提報率</span>
+        ${key==='english'?'<span style="font-size:11px;opacity:.8">3–6年級</span>':'<span style="font-size:11px;opacity:.8">1–6年級</span>'}
+      </div>
+      <div style="padding:14px 16px 0">`;
+
+    // Mini stat cards
+    html+='<div class="sgrid" style="margin-bottom:12px">';
+    grades.forEach(g=>{
+      const pop=GRADE_TOTALS[g];
+      const{reqCnt,selCnt,total}=subjEffective(g,key);
+      const tgt=subjTarget(g,key);
+      const isFirst=(g===1&&GRADE1_FIRST_EXAM&&key!=='english')||(g===3&&key==='english');
+      const pct=(total/pop*100).toFixed(1);
+      const diff=total-tgt.total;
+      totalEff+=total;totalTgt+=tgt.total;
+      const barW=Math.min(100,total/pop*100);
+      html+=`<div class="sc${diff>=0?'':' red'}${isFirst?' amber':''}">
+        <div class="lbl">${g}年級（${pop}人）${isFirst?'<span style="font-size:10px;color:var(--amber);font-weight:700"> 首測</span>':''}</div>
+        <div class="val" style="color:${color}">${total}</div>
+        <div class="sub" style="font-size:11px">
+          ${isFirst&&g===1?`後35%已選 ${selCnt} 人`:`必考 ${reqCnt}＋新增 ${selCnt}`}<br>
+          目標 <strong>${tgt.total}</strong> 人
+          <span style="color:${diff>=0?'var(--green)':'var(--red)'}">（${diff>=0?'+':''}${diff}）</span>
+        </div>
+        <div class="bar"><div class="fill" style="width:${barW}%;background:${color}"></div></div>
+      </div>`;
+    });
+    html+='</div>';
+
+    // Detail table
+    const totalPct=(totalPop>0?(totalEff/totalPop*100).toFixed(1):0);
+    html+=`<div class="tw"><table>
+      <thead style="background:${color}"><tr>
+        <th>年級</th><th>年級人數</th><th>必考名單(X)</th>
+        <th>後35%新增</th><th>本次提報數</th><th>提報率</th>
+        <th>目標人數</th><th>差距</th><th>備註</th>
+      </tr></thead><tbody>`;
+    let tR=0,tS=0,tE2=0,tT=0;
+    grades.forEach(g=>{
+      const pop=GRADE_TOTALS[g];
+      const{reqCnt,selCnt,total}=subjEffective(g,key);
+      const tgt=subjTarget(g,key);
+      const isFirst=(g===1&&GRADE1_FIRST_EXAM&&key!=='english')||(g===3&&key==='english');
+      const pct=(pop>0?(total/pop*100).toFixed(1):0);
+      const diff=total-tgt.total;
+      tR+=reqCnt;tS+=selCnt;tE2+=total;tT+=tgt.total;
+      const rowBg=isFirst?'background:#fffbeb':'';
+      html+=`<tr style="${rowBg}">
+        <td class="fw6">${g}年級${isFirst?' 🆕':''}</td>
+        <td class="mono">${pop}</td>
+        <td class="mono">${isFirst&&g===1?'<span class="mu fs11">首測</span>':reqCnt}</td>
+        <td class="mono fw6" style="color:var(--purple)">${selCnt||'—'}</td>
+        <td class="mono fw6">${total}</td>
+        <td class="mono">${pct}%</td>
+        <td class="mono fw6" style="color:var(--teal)">${tgt.total}
+          ${tgt.note?`<div class="mu" style="font-size:10px;white-space:normal;max-width:180px">${tgt.note}</div>`:''}
+        </td>
+        <td class="mono fw6" style="color:${diff>=0?'var(--green)':'var(--red)'}">
+          ${diff>=0?'+':''}${diff}
+        </td>
+        <td class="fs11 mu">${isFirst?'首次施測':''}</td>
+      </tr>`;
+    });
+    const tp=(totalPop>0?(tE2/totalPop*100).toFixed(1):0);
+    html+=`</tbody><tfoot><tr>
+      <td>合計</td><td>${totalPop}</td><td>${tR}</td><td>${tS}</td>
+      <td class="mono fw6">${tE2}</td>
+      <td class="mono">${tp}%</td>
+      <td class="mono fw6" style="color:var(--teal)">${tT}</td>
+      <td class="mono fw6" style="color:${tE2>=tT?'var(--green)':'var(--red)'}">
+        ${tE2>=tT?'+':''}${tE2-tT}
+      </td><td></td>
+    </tr></tfoot></table></div>
+    </div></div>`;
   });
-  html+='</div>';
-  
-  // Summary table
-  html+=`<div class="tw"><table>
-    <thead><tr><th>年級</th><th>年級總人數</th><th>目前必考人數</th><th>提報率</th><th>5%目標人數</th><th>備註</th></tr></thead>
-    <tbody>`;
-  grades.forEach(g=>{
-    const pop=GRADE_TOTALS[g];
-    const cnt=REQ.filter(r=>r.grade===g).length;
-    const target=get5Target(g);
-    const pct=pop>0?((cnt/pop)*100).toFixed(1):0;
-    html+=`<tr>
-      <td class="fw6">${g}年級</td>
-      <td class="mono">${pop}</td>
-      <td class="mono fw6">${cnt}</td>
-      <td><span class="mono">${pct}%</span></td>
-      <td class="mono fw6" style="color:var(--teal)">${target}</td>
-      <td class="fs11 mu">${g<=2?'無英語測驗':''}</td>
-    </tr>`;
-  });
-  const totalPct=totalPop>0?((totalReq/totalPop)*100).toFixed(1):0;
-  html+=`</tbody><tfoot><tr>
-    <td>全校合計</td><td>${totalPop}</td><td>${totalReq}</td>
-    <td>${totalPct}%</td><td>${totalTarget}</td><td></td>
-  </tr></tfoot></table></div>`;
-  
+
   el.innerHTML=html;
 }
 
@@ -866,47 +954,63 @@ function renderB35(){
   const grades=[...new Set(students.map(s=>s.grade))].sort((a,b)=>a-b);
   if(!students.length){el.innerHTML=emptyState('✅','此篩選條件下沒有後35%學生。');return;}
   
-  let infoHtml=`<div class="al al-info">顯示 <strong>${SUBJ_LABEL[subj]}</strong> 後35%學生（由低分到高分排序）。勾選以加入5%補充考試名單。</div>`;
-  
+  const showGr1=(grade===0||grade===1);
+  let infoHtml=`<div class="al al-info">顯示 <strong>${SUBJ_LABEL[subj]}</strong> 後35%學生（由低分到高分排序）。勾選以加入考試名單。</div>`;
+  if(showGr1&&subj!=='english'){
+    infoHtml+=`<div class="al al-warn">⚠️ <strong>一年級為本學期首次施測</strong>，無既有必考名單，請從下方直接勾選學生加入考試名單（目標 <strong>${get5Target(1)}</strong> 人）。一年級所有勾選學生都將列為正式考試名單。</div>`;
+  }
+
   // Global selection info
   let selHtml='<div class="sinfo">';
   const allGrades=grade?[grade]:[1,2,3,4,5,6];
   allGrades.forEach(g=>{
     if(subj==='english'&&g<3)return;
     const target=get5Target(g);
-    const selected=totalSelectedNew(g);
+    const isGr1=g===1&&GRADE1_FIRST_EXAM;
+    // For gr1: count all selected (they ARE the exam list)
+    const selected=isGr1
+      ?B35.filter(s=>s.grade===1&&s.selected&&s[subj]!==null&&s[subj]!==undefined).length
+      :totalSelectedNew(g);
     const diff=selected-target;
     selHtml+=`<div class="chip2 ${diff>=0?'green':diff>=-2?'teal':'red'}">
-      <span>${g}年級</span>
+      <span>${g}年級${isGr1?' 🆕':''}</span>
       <span class="n">${selected}</span>
       <span>/ 目標${target}人</span>
       <span>${diff>=0?'✓':'還缺'+(Math.abs(diff))+'人'}</span>
     </div>`;
   });
   selHtml+='</div>';
-  
+
   let tableHtml='';
   grades.forEach(g=>{
     const gs=students.filter(s=>s.grade===g);
     const target=get5Target(g);
-    const selected=totalSelectedNew(g);
+    const isGr1=g===1&&GRADE1_FIRST_EXAM;
+    const selected=isGr1
+      ?B35.filter(s=>s.grade===1&&s.selected&&s[subj]!==null&&s[subj]!==undefined).length
+      :totalSelectedNew(g);
+    const gradeLabel=isGr1?`${g}年級 ${SUBJ_LABEL[subj]}排序 🆕首次施測`:`${g}年級 ${SUBJ_LABEL[subj]}排序`;
     tableHtml+=`<div class="ghd">
-      ${g}年級 ${SUBJ_LABEL[subj]}排序
+      ${gradeLabel}
       <span class="chips">
         <span class="chip">${gs.length}人</span>
-        <span class="chip ${selected>=target?'ok':'red'}">已選新增${selected}人 / 目標${target}人</span>
+        <span class="chip ${selected>=target?'ok':'red'}">${isGr1?'已選':'已選新增'}${selected}人 / 目標${target}人</span>
       </span>
     </div>`;
     tableHtml+=`<div class="card" style="padding:0"><div class="tw"><table>
       <thead><tr>
-        <th>加入5%</th><th>排名</th><th>班級</th><th>座號</th><th>姓名</th>
-        <th>${SUBJ_LABEL[subj]}分數</th><th>身份註記</th><th>必考名單狀態</th>
+        <th>加入名單</th><th>排名</th><th>班級</th><th>座號</th><th>姓名</th>
+        <th>${SUBJ_LABEL[subj]}分數</th><th>身份註記</th><th>名單狀態</th>
       </tr></thead><tbody>`;
     gs.forEach((s,i)=>{
       const inReq=isInREQ(s.name,s.grade);
+      // Grade 1: no req list, everyone is selectable
       const rowClass=inReq?'style="background:#fffbeb"':s.selected?'style="background:#faf5ff"':'';
+      const statusBadge=isGr1
+        ?(s.selected?'<span class="b b-sel">✔ 已選入名單</span>':'<span class="b b-mt">—</span>')
+        :(inReq?'<span class="b b-req">✦ 必考名單</span>':s.selected?'<span class="b b-sel">✔ 已選5%</span>':'<span class="b b-mt">—</span>');
       tableHtml+=`<tr ${rowClass}>
-        <td><input type="checkbox" ${s.selected?'checked':''} ${inReq?'disabled title="已在必考名單"':''} 
+        <td><input type="checkbox" ${s.selected?'checked':''} ${(!isGr1&&inReq)?'disabled title="已在必考名單"':''}
           onchange="toggleB35Select('${s.id}',this.checked)"></td>
         <td class="mono mu">${i+1}</td>
         <td class="fw6">${g}年${s.classNum}班</td>
@@ -914,7 +1018,7 @@ function renderB35(){
         <td class="fw6">${s.name}</td>
         <td class="mono fw6" style="color:var(--red)">${s[subj]!==null?s[subj].toFixed(2):'—'}</td>
         <td class="fs11 mu">${s.note||'—'}</td>
-        <td>${inReq?'<span class="b b-req">✦ 已在必考名單</span>':s.selected?'<span class="b b-sel">✔ 已選5%</span>':'<span class="b b-mt">—</span>'}</td>
+        <td>${statusBadge}</td>
       </tr>`;
     });
     tableHtml+='</tbody></table></div></div>';

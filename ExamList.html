@@ -1,1 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>篩選測驗名單管理系統 — 新莊國小</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --blue:#1e3a8a;--blue2:#2563eb;--blue3:#3b82f6;
+  --teal:#0d9488;--teal2:#14b8a6;
+  --bg:#f1f5f9;--white:#fff;--text:#1e293b;--muted:#64748b;
+  --border:#e2e8f0;--red:#dc2626;--green:#16a34a;--amber:#d97706;--purple:#7c3aed;
+  --sh:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --sh2:0 4px 16px rgba(0,0,0,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+/* ── HEADER ── */
+.hdr{background:linear-gradient(135deg,#1e3a8a 0%,#1e40af 100%);color:#fff;
+  padding:12px 20px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh2);position:sticky;top:0;z-index:100}
+.hdr-ico{width:42px;height:42px;background:var(--teal);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.hdr h1{font-size:16px;font-weight:700;line-height:1.3}
+.hdr p{font-size:11px;opacity:.75;margin-top:1px}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.fb-dot{width:8px;height:8px;border-radius:50%;background:#94a3b8;flex-shrink:0;transition:.3s}
+.fb-dot.ok{background:#4ade80}
+.fb-dot.err{background:#f87171}
+#fb-status{font-size:11px;opacity:.75}
+/* ── NAV ── */
+.nav{background:#1e3a8a;display:flex;overflow-x:auto;border-bottom:3px solid var(--teal);scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.ntab{padding:9px 16px;background:none;border:none;color:rgba(255,255,255,.6);
+  font:500 12px 'Noto Sans TC',sans-serif;cursor:pointer;white-space:nowrap;transition:.15s;position:relative;border-bottom:3px solid transparent;margin-bottom:-3px}
+.ntab:hover{color:#fff;background:rgba(255,255,255,.1)}
+.ntab.on{color:#fff;background:rgba(255,255,255,.1);border-bottom-color:var(--teal2)}
+/* ── MAIN ── */
+.main{padding:18px;max-width:1440px;margin:0 auto}
+.tab{display:none}.tab.on{display:block}
+/* ── CARDS ── */
+.card{background:var(--white);border-radius:12px;padding:18px;box-shadow:var(--sh);margin-bottom:16px}
+.card-hd{font-size:14px;font-weight:600;color:var(--blue);margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:7px}
+.card-hd .badge-count{background:var(--blue2);color:#fff;font-size:11px;padding:1px 7px;border-radius:10px;font-weight:500;margin-left:auto}
+/* ── UPLOAD ZONE ── */
+.upzone{border:2px dashed var(--border);border-radius:8px;padding:26px 20px;text-align:center;cursor:pointer;transition:.2s;position:relative}
+.upzone:hover,.upzone.drag{border-color:var(--teal);background:rgba(13,148,136,.05)}
+.upzone .ico{font-size:30px;margin-bottom:6px}
+.upzone p{color:var(--muted);font-size:12px;line-height:1.6}
+.upzone strong{color:var(--teal)}
+input[type=file]{display:none}
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:6px;border:none;font:500 12px 'Noto Sans TC',sans-serif;cursor:pointer;transition:.15s;user-select:none}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-blue{background:var(--blue2);color:#fff}.btn-blue:hover:not(:disabled){background:var(--blue)}
+.btn-teal{background:var(--teal);color:#fff}.btn-teal:hover:not(:disabled){background:#0f766e}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover:not(:disabled){opacity:.85}
+.btn-gray{background:#475569;color:#fff}.btn-gray:hover:not(:disabled){background:#334155}
+.btn-out{background:#fff;color:var(--blue);border:1px solid var(--border)}.btn-out:hover:not(:disabled){background:var(--bg)}
+.btn-sm{padding:3px 9px;font-size:11px}
+/* ── TABLES ── */
+.tw{overflow-x:auto;border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--blue);color:#fff;padding:8px 10px;text-align:left;font-weight:500;white-space:nowrap}
+thead th:first-child{border-radius:6px 0 0 0}thead th:last-child{border-radius:0 6px 0 0}
+tbody tr{border-bottom:1px solid var(--border);transition:.1s}
+tbody tr:hover{background:rgba(13,148,136,.05)}
+tbody td{padding:6px 10px;vertical-align:middle}
+tfoot td{padding:8px 10px;background:#f8fafc;font-weight:600;font-size:12px;border-top:2px solid var(--border)}
+/* ── BADGES ── */
+.b{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-fail{background:#fef2f2;color:var(--red);border:1px solid #fecaca}
+.b-pass{background:#f0fdf4;color:var(--green);border:1px solid #bbf7d0}
+.b-mt{background:#f8fafc;color:var(--muted);border:1px solid var(--border)}
+.b-req{background:#fff7ed;color:var(--amber);border:1px solid #fed7aa}
+.b-sel{background:#faf5ff;color:var(--purple);border:1px solid #e9d5ff}
+/* ── STAT GRID ── */
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.sc{background:var(--white);border-radius:10px;padding:14px;box-shadow:var(--sh);border-left:4px solid var(--teal)}
+.sc.red{border-left-color:var(--red)}.sc.amber{border-left-color:var(--amber)}.sc.blue{border-left-color:var(--blue2)}
+.sc .lbl{font-size:11px;color:var(--muted);margin-bottom:2px}
+.sc .val{font-size:24px;font-weight:700;color:var(--blue);font-family:'JetBrains Mono',monospace}
+.sc .sub{font-size:11px;color:var(--muted);margin-top:2px}
+.sc .bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:7px}
+.sc .fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--blue2));border-radius:3px;transition:width .5s}
+/* ── ALERTS ── */
+.al{padding:10px 13px;border-radius:8px;font-size:12px;margin-bottom:10px;display:flex;gap:8px;align-items:flex-start;line-height:1.5}
+.al-warn{background:#fffbeb;color:#92400e;border:1px solid #fde68a}
+.al-info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+.al-ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.al-err{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
+/* ── GRADE HDR ── */
+.ghd{background:linear-gradient(90deg,var(--blue),var(--blue2));color:#fff;padding:8px 14px;border-radius:8px;margin:12px 0 7px;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ghd .chips{display:flex;gap:6px;flex-wrap:wrap}
+.ghd .chip{background:rgba(255,255,255,.2);border-radius:10px;padding:2px 10px;font-size:11px;font-weight:500}
+.ghd .chip.red{background:rgba(248,113,113,.3)}
+.ghd .chip.ok{background:rgba(74,222,128,.3)}
+/* ── STABS ── */
+.stabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.stab{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;font:12px 'Noto Sans TC',sans-serif;cursor:pointer;transition:.15s}
+.stab.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+/* ── SEL INFO ── */
+.sinfo{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.chip2{background:#fff;border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px}
+.chip2 .n{font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--blue)}
+.chip2.teal{border-color:var(--teal);color:var(--teal)}.chip2.green{border-color:var(--green)}.chip2.red{border-color:var(--red)}
+/* ── LOADING / EMPTY ── */
+.loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:40px;color:var(--muted);font-size:13px}
+.spin{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:36px;color:var(--muted)}.empty .ico{font-size:36px;margin-bottom:8px}.empty p{font-size:12px}
+/* ── TOAST ── */
+#tst{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px}
+.toast{background:#1e3a8a;color:#fff;padding:10px 14px;border-radius:8px;font-size:12px;box-shadow:var(--sh2);animation:tin .3s ease;max-width:320px;line-height:1.5}
+.toast.ok{background:#15803d}.toast.err{background:#b91c1c}.toast.warn{background:#b45309}
+@keyframes tin{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
+/* ── MISC ── */
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.sel{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font:12px 'Noto Sans TC',sans-serif;outline:none;background:#fff;cursor:pointer;color:var(--text)}
+.sel:focus{border-color:var(--teal)}
+input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--teal);flex-shrink:0}
+hr{border:none;border-top:1px solid var(--border);margin:12px 0}
+.mono{font-family:'JetBrains Mono',monospace}
+.fw6{font-weight:600}.fs11{font-size:11px}.fs12{font-size:12px}.mu{color:var(--muted)}
+.text-right{text-align:right}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.cols2{grid-template-columns:1fr}}
 
+/* ── PRINT ── */
+@media print{
+  .hdr,.nav,.no-print,#tst{display:none!important}
+  .main{padding:0!important;max-width:100%}
+  body{background:#fff}
+  .card{box-shadow:none!important;border:1px solid #ddd!important;page-break-inside:avoid}
+  .tab.on{display:block!important}
+  .page-break{page-break-after:always}
+  thead{display:table-header-group}
+  tr{page-break-inside:avoid}
+  .print-header{display:block!important}
+  .print-info{display:flex!important}
+  .print-hint{display:none!important}
+}
+.print-header{display:none;text-align:center;margin-bottom:12px}
+.print-header h2{font-size:16px;font-weight:700}
+.print-header p{font-size:12px;color:#555;margin-top:3px}
+.print-info{display:none;font-size:12px;margin-bottom:8px;gap:16px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div id="tst"></div>
+
+<header class="hdr">
+  <div class="hdr-ico">📋</div>
+  <div>
+    <h1>篩選測驗名單管理系統</h1>
+    <p>高雄市左營區新莊國民小學 — 114學年度</p>
+  </div>
+  <div class="hdr-r">
+    <div class="fb-dot" id="fb-dot"></div>
+    <span id="fb-status">連接中…</span>
+  </div>
+</header>
+
+<nav class="nav">
+  <button class="ntab on" data-tab="upload">📁 資料上傳</button>
+  <button class="ntab" data-tab="filter">📊 篩選名單</button>
+  <button class="ntab" data-tab="rate">📈 提報率</button>
+  <button class="ntab" data-tab="b35">🔍 後35%排序</button>
+  <button class="ntab" data-tab="examlist">📋 考試名單</button>
+  <button class="ntab" data-tab="stat1">📉 統計（+5%前）</button>
+  <button class="ntab" data-tab="stat2">📊 統計（+5%後）</button>
+</nav>
+
+<div class="main">
+
+<!-- ═══════════════════ TAB: UPLOAD ═══════════════════ -->
+<div class="tab on" id="tab-upload">
+  <div class="cols2">
+    <div class="card">
+      <div class="card-hd">📝 上傳必考名單 <span class="badge-count" id="req-count">0 筆</span></div>
+      <div class="al al-info">ℹ️ Excel 欄位：序號、姓名、身分證（略過）、入學年度、目前年級、班級、座號、國語文測驗、數學測驗、英語測驗、身分類別。X=未通過，O=已通過，空白=未考。</div>
+      <div class="upzone" id="upzone-req" onclick="document.getElementById('file-req').click()">
+        <div class="ico">📂</div>
+        <p>點擊或拖曳上傳<br><strong>必考名單 Excel 檔案</strong></p>
+      </div>
+      <input type="file" id="file-req" accept=".xlsx,.xls,.csv">
+      <div id="req-preview"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn btn-blue" id="btn-save-req" disabled onclick="saveRequiredList()">💾 儲存到 Firebase</button>
+        <button class="btn btn-red btn-sm" onclick="clearRequiredList()">🗑 清除必考名單</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd">📊 上傳後35%成績名單 <span class="badge-count" id="b35-count">0 筆</span></div>
+      <div class="al al-info">ℹ️ Excel 欄位：班級（如101）、座號、身分證（略過）、姓名、國文分數、數學分數、英語分數、身份註記。無成績=非後35%。一二年級無英語。</div>
+      <div class="upzone" id="upzone-b35" onclick="document.getElementById('file-b35').click()">
+        <div class="ico">📂</div>
+        <p>點擊或拖曳上傳<br><strong>後35%成績 Excel 檔案</strong></p>
+      </div>
+      <input type="file" id="file-b35" accept=".xlsx,.xls,.csv">
+      <div id="b35-preview"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn btn-blue" id="btn-save-b35" disabled onclick="saveBottom35List()">💾 儲存到 Firebase</button>
+        <button class="btn btn-red btn-sm" onclick="clearBottom35List()">🗑 清除後35%名單</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd">🗄 Firebase 資料庫狀態</div>
+    <div class="sgrid" id="db-status-grid">
+      <div class="sc blue"><div class="lbl">必考名單學生數</div><div class="val" id="db-req-cnt">—</div></div>
+      <div class="sc"><div class="lbl">後35%名單學生數</div><div class="val" id="db-b35-cnt">—</div></div>
+      <div class="sc amber"><div class="lbl">已選5%人數</div><div class="val" id="db-sel-cnt">—</div></div>
+    </div>
+    <button class="btn btn-teal" onclick="loadAll()">🔄 從 Firebase 重新載入</button>
+  </div>
+  <div id="dup-warnings"></div>
+</div>
+
+<!-- ═══════════════════ TAB: FILTER ═══════════════════ -->
+<div class="tab" id="tab-filter">
+  <div class="row no-print">
+    <div class="stabs" id="filter-stabs">
+      <button class="stab on" data-subj="chinese" onclick="setFilterSubj('chinese',this)">📖 國語未通過</button>
+      <button class="stab" data-subj="math" onclick="setFilterSubj('math',this)">🔢 數學未通過</button>
+      <button class="stab" data-subj="english" onclick="setFilterSubj('english',this)">🌍 英語未通過</button>
+    </div>
+    <select class="sel" id="filter-grade" onchange="renderFilter()">
+      <option value="0">全部年級</option>
+      <option value="1">1年級</option><option value="2">2年級</option>
+      <option value="3">3年級</option><option value="4">4年級</option>
+      <option value="5">5年級</option><option value="6">6年級</option>
+    </select>
+  </div>
+  <div id="filter-content"></div>
+</div>
+
+<!-- ═══════════════════ TAB: RATE ═══════════════════ -->
+<div class="tab" id="tab-rate">
+  <div class="card">
+    <div class="card-hd">📈 各年級提報率與5%新增人數</div>
+    <div class="al al-info">ℹ️ 各年級總人數：1年級161人、2年級156人、3年級198人、4年級220人、5年級218人、6年級220人。5%目標 = 年級總人數 × 5%（無條件進位）。</div>
+    <div id="rate-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB: B35 ═══════════════════ -->
+<div class="tab" id="tab-b35">
+  <div class="row no-print">
+    <div class="stabs" id="b35-stabs">
+      <button class="stab on" data-subj="chinese" onclick="setB35Subj('chinese',this)">📖 國語排序</button>
+      <button class="stab" data-subj="math" onclick="setB35Subj('math',this)">🔢 數學排序</button>
+      <button class="stab" data-subj="english" onclick="setB35Subj('english',this)">🌍 英語排序</button>
+    </div>
+    <select class="sel" id="b35-grade" onchange="renderB35()">
+      <option value="0">全部年級</option>
+      <option value="1">1年級</option><option value="2">2年級</option>
+      <option value="3">3年級</option><option value="4">4年級</option>
+      <option value="5">5年級</option><option value="6">6年級</option>
+    </select>
+  </div>
+  <div id="b35-content"></div>
+</div>
+
+<!-- ═══════════════════ TAB: EXAM LIST ═══════════════════ -->
+<div class="tab" id="tab-examlist">
+  <div class="row no-print">
+    <select class="sel" id="exam-grade" onchange="renderExamList()">
+      <option value="0">全部年級</option>
+      <option value="1">1年級</option><option value="2">2年級</option>
+      <option value="3">3年級</option><option value="4">4年級</option>
+      <option value="5">5年級</option><option value="6">6年級</option>
+    </select>
+    <select class="sel" id="exam-class" onchange="renderExamList()">
+      <option value="0">全部班級</option>
+    </select>
+    <button class="btn btn-gray" onclick="window.print()">🖨 列印目前頁面</button>
+    <span class="fs11 mu">提示：先選擇年級/班級再列印，每班各自顯示。</span>
+  </div>
+  <div id="examlist-content"></div>
+</div>
+
+<!-- ═══════════════════ TAB: STAT1 ═══════════════════ -->
+<div class="tab" id="tab-stat1">
+  <div class="card">
+    <div class="card-hd">📉 各班未通過人數統計（+5%前，僅必考名單）</div>
+    <div id="stat1-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB: STAT2 ═══════════════════ -->
+<div class="tab" id="tab-stat2">
+  <div class="card">
+    <div class="card-hd">📊 各班需參加考試人數統計（+5%後，完整考試名單）</div>
+    <div id="stat2-content"></div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- ═══════════════════ FIREBASE MODULE ═══════════════════ -->
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getFirestore,collection,getDocs,setDoc,doc,deleteDoc,writeBatch,updateDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const cfg={
+  apiKey:"AIzaSyDG3DQsPgDY7u5Rp0nO6SslUflh_bwrVZU",
+  authDomain:"sjps-examlist.firebaseapp.com",
+  projectId:"sjps-examlist",
+  storageBucket:"sjps-examlist.firebasestorage.app",
+  messagingSenderId:"665134765999",
+  appId:"1:665134765999:web:4ea3bd7be227a86342015a",
+  measurementId:"G-E1YVKZYPXM"
+};
+const app=initializeApp(cfg);
+const db=getFirestore(app);
+window._db=db;
+window._fs={collection,getDocs,setDoc,doc,deleteDoc,writeBatch,updateDoc};
+window._fbReady=true;
+document.dispatchEvent(new Event('fbReady'));
+</script>
+
+<!-- ═══════════════════ MAIN SCRIPT ═══════════════════ -->
+<script>
+// ─── CONSTANTS ───
+const GRADE_TOTALS={1:161,2:156,3:198,4:220,5:218,6:220};
+const SUBJ_LABEL={chinese:'國語',math:'數學',english:'英語'};
+const SUBJ_ICON={chinese:'📖',math:'🔢',english:'🌍'};
+
+// ─── STATE ───
+let REQ=[];   // required exam list
+let B35=[];   // bottom 35% list
+let filterSubj='chinese';
+let b35Subj='chinese';
+let pendingReq=null;   // parsed but not saved
+let pendingB35=null;
+
+// ─── FIREBASE HELPERS ───
+async function fbBatchWrite(colName,docs){
+  const{collection:col,doc:docRef,writeBatch:wb,deleteDoc}=window._fs;
+  const db=window._db;
+  // Clear existing
+  const {getDocs}=window._fs;
+  const snap=await getDocs(col(db,colName));
+  const batchDel=wb(db);
+  snap.forEach(d=>batchDel.delete(d.ref));
+  await batchDel.commit();
+  // Write new in chunks of 400
+  const chunks=[];
+  for(let i=0;i<docs.length;i+=400)chunks.push(docs.slice(i,i+400));
+  for(const chunk of chunks){
+    const b=wb(db);
+    chunk.forEach(d=>{
+      const ref=docRef(col(db,colName),d.id);
+      b.set(ref,d);
+    });
+    await b.commit();
+  }
+}
+
+async function fbUpdateDoc(colName,id,data){
+  const{collection:col,doc:docRef,updateDoc:upd}=window._fs;
+  await upd(docRef(col(window._db,colName),id),data);
+}
+
+async function fbLoadAll(){
+  const{collection:col,getDocs}=window._fs;
+  const db=window._db;
+  const [rs,bs]=await Promise.all([
+    getDocs(col(db,'requiredExam')),
+    getDocs(col(db,'bottom35'))
+  ]);
+  REQ=rs.docs.map(d=>d.data());
+  B35=bs.docs.map(d=>d.data());
+}
+
+// ─── TOAST ───
+function toast(msg,type='info'){
+  const el=document.createElement('div');
+  el.className=`toast ${type==='ok'?'ok':type==='err'?'err':type==='warn'?'warn':''}`;
+  el.textContent=msg;
+  document.getElementById('tst').appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+// ─── UTILITIES ───
+function uid(prefix){return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;}
+function gradeOf(classCode){return Math.floor(classCode/100);}
+function classOf(classCode){return classCode%100;}
+function isInREQ(name,grade){return REQ.some(r=>r.name===name&&r.grade===grade);}
+function get5Target(grade){return Math.ceil(GRADE_TOTALS[grade]*0.05);}
+function selCount5(grade,subj){
+  return B35.filter(s=>s.grade===grade&&s.selected&&s[subj]!==null&&s[subj]!==undefined&&!isInREQ(s.name,s.grade)).length;
+}
+function totalSelectedNew(grade){
+  // Count unique NEW students selected (not in REQ) in this grade
+  return [...new Set(
+    B35.filter(s=>s.grade===grade&&s.selected&&!isInREQ(s.name,s.grade)).map(s=>s.id)
+  )].length;
+}
+function reqStudentSubj(r,subj){
+  if(subj==='english'&&r.grade<3)return null; // no English for gr1-2
+  const v=String(r[subj]||'').trim().toUpperCase();
+  return v||'';
+}
+
+// Build full exam list
+function buildExamList(){
+  const map=new Map();
+  REQ.forEach(r=>{
+    const key=`${r.grade}|${r.classNum}|${r.seat}|${r.name}`;
+    // Find matching b35 for prev scores
+    const b35m=B35.find(b=>b.name===r.name&&b.grade===r.grade);
+    map.set(key,{
+      id:r.id,name:r.name,grade:r.grade,classNum:r.classNum,seat:r.seat,
+      identity:b35m?.note||r.identity||'',
+      source:'required',
+      needChinese:r.chinese==='X',
+      needMath:r.math==='X',
+      needEnglish:r.grade>=3&&r.english==='X',
+      prevChinese:b35m?.chinese??null,
+      prevMath:b35m?.math??null,
+      prevEnglish:b35m?.english??null,
+    });
+  });
+  B35.forEach(b=>{
+    if(!b.selected)return;
+    if(isInREQ(b.name,b.grade))return; // already in required
+    const key=`${b.grade}|${b.classNum}|${b.seat}|${b.name}`;
+    if(!map.has(key)){
+      map.set(key,{
+        id:b.id,name:b.name,grade:b.grade,classNum:b.classNum,seat:b.seat,
+        identity:b.note||'',
+        source:'5pct',
+        needChinese:b.chinese!==null&&b.chinese!==undefined,
+        needMath:b.math!==null&&b.math!==undefined,
+        needEnglish:b.grade>=3&&b.english!==null&&b.english!==undefined,
+        prevChinese:b.chinese??null,
+        prevMath:b.math??null,
+        prevEnglish:b.english??null,
+      });
+    }
+  });
+  return Array.from(map.values()).sort((a,b)=>
+    a.grade-b.grade||a.classNum-b.classNum||a.seat-b.seat
+  );
+}
+
+// ─── EXCEL PARSING: REQUIRED LIST ───
+function parseRequiredExcel(file){
+  return new Promise((res,rej)=>{
+    const rd=new FileReader();
+    rd.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'binary'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        // Find header row
+        let hdr=-1,map={};
+        for(let i=0;i<Math.min(raw.length,15);i++){
+          const r=raw[i];
+          const s=r.map(c=>String(c||'').trim()).join('|');
+          if(s.includes('姓名')&&(s.includes('年級')||s.includes('座號'))){
+            hdr=i;
+            r.forEach((c,j)=>{
+              const t=String(c||'').trim();
+              if(t.includes('姓名'))map.name=j;
+              if(t.includes('入學'))map.admission=j;
+              if(t.includes('目前年級')||t==='年級')map.grade=j;
+              if((t==='班級'||t.includes('班級'))&&!t.includes('目前'))map.classNum=j;
+              if(t.includes('座號'))map.seat=j;
+              if(t.includes('國語'))map.chinese=j;
+              if(t.includes('數學'))map.math=j;
+              if(t.includes('英語')||t.includes('英文'))map.english=j;
+              if(t.includes('身分')&&(t.includes('類別')||t.includes('別')))map.identity=j;
+            });
+            break;
+          }
+        }
+        if(hdr===-1){
+          // Auto-detect: 序號 姓名 身分證 入學年度 目前年級 班級 座號 國語 數學 英語 身分類別
+          hdr=0;
+          map={name:1,admission:3,grade:4,classNum:5,seat:6,chinese:7,math:8,english:9,identity:10};
+        }
+        const students=[];const dups=[];
+        for(let i=hdr+1;i<raw.length;i++){
+          const r=raw[i];
+          const name=String(r[map.name]||'').trim();
+          if(!name)continue;
+          const grade=parseInt(r[map.grade]);
+          if(!grade||grade<1||grade>6)continue;
+          const classNum=parseInt(r[map.classNum])||0;
+          const seat=parseInt(r[map.seat])||0;
+          const chinese=String(r[map.chinese]||'').trim().toUpperCase();
+          const math=String(r[map.math]||'').trim().toUpperCase();
+          const english=String(r[map.english]||'').trim().toUpperCase();
+          const identity=String(r[map.identity]||'').trim();
+          const dup=students.find(s=>s.name===name&&s.grade===grade);
+          if(dup)dups.push({name,grade,classNum,classNumDup:dup.classNum});
+          students.push({id:uid('req'),name,admission:parseInt(r[map.admission])||0,grade,classNum,seat,chinese,math,english,identity});
+        }
+        res({students,dups});
+      }catch(err){rej(err);}
+    };
+    rd.readAsBinaryString(file);
+  });
+}
+
+// ─── EXCEL PARSING: BOTTOM 35% ───
+function parseBottom35Excel(file){
+  return new Promise((res,rej)=>{
+    const rd=new FileReader();
+    rd.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'binary'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        // Find column positions from header containing 班級 & 姓名
+        let map={classCode:0,seat:1,name:3,chinese:4,math:5,english:6,note:7};
+        for(let i=0;i<Math.min(raw.length,30);i++){
+          const r=raw[i];
+          const s=r.map(c=>String(c||'').trim()).join('|');
+          if(s.includes('班級')&&s.includes('姓名')){
+            r.forEach((c,j)=>{
+              const t=String(c||'').trim();
+              if(t==='班級')map.classCode=j;
+              if(t==='座號')map.seat=j;
+              if(t.includes('姓名'))map.name=j;
+              if(t.includes('國文')||t.includes('國語'))map.chinese=j;
+              if(t.includes('數學'))map.math=j;
+              if(t.includes('英語')||t.includes('英文'))map.english=j;
+              if(t.includes('身份')||t.includes('身分')||t.includes('註記'))map.note=j;
+            });
+            // don't break – the header row might appear multiple times, just use last one
+          }
+        }
+        const students=[];const dups=[];
+        for(let i=0;i<raw.length;i++){
+          const r=raw[i];
+          const cc=parseInt(r[map.classCode]);
+          if(!cc||cc<101||cc>699)continue;
+          const grade=Math.floor(cc/100);
+          const classNum=cc%100;
+          const name=String(r[map.name]||'').trim();
+          if(!name||isNaN(grade)||grade<1||grade>6)continue;
+          const pc=parseFloat(r[map.chinese]);
+          const pm=parseFloat(r[map.math]);
+          const pe=parseFloat(r[map.english]);
+          const note=String(r[map.note]||'').trim();
+          const dup=students.find(s=>s.name===name&&s.grade===grade);
+          if(dup)dups.push({name,grade,classNum,classNumDup:dup.classNum});
+          students.push({
+            id:uid('b35'),name,grade,classNum,
+            seat:parseInt(r[map.seat])||0,
+            chinese:isNaN(pc)?null:pc,
+            math:isNaN(pm)?null:pm,
+            english:isNaN(pe)?null:pe,
+            note,selected:false
+          });
+        }
+        res({students,dups});
+      }catch(err){rej(err);}
+    };
+    rd.readAsBinaryString(file);
+  });
+}
+
+// Sync b35 notes → REQ identity
+function syncNotes(reqArr,b35Arr){
+  b35Arr.forEach(b=>{
+    if(!b.note)return;
+    const r=reqArr.find(x=>x.name===b.name&&x.grade===b.grade);
+    if(r&&!r.identity)r.identity=b.note;
+    else if(r&&b.note&&r.identity!==b.note)r.identity=b.note;
+  });
+}
+
+// ─── SAVE / CLEAR ───
+async function saveRequiredList(){
+  if(!pendingReq){toast('沒有待儲存的資料','warn');return;}
+  try{
+    syncNotes(pendingReq,B35);
+    await fbBatchWrite('requiredExam',pendingReq);
+    REQ=pendingReq;pendingReq=null;
+    document.getElementById('btn-save-req').disabled=true;
+    updateDBStatus();renderAll();
+    toast(`必考名單已儲存 (${REQ.length} 筆)`,'ok');
+  }catch(e){toast('儲存失敗: '+e.message,'err');}
+}
+async function saveBottom35List(){
+  if(!pendingB35){toast('沒有待儲存的資料','warn');return;}
+  try{
+    syncNotes(REQ,pendingB35);
+    await fbBatchWrite('bottom35',pendingB35);
+    B35=pendingB35;pendingB35=null;
+    document.getElementById('btn-save-b35').disabled=true;
+    updateDBStatus();renderAll();
+    toast(`後35%名單已儲存 (${B35.length} 筆)`,'ok');
+  }catch(e){toast('儲存失敗: '+e.message,'err');}
+}
+async function clearRequiredList(){
+  if(!confirm('確定清除所有必考名單資料？'))return;
+  try{
+    await fbBatchWrite('requiredExam',[]);
+    REQ=[];pendingReq=null;
+    document.getElementById('req-preview').innerHTML='';
+    document.getElementById('btn-save-req').disabled=true;
+    document.getElementById('req-count').textContent='0 筆';
+    updateDBStatus();renderAll();
+    toast('必考名單已清除','ok');
+  }catch(e){toast('清除失敗: '+e.message,'err');}
+}
+async function clearBottom35List(){
+  if(!confirm('確定清除所有後35%名單資料？'))return;
+  try{
+    await fbBatchWrite('bottom35',[]);
+    B35=[];pendingB35=null;
+    document.getElementById('b35-preview').innerHTML='';
+    document.getElementById('btn-save-b35').disabled=true;
+    document.getElementById('b35-count').textContent='0 筆';
+    updateDBStatus();renderAll();
+    toast('後35%名單已清除','ok');
+  }catch(e){toast('清除失敗: '+e.message,'err');}
+}
+
+// ─── LOAD FROM FIREBASE ───
+async function loadAll(){
+  document.getElementById('fb-status').textContent='載入中…';
+  try{
+    await fbLoadAll();
+    updateDBStatus();
+    renderAll();
+    document.getElementById('fb-dot').className='fb-dot ok';
+    document.getElementById('fb-status').textContent='已連線';
+    toast(`載入完成：必考${REQ.length}筆，後35%${B35.length}筆`,'ok');
+  }catch(e){
+    document.getElementById('fb-dot').className='fb-dot err';
+    document.getElementById('fb-status').textContent='連線失敗';
+    toast('Firebase 載入失敗: '+e.message,'err');
+  }
+}
+
+function updateDBStatus(){
+  document.getElementById('db-req-cnt').textContent=REQ.length;
+  document.getElementById('db-b35-cnt').textContent=B35.length;
+  document.getElementById('db-sel-cnt').textContent=B35.filter(b=>b.selected).length;
+  document.getElementById('req-count').textContent=REQ.length+' 筆';
+  document.getElementById('b35-count').textContent=B35.length+' 筆';
+}
+
+// ─── FILE UPLOAD HANDLERS ───
+document.getElementById('file-req').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const preview=document.getElementById('req-preview');
+  preview.innerHTML='<div class="loading"><div class="spin"></div>解析中…</div>';
+  try{
+    const{students,dups}=await parseRequiredExcel(f);
+    pendingReq=students;
+    document.getElementById('btn-save-req').disabled=false;
+    document.getElementById('req-count').textContent=students.length+' 筆 (待存)';
+    preview.innerHTML=`<div class="al al-ok" style="margin-top:10px">✅ 解析完成：共 <strong>${students.length}</strong> 位學生。點擊「儲存到 Firebase」以儲存。</div>`;
+    showDupWarnings(dups,'必考名單');
+    e.target.value='';
+  }catch(err){
+    preview.innerHTML=`<div class="al al-err" style="margin-top:10px">❌ 解析失敗：${err.message}</div>`;
+    e.target.value='';
+  }
+});
+
+document.getElementById('file-b35').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const preview=document.getElementById('b35-preview');
+  preview.innerHTML='<div class="loading"><div class="spin"></div>解析中…</div>';
+  try{
+    const{students,dups}=await parseBottom35Excel(f);
+    pendingB35=students;
+    document.getElementById('btn-save-b35').disabled=false;
+    document.getElementById('b35-count').textContent=students.length+' 筆 (待存)';
+    preview.innerHTML=`<div class="al al-ok" style="margin-top:10px">✅ 解析完成：共 <strong>${students.length}</strong> 位學生。點擊「儲存到 Firebase」以儲存。</div>`;
+    showDupWarnings(dups,'後35%名單');
+    e.target.value='';
+  }catch(err){
+    preview.innerHTML=`<div class="al al-err" style="margin-top:10px">❌ 解析失敗：${err.message}</div>`;
+    e.target.value='';
+  }
+});
+
+// Drag and drop
+['req','b35'].forEach(t=>{
+  const z=document.getElementById(`upzone-${t}`);
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag');});
+  z.addEventListener('dragleave',()=>z.classList.remove('drag'));
+  z.addEventListener('drop',e=>{
+    e.preventDefault();z.classList.remove('drag');
+    const f=e.dataTransfer.files[0];
+    if(f){
+      const inp=document.getElementById(`file-${t}`);
+      const dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;
+      inp.dispatchEvent(new Event('change'));
+    }
+  });
+});
+
+function showDupWarnings(dups,src){
+  if(!dups.length)return;
+  const w=document.getElementById('dup-warnings');
+  const html=dups.map(d=>`<div>⚠️ <strong>${d.name}</strong>（${d.grade}年級，${d.classNum}班 / ${d.classNumDup}班）在「${src}」中出現重複姓名，請確認是否為同一人！</div>`).join('');
+  w.innerHTML=`<div class="al al-warn">${html}</div>`;
+}
+
+// ─── TAB NAVIGATION ───
+document.querySelectorAll('.ntab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('on');
+    renderTabContent(btn.dataset.tab);
+  });
+});
+
+function renderTabContent(tab){
+  if(tab==='filter')renderFilter();
+  else if(tab==='rate')renderRate();
+  else if(tab==='b35')renderB35();
+  else if(tab==='examlist')renderExamList();
+  else if(tab==='stat1')renderStat1();
+  else if(tab==='stat2')renderStat2();
+}
+function renderAll(){
+  updateDBStatus();
+  const active=document.querySelector('.ntab.on')?.dataset?.tab;
+  if(active)renderTabContent(active);
+  // Also update exam-class options
+  populateExamClassSelect();
+}
+
+// Subject sub-tab helpers
+function setFilterSubj(subj,el){
+  filterSubj=subj;
+  document.querySelectorAll('#filter-stabs .stab').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  renderFilter();
+}
+function setB35Subj(subj,el){
+  b35Subj=subj;
+  document.querySelectorAll('#b35-stabs .stab').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  renderB35();
+}
+
+// ─── RENDER: FILTER TAB ───
+function renderFilter(){
+  const grade=parseInt(document.getElementById('filter-grade').value)||0;
+  const subj=filterSubj;
+  const el=document.getElementById('filter-content');
+  if(!REQ.length){el.innerHTML=emptyState('📝','尚無必考名單資料，請先上傳。');return;}
+  
+  let students=REQ.filter(r=>{
+    if(grade&&r.grade!==grade)return false;
+    if(subj==='english'&&r.grade<3)return false; // 1-2年級無英語
+    const v=String(r[subj]||'').trim().toUpperCase();
+    return v==='X';
+  });
+  
+  // Group by grade
+  const grades=[...new Set(students.map(s=>s.grade))].sort((a,b)=>a-b);
+  if(!students.length){el.innerHTML=emptyState('✅','此篩選條件下沒有未通過的學生。');return;}
+  
+  let html=`<div class="al al-info">共 <strong>${students.length}</strong> 位學生 ${SUBJ_LABEL[subj]} 測驗未通過${subj==='english'?' (3-6年級)':''}。</div>`;
+  
+  grades.forEach(g=>{
+    const gs=students.filter(s=>s.grade===g).sort((a,b)=>a.classNum-b.classNum||a.seat-b.seat);
+    html+=`<div class="ghd">${g}年級 <span class="chips"><span class="chip">${gs.length} 人</span></span></div>`;
+    html+=`<div class="card" style="padding:0"><div class="tw"><table>
+      <thead><tr><th>班級</th><th>座號</th><th>姓名</th><th>國語</th><th>數學</th>${g>=3?'<th>英語</th>':''}
+      <th>身分類別</th></tr></thead><tbody>`;
+    gs.forEach(s=>{
+      html+=`<tr>
+        <td class="fw6">${g}年${s.classNum}班</td>
+        <td class="mono">${String(s.seat).padStart(2,'0')}</td>
+        <td class="fw6">${s.name}</td>
+        <td>${subjBadge(s.chinese)}</td>
+        <td>${subjBadge(s.math)}</td>
+        ${g>=3?`<td>${subjBadge(s.english)}</td>`:''}
+        <td class="mu fs11">${s.identity||'—'}</td>
+      </tr>`;
+    });
+    html+='</tbody></table></div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function subjBadge(v){
+  const val=String(v||'').trim().toUpperCase();
+  if(val==='X')return '<span class="b b-fail">✗ 未過</span>';
+  if(val==='O')return '<span class="b b-pass">✓ 已過</span>';
+  return '<span class="b b-mt">— 未考</span>';
+}
+
+// ─── RENDER: RATE TAB ───
+function renderRate(){
+  const el=document.getElementById('rate-content');
+  const grades=[1,2,3,4,5,6];
+  
+  let totalPop=0,totalReq=0,totalTarget=0,totalNeed=0;
+  let html='<div class="sgrid">';
+  
+  grades.forEach(g=>{
+    const pop=GRADE_TOTALS[g];
+    const cnt=REQ.filter(r=>r.grade===g).length;
+    const target=get5Target(g);
+    const need=Math.max(0,target-0); // always show how many 5% targets needed to add
+    const pct=pop>0?((cnt/pop)*100).toFixed(1):0;
+    totalPop+=pop;totalReq+=cnt;totalTarget+=target;totalNeed+=target;
+    const barPct=Math.min(100,(cnt/pop)*100);
+    html+=`<div class="sc${pct>=5?' green':''}">
+      <div class="lbl">${g} 年級（共${pop}人）</div>
+      <div class="val">${cnt}</div>
+      <div class="sub">已提報 ${pct}%，5%目標需新增 <strong>${target}</strong> 人</div>
+      <div class="bar"><div class="fill" style="width:${barPct}%"></div></div>
+    </div>`;
+  });
+  html+='</div>';
+  
+  // Summary table
+  html+=`<div class="tw"><table>
+    <thead><tr><th>年級</th><th>年級總人數</th><th>目前必考人數</th><th>提報率</th><th>5%目標人數</th><th>備註</th></tr></thead>
+    <tbody>`;
+  grades.forEach(g=>{
+    const pop=GRADE_TOTALS[g];
+    const cnt=REQ.filter(r=>r.grade===g).length;
+    const target=get5Target(g);
+    const pct=pop>0?((cnt/pop)*100).toFixed(1):0;
+    html+=`<tr>
+      <td class="fw6">${g}年級</td>
+      <td class="mono">${pop}</td>
+      <td class="mono fw6">${cnt}</td>
+      <td><span class="mono">${pct}%</span></td>
+      <td class="mono fw6" style="color:var(--teal)">${target}</td>
+      <td class="fs11 mu">${g<=2?'無英語測驗':''}</td>
+    </tr>`;
+  });
+  const totalPct=totalPop>0?((totalReq/totalPop)*100).toFixed(1):0;
+  html+=`</tbody><tfoot><tr>
+    <td>全校合計</td><td>${totalPop}</td><td>${totalReq}</td>
+    <td>${totalPct}%</td><td>${totalTarget}</td><td></td>
+  </tr></tfoot></table></div>`;
+  
+  el.innerHTML=html;
+}
+
+// ─── RENDER: B35 TAB ───
+function renderB35(){
+  const grade=parseInt(document.getElementById('b35-grade').value)||0;
+  const subj=b35Subj;
+  const el=document.getElementById('b35-content');
+  if(!B35.length){el.innerHTML=emptyState('📊','尚無後35%名單資料，請先上傳。');return;}
+  
+  let students=B35.filter(s=>{
+    if(grade&&s.grade!==grade)return false;
+    if(subj==='english'&&s.grade<3)return false;
+    return s[subj]!==null&&s[subj]!==undefined;
+  }).sort((a,b)=>(a[subj]||0)-(b[subj]||0));
+  
+  const grades=[...new Set(students.map(s=>s.grade))].sort((a,b)=>a-b);
+  if(!students.length){el.innerHTML=emptyState('✅','此篩選條件下沒有後35%學生。');return;}
+  
+  let infoHtml=`<div class="al al-info">顯示 <strong>${SUBJ_LABEL[subj]}</strong> 後35%學生（由低分到高分排序）。勾選以加入5%補充考試名單。</div>`;
+  
+  // Global selection info
+  let selHtml='<div class="sinfo">';
+  const allGrades=grade?[grade]:[1,2,3,4,5,6];
+  allGrades.forEach(g=>{
+    if(subj==='english'&&g<3)return;
+    const target=get5Target(g);
+    const selected=totalSelectedNew(g);
+    const diff=selected-target;
+    selHtml+=`<div class="chip2 ${diff>=0?'green':diff>=-2?'teal':'red'}">
+      <span>${g}年級</span>
+      <span class="n">${selected}</span>
+      <span>/ 目標${target}人</span>
+      <span>${diff>=0?'✓':'還缺'+(Math.abs(diff))+'人'}</span>
+    </div>`;
+  });
+  selHtml+='</div>';
+  
+  let tableHtml='';
+  grades.forEach(g=>{
+    const gs=students.filter(s=>s.grade===g);
+    const target=get5Target(g);
+    const selected=totalSelectedNew(g);
+    tableHtml+=`<div class="ghd">
+      ${g}年級 ${SUBJ_LABEL[subj]}排序
+      <span class="chips">
+        <span class="chip">${gs.length}人</span>
+        <span class="chip ${selected>=target?'ok':'red'}">已選新增${selected}人 / 目標${target}人</span>
+      </span>
+    </div>`;
+    tableHtml+=`<div class="card" style="padding:0"><div class="tw"><table>
+      <thead><tr>
+        <th>加入5%</th><th>排名</th><th>班級</th><th>座號</th><th>姓名</th>
+        <th>${SUBJ_LABEL[subj]}分數</th><th>身份註記</th><th>必考名單狀態</th>
+      </tr></thead><tbody>`;
+    gs.forEach((s,i)=>{
+      const inReq=isInREQ(s.name,s.grade);
+      const rowClass=inReq?'style="background:#fffbeb"':s.selected?'style="background:#faf5ff"':'';
+      tableHtml+=`<tr ${rowClass}>
+        <td><input type="checkbox" ${s.selected?'checked':''} ${inReq?'disabled title="已在必考名單"':''} 
+          onchange="toggleB35Select('${s.id}',this.checked)"></td>
+        <td class="mono mu">${i+1}</td>
+        <td class="fw6">${g}年${s.classNum}班</td>
+        <td class="mono">${String(s.seat).padStart(2,'0')}</td>
+        <td class="fw6">${s.name}</td>
+        <td class="mono fw6" style="color:var(--red)">${s[subj]!==null?s[subj].toFixed(2):'—'}</td>
+        <td class="fs11 mu">${s.note||'—'}</td>
+        <td>${inReq?'<span class="b b-req">✦ 已在必考名單</span>':s.selected?'<span class="b b-sel">✔ 已選5%</span>':'<span class="b b-mt">—</span>'}</td>
+      </tr>`;
+    });
+    tableHtml+='</tbody></table></div></div>';
+  });
+  
+  el.innerHTML=infoHtml+selHtml+tableHtml;
+}
+
+async function toggleB35Select(id,checked){
+  const s=B35.find(b=>b.id===id);
+  if(!s)return;
+  s.selected=checked;
+  try{
+    await fbUpdateDoc('bottom35',id,{selected:checked});
+  }catch(e){
+    toast('更新失敗: '+e.message,'err');
+    s.selected=!checked; // revert
+  }
+  // Re-render selection info
+  renderB35();
+  updateDBStatus();
+}
+
+// ─── RENDER: EXAM LIST TAB ───
+function populateExamClassSelect(){
+  const sel=document.getElementById('exam-class');
+  const grade=parseInt(document.getElementById('exam-grade')?.value)||0;
+  const examAll=buildExamList();
+  const classes=[...new Set(examAll.filter(s=>!grade||s.grade===grade).map(s=>`${s.grade}-${s.classNum}`))]
+    .sort((a,b)=>{
+      const [ag,ac]=a.split('-').map(Number);
+      const [bg,bc]=b.split('-').map(Number);
+      return ag-bg||ac-bc;
+    });
+  const current=sel.value;
+  sel.innerHTML='<option value="0">全部班級</option>';
+  classes.forEach(c=>{
+    const [g,cn]=c.split('-').map(Number);
+    sel.innerHTML+=`<option value="${c}">${g}年${cn}班</option>`;
+  });
+  if(classes.includes(current))sel.value=current;
+}
+
+document.getElementById('exam-grade').addEventListener('change',()=>{
+  populateExamClassSelect();renderExamList();
+});
+
+function renderExamList(){
+  const grade=parseInt(document.getElementById('exam-grade').value)||0;
+  const classVal=document.getElementById('exam-class').value;
+  const el=document.getElementById('examlist-content');
+  const examAll=buildExamList();
+  if(!examAll.length){el.innerHTML=emptyState('📋','尚無考試名單資料。');return;}
+  
+  let students=examAll;
+  if(grade)students=students.filter(s=>s.grade===grade);
+  if(classVal&&classVal!=='0'){
+    const[g,c]=classVal.split('-').map(Number);
+    students=students.filter(s=>s.grade===g&&s.classNum===c);
+  }
+  
+  // Group by grade + class
+  const classGroups=new Map();
+  students.forEach(s=>{
+    const k=`${s.grade}-${s.classNum}`;
+    if(!classGroups.has(k))classGroups.set(k,[]);
+    classGroups.get(k).push(s);
+  });
+  
+  let html='';
+  let isFirst=true;
+  classGroups.forEach((ss,k)=>{
+    const[g,cn]=k.split('-').map(Number);
+    ss.sort((a,b)=>a.seat-b.seat);
+    const countCh=ss.filter(s=>s.needChinese).length;
+    const countMath=ss.filter(s=>s.needMath).length;
+    const countEn=g>=3?ss.filter(s=>s.needEnglish).length:null;
+    
+    if(!isFirst)html+=`<div class="page-break"></div>`;
+    isFirst=false;
+    
+    html+=`<div class="card">
+      <div class="print-header"><h2>高雄市左營區新莊國民小學</h2><p>114學年度第2學期 篩選測驗名單 — ${g}年${cn}班</p></div>
+      <div class="print-info">
+        <span>列印日期：${new Date().toLocaleDateString('zh-TW')}</span>
+      </div>
+      <div class="card-hd no-print">${g}年${cn}班 考試名單
+        <span class="chips" style="display:flex;gap:6px;margin-left:auto">
+          <span style="background:#fef2f2;color:var(--red);border:1px solid #fecaca;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">國語 ${countCh}人</span>
+          <span style="background:#eff6ff;color:var(--blue2);border:1px solid #bfdbfe;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">數學 ${countMath}人</span>
+          ${g>=3?`<span style="background:#f0fdf4;color:var(--green);border:1px solid #bbf7d0;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">英語 ${countEn}人</span>`:''}
+        </span>
+      </div>
+      <div class="tw"><table>
+        <thead><tr>
+          <th>座號</th><th>姓名</th>
+          <th style="background:#b91c1c">需考國語</th>
+          <th style="background:#1d4ed8">需考數學</th>
+          ${g>=3?'<th style="background:#065f46">需考英語</th>':''}
+          <th>上學期國語</th><th>上學期數學</th>
+          ${g>=3?'<th>上學期英語</th>':''}
+          <th>身分類別</th><th>來源</th>
+        </tr></thead><tbody>`;
+    ss.forEach(s=>{
+      html+=`<tr>
+        <td class="mono fw6">${String(s.seat).padStart(2,'0')}</td>
+        <td class="fw6">${s.name}</td>
+        <td style="text-align:center">${s.needChinese?'<span class="b b-fail">✗ 需考</span>':''}</td>
+        <td style="text-align:center">${s.needMath?'<span class="b b-fail">✗ 需考</span>':''}</td>
+        ${g>=3?`<td style="text-align:center">${s.needEnglish?'<span class="b b-fail">✗ 需考</span>':''}</td>`:''}
+        <td class="mono mu">${s.prevChinese!==null?s.prevChinese.toFixed(2):'—'}</td>
+        <td class="mono mu">${s.prevMath!==null?s.prevMath.toFixed(2):'—'}</td>
+        ${g>=3?`<td class="mono mu">${s.prevEnglish!==null?s.prevEnglish.toFixed(2):'—'}</td>`:''}
+        <td class="fs11 mu">${s.identity||'—'}</td>
+        <td>${s.source==='required'?'<span class="b b-req">必考</span>':'<span class="b b-sel">5%新增</span>'}</td>
+      </tr>`;
+    });
+    html+=`</tbody><tfoot><tr>
+      <td colspan="2" class="fw6">本班合計 ${ss.length} 人</td>
+      <td class="fw6" style="color:var(--red)">${countCh} 人</td>
+      <td class="fw6" style="color:var(--blue2)">${countMath} 人</td>
+      ${g>=3?`<td class="fw6" style="color:var(--green)">${countEn} 人</td>`:''}
+      <td colspan="${g>=3?5:4}"></td>
+    </tr></tfoot></table></div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+// ─── RENDER: STAT 1 (before +5%) ───
+function renderStat1(){
+  const el=document.getElementById('stat1-content');
+  if(!REQ.length){el.innerHTML=emptyState('📝','尚無必考名單資料。');return;}
+  
+  const classes=new Map();
+  REQ.forEach(r=>{
+    const k=`${r.grade}-${r.classNum}`;
+    if(!classes.has(k))classes.set(k,{grade:r.grade,classNum:r.classNum,chinese:0,math:0,english:0,total:new Set()});
+    const c=classes.get(k);
+    if(r.chinese==='X')c.chinese++;
+    if(r.math==='X')c.math++;
+    if(r.grade>=3&&r.english==='X')c.english++;
+    c.total.add(r.id);
+  });
+  
+  const sorted=[...classes.values()].sort((a,b)=>a.grade-b.grade||a.classNum-b.classNum);
+  const grades=[...new Set(sorted.map(c=>c.grade))].sort((a,b)=>a-b);
+  
+  let html='<div class="tw"><table><thead><tr><th>班級</th><th>必考人數</th><th>需考國語</th><th>需考數學</th><th>需考英語（3年↑）</th></tr></thead><tbody>';
+  grades.forEach(g=>{
+    const gClasses=sorted.filter(c=>c.grade===g);
+    const subtotals={c:0,m:0,e:0,t:0};
+    gClasses.forEach(c=>{
+      subtotals.c+=c.chinese;subtotals.m+=c.math;subtotals.e+=c.english;subtotals.t+=c.total.size;
+      html+=`<tr>
+        <td class="fw6">${g}年${c.classNum}班</td>
+        <td class="mono">${c.total.size}</td>
+        <td class="mono" style="color:var(--red)">${c.chinese||'—'}</td>
+        <td class="mono" style="color:var(--blue2)">${c.math||'—'}</td>
+        <td class="mono" style="color:var(--green)">${g>=3?(c.english||'—'):'（無）'}</td>
+      </tr>`;
+    });
+    html+=`<tr style="background:#f0f4f8;font-weight:600">
+      <td>${g}年級小計</td><td class="mono">${subtotals.t}</td>
+      <td class="mono" style="color:var(--red)">${subtotals.c}</td>
+      <td class="mono" style="color:var(--blue2)">${subtotals.m}</td>
+      <td class="mono" style="color:var(--green)">${g>=3?subtotals.e:'（無）'}</td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+
+// ─── RENDER: STAT 2 (after +5%) ───
+function renderStat2(){
+  const el=document.getElementById('stat2-content');
+  const examAll=buildExamList();
+  if(!examAll.length){el.innerHTML=emptyState('📊','尚無考試名單資料。');return;}
+  
+  const classes=new Map();
+  examAll.forEach(s=>{
+    const k=`${s.grade}-${s.classNum}`;
+    if(!classes.has(k))classes.set(k,{grade:s.grade,classNum:s.classNum,chinese:0,math:0,english:0,total:0});
+    const c=classes.get(k);
+    c.total++;
+    if(s.needChinese)c.chinese++;
+    if(s.needMath)c.math++;
+    if(s.needEnglish)c.english++;
+  });
+  
+  const sorted=[...classes.values()].sort((a,b)=>a.grade-b.grade||a.classNum-b.classNum);
+  const grades=[...new Set(sorted.map(c=>c.grade))].sort((a,b)=>a-b);
+  
+  let html='<div class="tw"><table><thead><tr><th>班級</th><th>考試總人數</th><th>須考國語</th><th>須考數學</th><th>須考英語（3年↑）</th></tr></thead><tbody>';
+  grades.forEach(g=>{
+    const gClasses=sorted.filter(c=>c.grade===g);
+    const sub={c:0,m:0,e:0,t:0};
+    gClasses.forEach(c=>{
+      sub.c+=c.chinese;sub.m+=c.math;sub.e+=c.english;sub.t+=c.total;
+      html+=`<tr>
+        <td class="fw6">${g}年${c.classNum}班</td>
+        <td class="mono fw6">${c.total}</td>
+        <td class="mono" style="color:var(--red)">${c.chinese||'—'}</td>
+        <td class="mono" style="color:var(--blue2)">${c.math||'—'}</td>
+        <td class="mono" style="color:var(--green)">${g>=3?(c.english||'—'):'（無）'}</td>
+      </tr>`;
+    });
+    html+=`<tr style="background:#f0f4f8;font-weight:600">
+      <td>${g}年級小計</td><td class="mono">${sub.t}</td>
+      <td class="mono" style="color:var(--red)">${sub.c}</td>
+      <td class="mono" style="color:var(--blue2)">${sub.m}</td>
+      <td class="mono" style="color:var(--green)">${g>=3?sub.e:'（無）'}</td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+
+function emptyState(ico,msg){
+  return `<div class="empty"><div class="ico">${ico}</div><p>${msg}</p></div>`;
+}
+
+// ─── INIT ───
+document.addEventListener('fbReady',()=>{
+  document.getElementById('fb-dot').className='fb-dot ok';
+  document.getElementById('fb-status').textContent='Firebase 已連線';
+  loadAll();
+});
+
+// Initial render
+document.getElementById('tab-upload').classList.add('on');
+</script>
+</body>
+</html>

@@ -825,28 +825,36 @@ function subjEffective(grade,subj){
 }
 
 // 計算某年級某科「目標人數」
-// 一年級國語/數學：二年級同科比例換算 + 一年級5%
-// 三年級英語：四年級英語比例換算 + 三年級5%
-// 其餘：ceil(年級人數×5%)
+// 目標 = 現有必考名單該科X人數 + ceil(年級人數×5%) 的新增人數
+// 特殊：一年級國語/數學 → 用二年級同科比例換算取代「現有X人數」（因首測無必考名單）
+//        三年級英語     → 用四年級英語比例換算取代「現有X人數」（因首測無必考名單）
 function subjTarget(grade,subj){
+  const grPop=GRADE_TOTALS[grade];
+  const fivePct=Math.ceil(grPop*0.05);
+
+  // 一年級國語/數學：首測，以二年級同科比例估算基礎量
   if(grade===1&&(subj==='chinese'||subj==='math')){
     const refReq=REQ.filter(r=>r.grade===2&&String(r[subj]||'').trim().toUpperCase()==='X').length;
     const refPop=GRADE_TOTALS[2];
-    const gr1Pop=GRADE_TOTALS[1];
-    const fromRef=Math.round(refReq/refPop*gr1Pop);
-    const fivePct=Math.ceil(gr1Pop*0.05);
+    const fromRef=Math.round(refReq/refPop*grPop);
     const subjName=subj==='chinese'?'國語':'數學';
-    return{total:fromRef+fivePct,note:`二年級${subjName}比例(${refReq}/${refPop})換算${fromRef}人 + 1年級5%(${fivePct}人)`};
+    return{base:fromRef,fivePct,total:fromRef+fivePct,
+      note:`二年級${subjName}比例(${refReq}/${refPop})換算${fromRef}人 + 1年級5%(${fivePct}人)`};
   }
+
+  // 三年級英語：首測，以四年級英語比例估算基礎量
   if(grade===3&&subj==='english'){
     const refReq=REQ.filter(r=>r.grade===4&&String(r.english||'').trim().toUpperCase()==='X').length;
     const refPop=GRADE_TOTALS[4];
-    const gr3Pop=GRADE_TOTALS[3];
-    const fromRef=Math.round(refReq/refPop*gr3Pop);
-    const fivePct=Math.ceil(gr3Pop*0.05);
-    return{total:fromRef+fivePct,note:`四年級英語比例(${refReq}/${refPop})換算${fromRef}人 + 3年級5%(${fivePct}人)`};
+    const fromRef=Math.round(refReq/refPop*grPop);
+    return{base:fromRef,fivePct,total:fromRef+fivePct,
+      note:`四年級英語比例(${refReq}/${refPop})換算${fromRef}人 + 3年級5%(${fivePct}人)`};
   }
-  return{total:Math.ceil(GRADE_TOTALS[grade]*0.05),note:''};
+
+  // 一般年級：現有必考名單X人數 + 5%新增
+  const reqCnt=REQ.filter(r=>r.grade===grade&&String(r[subj]||'').trim().toUpperCase()==='X').length;
+  return{base:reqCnt,fivePct,total:reqCnt+fivePct,
+    note:reqCnt>0?`既有必考${reqCnt}人 + ${grade}年級5%(${fivePct}人)`:''};
 }
 
 function renderRate(){
@@ -882,17 +890,18 @@ function renderRate(){
       const{reqCnt,selCnt,total}=subjEffective(g,key);
       const tgt=subjTarget(g,key);
       const isFirst=(g===1&&GRADE1_FIRST_EXAM&&key!=='english')||(g===3&&key==='english');
-      const pct=(total/pop*100).toFixed(1);
+      // diff: 目前提報數 vs 目標（基礎量+5%）
       const diff=total-tgt.total;
       totalEff+=total;totalTgt+=tgt.total;
-      const barW=Math.min(100,total/pop*100);
+      const barW=Math.min(100,total/tgt.total*100);
+      const subLine=isFirst
+        ?`後35%已選 <strong>${selCnt}</strong> 人 / 目標<strong>${tgt.total}</strong>人`
+        :`必考${reqCnt}人＋新增${selCnt}人<br>目標 <strong>${tgt.base}</strong>+<strong>${tgt.fivePct}</strong>=<strong>${tgt.total}</strong>人`;
       html+=`<div class="sc${diff>=0?'':' red'}${isFirst?' amber':''}">
         <div class="lbl">${g}年級（${pop}人）${isFirst?'<span style="font-size:10px;color:var(--amber);font-weight:700"> 首測</span>':''}</div>
         <div class="val" style="color:${color}">${total}</div>
-        <div class="sub" style="font-size:11px">
-          ${isFirst&&g===1?`後35%已選 ${selCnt} 人`:`必考 ${reqCnt}＋新增 ${selCnt}`}<br>
-          目標 <strong>${tgt.total}</strong> 人
-          <span style="color:${diff>=0?'var(--green)':'var(--red)'}">（${diff>=0?'+':''}${diff}）</span>
+        <div class="sub" style="font-size:11px">${subLine}<br>
+          <span style="color:${diff>=0?'var(--green)':'var(--red)'}">差距 ${diff>=0?'+':''}${diff} 人</span>
         </div>
         <div class="bar"><div class="fill" style="width:${barW}%;background:${color}"></div></div>
       </div>`;

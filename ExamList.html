@@ -127,6 +127,53 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:600px){.cols2{grid-template-columns:1fr}}
 
+/* ─── LOGIN OVERLAY ─── */
+#login-overlay{
+  position:fixed;inset:0;z-index:9000;
+  background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#0d9488 100%);
+  display:flex;align-items:center;justify-content:center;
+}
+#login-overlay.hide{display:none}
+.login-box{
+  background:#fff;border-radius:16px;padding:36px 32px;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);
+  text-align:center;width:320px;max-width:90vw;
+}
+.login-box .logo{font-size:40px;margin-bottom:12px}
+.login-box h2{font-size:18px;font-weight:700;color:var(--blue);margin-bottom:4px}
+.login-box p{font-size:12px;color:var(--muted);margin-bottom:20px}
+.login-box input{
+  width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:8px;
+  font:14px 'Noto Sans TC',sans-serif;outline:none;margin-bottom:10px;
+  letter-spacing:3px;text-align:center;color:var(--text)
+}
+.login-box input:focus{border-color:var(--teal)}
+.login-box .login-err{color:var(--red);font-size:12px;min-height:18px;margin-bottom:8px}
+.login-box .btn-login{width:100%;padding:10px;border-radius:8px;border:none;
+  background:var(--blue);color:#fff;font:600 14px 'Noto Sans TC',sans-serif;cursor:pointer;transition:.15s}
+.login-box .btn-login:hover{background:#1e40af}
+/* ─── EDIT MODE BUTTON ─── */
+#edit-btn{
+  padding:5px 13px;border-radius:6px;border:1px solid rgba(255,255,255,.35);
+  background:rgba(255,255,255,.12);color:#fff;
+  font:500 11px 'Noto Sans TC',sans-serif;cursor:pointer;transition:.15s;
+  display:flex;align-items:center;gap:5px;white-space:nowrap;
+}
+#edit-btn:hover{background:rgba(255,255,255,.22)}
+#edit-btn.on{background:var(--teal);border-color:var(--teal2)}
+/* ─── LOCKED OVERLAY on upload tab ─── */
+.edit-lock{
+  position:relative;pointer-events:none;opacity:.45;user-select:none;
+}
+.edit-lock-msg{
+  display:none;text-align:center;padding:12px;
+  font-size:12px;color:var(--muted);
+  background:#f8fafc;border-radius:8px;border:1px dashed var(--border);margin-bottom:10px;
+}
+body.view-only .edit-lock-msg{display:block}
+body.view-only .no-edit{pointer-events:none;opacity:.5}
+body.view-only input[type=checkbox]{pointer-events:none}
+
 /* ─── SCROLL TO TOP BTN ─── */
 #scroll-top{
   position:fixed;right:14px;bottom:16px;z-index:600;
@@ -325,6 +372,19 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 <body>
 <div id="tst"></div>
 
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="logo">🏫</div>
+    <h2>篩選測驗名單管理系統</h2>
+    <p>高雄市左營區新莊國民小學<br>請輸入密碼以進入系統</p>
+    <input type="password" id="login-pw" placeholder="輸入密碼" maxlength="20"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="login-err" id="login-err"></div>
+    <button class="btn-login" onclick="doLogin()">🔓 進入系統</button>
+  </div>
+</div>
+
 <header class="hdr">
   <div class="hdr-ico">📋</div>
   <div>
@@ -332,7 +392,8 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     <p>高雄市左營區新莊國民小學 — 114學年度</p>
   </div>
   <div class="hdr-r">
-    <div class="fb-dot" id="fb-dot"></div>
+    <button id="edit-btn" onclick="toggleEditMode()" title="需要管理員密碼">🔒 瀏覽模式</button>
+    <div class="fb-dot" id="fb-dot" style="margin-left:8px"></div>
     <span id="fb-status">連接中…</span>
   </div>
 </header>
@@ -352,6 +413,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 
 <!-- ═══════════════════ TAB: UPLOAD ═══════════════════ -->
 <div class="tab on" id="tab-upload">
+  <div class="edit-lock-msg">🔒 目前為瀏覽模式，請點擊右上角「編輯模式」並輸入管理員密碼以上傳或修改資料。</div>
   <div class="cols2">
     <div class="card">
       <div class="card-hd">📝 上傳必考名單 <span class="badge-count" id="req-count">0 筆</span></div>
@@ -363,8 +425,8 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <input type="file" id="file-req" accept=".xlsx,.xls,.csv">
       <div id="req-preview"></div>
       <div class="row" style="margin-top:10px">
-        <button class="btn btn-blue" id="btn-save-req" disabled onclick="saveRequiredList()">💾 儲存到 Firebase</button>
-        <button class="btn btn-red btn-sm" onclick="clearRequiredList()">🗑 清除必考名單</button>
+        <button class="btn btn-blue no-edit" id="btn-save-req" disabled onclick="saveRequiredList()">💾 儲存到 Firebase</button>
+        <button class="btn btn-red btn-sm no-edit" onclick="clearRequiredList()">🗑 清除必考名單</button>
       </div>
     </div>
     <div class="card">
@@ -377,8 +439,8 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <input type="file" id="file-b35" accept=".xlsx,.xls,.csv">
       <div id="b35-preview"></div>
       <div class="row" style="margin-top:10px">
-        <button class="btn btn-blue" id="btn-save-b35" disabled onclick="saveBottom35List()">💾 儲存到 Firebase</button>
-        <button class="btn btn-red btn-sm" onclick="clearBottom35List()">🗑 清除後35%名單</button>
+        <button class="btn btn-blue no-edit" id="btn-save-b35" disabled onclick="saveBottom35List()">💾 儲存到 Firebase</button>
+        <button class="btn btn-red btn-sm no-edit" onclick="clearBottom35List()">🗑 清除後35%名單</button>
       </div>
     </div>
   </div>
@@ -795,6 +857,7 @@ function syncNotes(reqArr,b35Arr){
 
 // ─── SAVE / CLEAR ───
 async function saveRequiredList(){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
   if(!pendingReq){toast('沒有待儲存的資料','warn');return;}
   try{
     syncNotes(pendingReq,B35);
@@ -806,6 +869,7 @@ async function saveRequiredList(){
   }catch(e){toast('儲存失敗: '+e.message,'err');}
 }
 async function saveBottom35List(){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
   if(!pendingB35){toast('沒有待儲存的資料','warn');return;}
   try{
     syncNotes(REQ,pendingB35);
@@ -824,6 +888,7 @@ async function saveBottom35List(){
   }catch(e){toast('儲存失敗: '+e.message,'err');}
 }
 async function clearRequiredList(){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
   if(!confirm('確定清除所有必考名單資料？'))return;
   try{
     await fbBatchWrite('requiredExam',[]);
@@ -836,6 +901,7 @@ async function clearRequiredList(){
   }catch(e){toast('清除失敗: '+e.message,'err');}
 }
 async function clearBottom35List(){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
   if(!confirm('確定清除所有後35%名單資料？'))return;
   try{
     await fbBatchWrite('bottom35',[]);
@@ -1332,6 +1398,8 @@ function selCountForSubj_global(g,subj){
 }
 
 async function toggleB35Select(id,subj,checked){
+  if(!isEditMode){toast('請先進入編輯模式才能修改','warn');
+    renderB35();return;}
   const s=B35.find(b=>b.id===id);
   if(!s)return;
   const sf=selField(subj);
@@ -1662,6 +1730,78 @@ function renderGradeSummary(){
 function emptyState(ico,msg){
   return `<div class="empty"><div class="ico">${ico}</div><p>${msg}</p></div>`;
 }
+
+// ─── AUTH ───
+const VIEW_PW  = '073411373';
+const ADMIN_PW = 'admin';
+let isEditMode = false;
+
+function doLogin(){
+  const val=document.getElementById('login-pw').value;
+  const err=document.getElementById('login-err');
+  if(val===VIEW_PW||val===ADMIN_PW){
+    sessionStorage.setItem('sjps_auth','1');
+    document.getElementById('login-overlay').classList.add('hide');
+    if(val===ADMIN_PW){
+      activateEditMode();
+    } else {
+      document.body.classList.add('view-only');
+      updateEditBtn();
+    }
+    document.getElementById('login-pw').value='';
+  } else {
+    err.textContent='密碼錯誤，請再試一次。';
+    document.getElementById('login-pw').value='';
+    document.getElementById('login-pw').focus();
+    setTimeout(()=>err.textContent='',2500);
+  }
+}
+
+function toggleEditMode(){
+  if(isEditMode){
+    // Exit edit mode → back to view only
+    if(!confirm('確定退出編輯模式？'))return;
+    isEditMode=false;
+    document.body.classList.add('view-only');
+    updateEditBtn();
+    toast('已切換為瀏覽模式','info');
+    return;
+  }
+  // Enter edit mode
+  const pw=prompt('請輸入管理員密碼：');
+  if(pw===null)return;
+  if(pw===ADMIN_PW){
+    activateEditMode();
+    toast('已進入編輯模式','ok');
+  } else {
+    toast('管理員密碼錯誤','err');
+  }
+}
+
+function activateEditMode(){
+  isEditMode=true;
+  document.body.classList.remove('view-only');
+  updateEditBtn();
+}
+
+function updateEditBtn(){
+  const btn=document.getElementById('edit-btn');
+  if(isEditMode){
+    btn.textContent='✏️ 編輯模式';
+    btn.classList.add('on');
+  } else {
+    btn.textContent='🔒 瀏覽模式';
+    btn.classList.remove('on');
+  }
+}
+
+// Check session (so page refresh doesn't log out)
+if(sessionStorage.getItem('sjps_auth')==='1'){
+  document.getElementById('login-overlay').classList.add('hide');
+  document.body.classList.add('view-only');
+}
+// Auto focus password input
+document.getElementById('login-pw').focus();
 
 // ─── SCROLL TO TOP VISIBILITY ───
 window.addEventListener('scroll',()=>{

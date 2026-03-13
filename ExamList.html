@@ -1433,9 +1433,9 @@ function renderExamList(){
     });
     html+=`</tbody><tfoot><tr>
       <td colspan="2" class="fw6">本班合計 ${ss.length} 人</td>
-      <td class="fw6" style="color:var(--red)">${countCh} 人</td>
-      <td class="fw6" style="color:var(--blue2)">${countMath} 人</td>
-      ${g>=3?`<td class="fw6" style="color:var(--green)">${countEn} 人</td>`:''}
+      <td class="fw6" style="color:var(--red)">國 ${countCh} 人</td>
+      <td class="fw6" style="color:var(--blue2)">數 ${countMath} 人</td>
+      ${g>=3?`<td class="fw6" style="color:var(--green)">英 ${countEn} 人</td>`:''}
       <td colspan="${g>=3?5:4}"></td>
     </tr></tfoot></table></div>
     </div>`;

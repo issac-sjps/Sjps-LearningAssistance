@@ -345,6 +345,7 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   <button class="ntab" data-tab="examlist"><span class="ntab-short">📋</span><span class="ntab-long"> 考試名單</span></button>
   <button class="ntab" data-tab="stat1"><span class="ntab-short">📉</span><span class="ntab-long"> +5%前</span></button>
   <button class="ntab" data-tab="stat2"><span class="ntab-short">➕</span><span class="ntab-long"> +5%後</span></button>
+  <button class="ntab" data-tab="gradesum"><span class="ntab-short">📋</span><span class="ntab-long"> 年級統計</span></button>
 </nav>
 
 <div class="main">
@@ -475,6 +476,14 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
   <div class="card">
     <div class="card-hd">📊 各班需參加考試人數統計（+5%後，完整考試名單）</div>
     <div id="stat2-content"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ TAB: GRADE SUMMARY ═══════════════════ -->
+<div class="tab" id="tab-gradesum">
+  <div class="card">
+    <div class="card-hd">📋 各年級考試人數總表（含必考＋5%新增）</div>
+    <div id="gradesum-content"></div>
   </div>
 </div>
 
@@ -943,6 +952,7 @@ function renderTabContent(tab){
   else if(tab==='examlist')renderExamList();
   else if(tab==='stat1')renderStat1();
   else if(tab==='stat2')renderStat2();
+  else if(tab==='gradesum')renderGradeSummary();
 }
 function renderAll(){
   updateDBStatus();
@@ -1577,6 +1587,76 @@ function exportExamList(){
   const date=new Date().toLocaleDateString('zh-TW').replace(/\//g,'');
   XLSX.writeFile(wb,`考試名單_${date}.xlsx`);
   toast(`已匯出 ${examAll.length} 筆考試名單`,'ok');
+}
+
+// ─── RENDER: GRADE SUMMARY ───
+function renderGradeSummary(){
+  const el=document.getElementById('gradesum-content');
+  const examAll=buildExamList();
+  if(!examAll.length){el.innerHTML=emptyState('📋','尚無考試名單資料。');return;}
+
+  const grades=[1,2,3,4,5,6];
+
+  // Build per-grade totals
+  const data=grades.map(g=>{
+    const gs=examAll.filter(s=>s.grade===g);
+    return{
+      grade:g,
+      total:gs.length,
+      chinese:gs.filter(s=>s.needChinese).length,
+      math:gs.filter(s=>s.needMath).length,
+      english:g>=3?gs.filter(s=>s.needEnglish).length:null,
+    };
+  });
+
+  const totCh=data.reduce((a,d)=>a+d.chinese,0);
+  const totMth=data.reduce((a,d)=>a+d.math,0);
+  const totEn=data.filter(d=>d.english!==null).reduce((a,d)=>a+d.english,0);
+  const totAll=data.reduce((a,d)=>a+d.total,0);
+
+  // ── Summary cards ──
+  let html='<div class="sgrid" style="margin-bottom:18px">';
+  html+=`<div class="sc red"><div class="lbl">全校須考國語</div><div class="val" style="color:var(--red)">${totCh}</div><div class="sub">人</div></div>`;
+  html+=`<div class="sc blue"><div class="lbl">全校須考數學</div><div class="val" style="color:var(--blue2)">${totMth}</div><div class="sub">人</div></div>`;
+  html+=`<div class="sc"><div class="lbl">全校須考英語（3↑）</div><div class="val" style="color:var(--green)">${totEn}</div><div class="sub">人</div></div>`;
+  html+=`<div class="sc blue"><div class="lbl">全校考試總人次</div><div class="val">${totCh+totMth+totEn}</div><div class="sub">人次（含重複）</div></div>`;
+  html+='</div>';
+
+  // ── Main table ──
+  html+=`<div class="tw"><table>
+    <thead><tr>
+      <th>年級</th>
+      <th style="background:#b91c1c">須考國語</th>
+      <th style="background:#1d4ed8">須考數學</th>
+      <th style="background:#065f46">須考英語</th>
+      <th>考試名單總人數</th>
+    </tr></thead>
+    <tbody>`;
+
+  data.forEach(d=>{
+    const enCell=d.english!==null
+      ?`<td class="mono fw6" style="color:var(--green);text-align:center">${d.english}</td>`
+      :`<td style="text-align:center;color:var(--muted);font-size:11px">—</td>`;
+    html+=`<tr>
+      <td class="fw6">${d.grade} 年級</td>
+      <td class="mono fw6" style="color:var(--red);text-align:center">${d.chinese}</td>
+      <td class="mono fw6" style="color:var(--blue2);text-align:center">${d.math}</td>
+      ${enCell}
+      <td class="mono fw6" style="text-align:center">${d.total}</td>
+    </tr>`;
+  });
+
+  html+=`</tbody><tfoot><tr>
+    <td class="fw6">全校合計</td>
+    <td class="mono fw6" style="color:var(--red);text-align:center">${totCh}</td>
+    <td class="mono fw6" style="color:var(--blue2);text-align:center">${totMth}</td>
+    <td class="mono fw6" style="color:var(--green);text-align:center">${totEn}</td>
+    <td class="mono fw6" style="text-align:center">${totAll}</td>
+  </tr></tfoot></table></div>
+
+  <div class="al al-info" style="margin-top:12px">ℹ️ 此統計包含必考名單（X）＋後35%已選5%新增學生。一人可同時出現於多科（須考國語且須考數學），因此「考試名單總人數」≠ 各科加總。</div>`;
+
+  el.innerHTML=html;
 }
 
 function emptyState(ico,msg){

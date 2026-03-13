@@ -980,18 +980,17 @@ const GRADE1_FIRST_EXAM=true;
 
 // 計算某年級某科「目前有效提報人數」
 function subjEffective(grade,subj){
-  const isGr1=grade===1&&GRADE1_FIRST_EXAM;
-  const isGr3Eng=grade===3&&subj==='english';
-  // 必考名單中該科X的人數
-  const reqCnt=isGr1?0:REQ.filter(r=>r.grade===grade&&String(r[subj]||'').trim().toUpperCase()==='X').length;
-  // 後35%中已勾選、且有該科成績的人（排除已在必考名單者）
+  // 首測科目（無必考名單）：1年級國語/數學、3年級英語
+  const isFirst=(grade===1&&GRADE1_FIRST_EXAM&&subj!=='english')||(grade===3&&subj==='english');
+  // 必考名單中該科X的人數（首測=0）
+  const reqCnt=isFirst?0:REQ.filter(r=>r.grade===grade&&String(r[subj]||'').trim().toUpperCase()==='X').length;
+  // 後35%中已勾選、且有該科成績的人
+  // 排除「該科目有X在必考名單」的人（他們已算在reqCnt，首測科目不排除）
   const selCnt=B35.filter(b=>{
     if(b.grade!==grade)return false;
     if(!b.selected)return false;
     if(b[subj]===null||b[subj]===undefined)return false;
-    // 排除「該科目有X在必考名單」的學生（他們已算在reqCnt）
-    // 首測科目不排除任何人
-    if(!isGr1&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r[subj]||'').trim().toUpperCase()==='X'))return false;
+    if(!isFirst&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r[subj]||'').trim().toUpperCase()==='X'))return false;
     return true;
   }).length;
   return{reqCnt,selCnt,total:reqCnt+selCnt};
@@ -1153,21 +1152,6 @@ function renderB35(){
     infoHtml+=`<div class="al al-warn">⚠️ <strong>一年級為本學期首次施測</strong>，無既有必考名單，請從下方直接勾選學生加入考試名單（目標 <strong>${get5Target(1)}</strong> 人）。一年級所有勾選學生都將列為正式考試名單。</div>`;
   }
 
-  // 計算某年級某科目「已選人數」（只算有該科成績的已選學生）
-  function selCountForSubj(g,s){
-    const isGr1first=g===1&&GRADE1_FIRST_EXAM&&s!=='english';
-    const isGr3en=g===3&&s==='english';
-    return B35.filter(b=>{
-      if(b.grade!==g)return false;
-      if(!b.selected)return false;
-      if(b[s]===null||b[s]===undefined)return false;
-      // 首測年級（1年級國數、3年級英）：全部已選都算（沒有必考名單）
-      if(isGr1first||isGr3en)return true;
-      // 其餘年級：排除已在必考名單的人（他們已算在必考人數裡）
-      return !isInREQ(b.name,b.grade);
-    }).length;
-  }
-
   // Global selection info
   let selHtml='<div class="sinfo">';
   const allGrades=grade?[grade]:[1,2,3,4,5,6];
@@ -1177,7 +1161,7 @@ function renderB35(){
     const isGr1=g===1&&GRADE1_FIRST_EXAM&&subj!=='english';
     const isGr3en=g===3&&subj==='english';
     const isFirst=isGr1||isGr3en;
-    const selected=selCountForSubj(g,subj);
+    const selected=selCountForSubj_global(g,subj);
     // effective = 必考X人數（首測年級為0）+ 已選
     const{reqCnt}=subjEffective(g,subj);
     const effective=reqCnt+selected;
@@ -1198,7 +1182,7 @@ function renderB35(){
     const isGr1=g===1&&GRADE1_FIRST_EXAM&&subj!=='english';
     const isGr3en=g===3&&subj==='english';
     const isFirst=isGr1||isGr3en;
-    const selected=selCountForSubj(g,subj);
+    const selected=selCountForSubj_global(g,subj);
     const{reqCnt}=subjEffective(g,subj);
     const effective=reqCnt+selected;
     const diff=effective-tgt.total;

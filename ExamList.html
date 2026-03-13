@@ -276,7 +276,8 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
       <option value="0">全部班級</option>
     </select>
     <button class="btn btn-gray" onclick="window.print()">🖨 列印目前頁面</button>
-    <span class="fs11 mu">提示：先選擇年級/班級再列印，每班各自顯示。</span>
+    <button class="btn btn-teal" onclick="exportExamList()">⬇️ 匯出 Excel（考試名單）</button>
+    <span class="fs11 mu">提示：先選擇年級/班級再列印，每班各自顯示。匯出不受篩選影響，會匯出全部考試名單。</span>
   </div>
   <div id="examlist-content"></div>
 </div>
@@ -1255,6 +1256,53 @@ function renderStat2(){
   });
   html+='</tbody></table></div>';
   el.innerHTML=html;
+}
+
+
+// ─── EXPORT: EXAM LIST → EXCEL ───
+function exportExamList(){
+  const examAll=buildExamList();
+  if(!examAll.length){toast('尚無考試名單資料','warn');return;}
+
+  // Header row — same columns as required list upload
+  const header=['序號','姓名','身分證統一編號','入學年度','目前年級','班級','座號',
+    '國語文測驗','數學測驗','英語測驗','身分類別'];
+
+  const rows=[header];
+  examAll.forEach((s,i)=>{
+    // 國語：需考=X，不需考=空白（無O，因為考試名單不代表已通過）
+    const chinese=s.needChinese?'X':'';
+    const math=s.needMath?'X':'';
+    // 英語：1-2年級無英語欄位，3年級以上才有
+    const english=s.grade>=3?(s.needEnglish?'X':''):'';
+    rows.push([
+      i+1,            // 序號
+      s.name,         // 姓名
+      '',             // 身分證（略過）
+      '',             // 入學年度（略過）
+      s.grade,        // 目前年級
+      s.classNum,     // 班級
+      s.seat,         // 座號
+      chinese,        // 國語文測驗
+      math,           // 數學測驗
+      english,        // 英語測驗
+      s.identity||''  // 身分類別
+    ]);
+  });
+
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+
+  // Column widths
+  ws['!cols']=[
+    {wch:6},{wch:10},{wch:14},{wch:10},{wch:8},{wch:6},{wch:6},
+    {wch:10},{wch:10},{wch:10},{wch:16}
+  ];
+
+  XLSX.utils.book_append_sheet(wb,ws,'考試名單');
+  const date=new Date().toLocaleDateString('zh-TW').replace(/\//g,'');
+  XLSX.writeFile(wb,`考試名單_${date}.xlsx`);
+  toast(`已匯出 ${examAll.length} 筆考試名單`,'ok');
 }
 
 function emptyState(ico,msg){

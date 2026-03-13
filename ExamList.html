@@ -127,6 +127,44 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:600px){.cols2{grid-template-columns:1fr}}
 
+/* ─── B35 FLOATING PROGRESS PANEL ─── */
+#b35-float{
+  position:fixed;right:14px;top:50%;transform:translateY(-50%);
+  z-index:500;display:flex;flex-direction:column;gap:0;
+  background:#1e3a8a;color:#fff;border-radius:12px;
+  box-shadow:0 8px 28px rgba(0,0,0,.25);
+  min-width:100px;overflow:hidden;
+}
+#b35-float-inner{display:flex;flex-direction:column}
+.b35fp-hd{
+  background:var(--teal);padding:6px 10px;
+  font-size:10px;font-weight:700;text-align:center;letter-spacing:.5px;
+  text-transform:uppercase;
+}
+.b35fp-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:5px 10px;gap:8px;border-bottom:1px solid rgba(255,255,255,.1);
+  cursor:default;transition:.15s;
+}
+.b35fp-row:last-child{border-bottom:none}
+.b35fp-row:hover{background:rgba(255,255,255,.08)}
+.b35fp-lbl{font-size:10px;opacity:.75;white-space:nowrap}
+.b35fp-val{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.b35fp-val.done{color:#4ade80}
+.b35fp-val.close{color:#fbbf24}
+.b35fp-val.over{color:#4ade80}
+.b35fp-val.need{color:#f87171}
+.b35fp-bar{height:3px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 10px 5px;overflow:hidden}
+.b35fp-fill{height:100%;border-radius:2px;transition:width .3s;background:var(--teal2)}
+.b35fp-fill.done{background:#4ade80}
+.b35fp-fill.over{background:#4ade80}
+@media(max-width:680px){
+  #b35-float{right:6px;min-width:80px}
+  .b35fp-val{font-size:12px}
+  .b35fp-lbl{font-size:9px}
+  .b35fp-row{padding:4px 7px}
+}
+
 /* ═══════════════════ MOBILE OPTIMISATION (≤ 680px) ═══════════════════ */
 @media(max-width:680px){
   /* Header */
@@ -425,6 +463,11 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 </div>
 
 </div><!-- /main -->
+
+<!-- ═══════════════════ B35 FLOATING PROGRESS PANEL ═══════════════════ -->
+<div id="b35-float" style="display:none">
+  <div id="b35-float-inner"></div>
+</div>
 
 <!-- ═══════════════════ FIREBASE MODULE ═══════════════════ -->
 <script type="module">
@@ -845,6 +888,7 @@ document.querySelectorAll('.ntab').forEach(btn=>{
     btn.classList.add('on');
     document.getElementById('tab-'+btn.dataset.tab).classList.add('on');
     renderTabContent(btn.dataset.tab);
+    if(btn.dataset.tab!=='b35'){document.getElementById('b35-float').style.display='none';}else{updateB35FloatPanel();}
   });
 });
 
@@ -1198,6 +1242,50 @@ function renderB35(){
   });
   
   el.innerHTML=infoHtml+selHtml+tableHtml;
+  updateB35FloatPanel();
+}
+
+function updateB35FloatPanel(){
+  const panel=document.getElementById('b35-float');
+  const inner=document.getElementById('b35-float-inner');
+  // Only show when on B35 tab
+  const onB35=document.querySelector('.ntab.on')?.dataset?.tab==='b35';
+  if(!onB35||!B35.length){panel.style.display='none';return;}
+  panel.style.display='flex';
+
+  const subj=b35Subj;
+  const grades=subj==='english'?[3,4,5,6]:[1,2,3,4,5,6];
+
+  let html='<div class="b35fp-hd">選人進度</div>';
+  grades.forEach(g=>{
+    const tgt=subjTarget(g,subj);
+    const{reqCnt}=subjEffective(g,subj);
+    const sel=selCountForSubj_global(g,subj);
+    const eff=reqCnt+sel;
+    const diff=eff-tgt.total;
+    const pct=Math.min(100,tgt.total>0?eff/tgt.total*100:0);
+    const cls=diff>0?'over':diff===0?'done':eff/tgt.total>=0.8?'close':'need';
+    const isFirst=(g===1&&GRADE1_FIRST_EXAM&&subj!=='english')||(g===3&&subj==='english');
+    html+=`<div class="b35fp-row" title="${g}年級：已有效${eff}人 / 目標${tgt.total}人">
+      <span class="b35fp-lbl">${g}年${isFirst?' 🆕':''}</span>
+      <span class="b35fp-val ${cls}">${eff}<span style="opacity:.5;font-size:10px">/${tgt.total}</span></span>
+    </div>
+    <div class="b35fp-bar"><div class="b35fp-fill ${cls}" style="width:${pct}%"></div></div>`;
+  });
+  inner.innerHTML=html;
+}
+
+// Global version of selCountForSubj (accessible outside renderB35 scope)
+function selCountForSubj_global(g,subj){
+  const isGr1first=g===1&&GRADE1_FIRST_EXAM&&subj!=='english';
+  const isGr3en=g===3&&subj==='english';
+  return B35.filter(b=>{
+    if(b.grade!==g)return false;
+    if(!b.selected)return false;
+    if(b[subj]===null||b[subj]===undefined)return false;
+    if(isGr1first||isGr3en)return true;
+    return !REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r[subj]||'').trim().toUpperCase()==='X');
+  }).length;
 }
 
 async function toggleB35Select(id,checked){
@@ -1213,6 +1301,7 @@ async function toggleB35Select(id,checked){
   // Re-render selection info
   renderB35();
   updateDBStatus();
+  updateB35FloatPanel();
 }
 
 // ─── RENDER: EXAM LIST TAB ───

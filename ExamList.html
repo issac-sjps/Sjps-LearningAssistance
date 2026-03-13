@@ -945,7 +945,9 @@ function subjEffective(grade,subj){
     if(b.grade!==grade)return false;
     if(!b.selected)return false;
     if(b[subj]===null||b[subj]===undefined)return false;
-    if(!isGr1&&isInREQ(b.name,b.grade))return false;
+    // 排除「該科目有X在必考名單」的學生（他們已算在reqCnt）
+    // 首測科目不排除任何人
+    if(!isGr1&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r[subj]||'').trim().toUpperCase()==='X'))return false;
     return true;
   }).length;
   return{reqCnt,selCnt,total:reqCnt+selCnt};
@@ -1170,14 +1172,18 @@ function renderB35(){
         <th>${SUBJ_LABEL[subj]}分數</th><th>身份註記</th><th>名單狀態</th>
       </tr></thead><tbody>`;
     gs.forEach((s,i)=>{
-      const inReq=isInREQ(s.name,s.grade);
-      // Grade 1: no req list, everyone is selectable
-      const rowClass=inReq?'style="background:#fffbeb"':s.selected?'style="background:#faf5ff"':'';
-      const statusBadge=isGr1
+      // inReqSubj：只有當學生在必考名單且「該科目」標記為X才算
+      // 首測科目（1年級國數、3年級英）沒有必考名單，一律 false
+      const inReqSubj=!isFirst&&REQ.some(r=>
+        r.name===s.name&&r.grade===s.grade&&
+        String(r[subj]||'').trim().toUpperCase()==='X'
+      );
+      const rowClass=inReqSubj?'style="background:#fffbeb"':s.selected?'style="background:#faf5ff"':'';
+      const statusBadge=isFirst
         ?(s.selected?'<span class="b b-sel">✔ 已選入名單</span>':'<span class="b b-mt">—</span>')
-        :(inReq?'<span class="b b-req">✦ 必考名單</span>':s.selected?'<span class="b b-sel">✔ 已選5%</span>':'<span class="b b-mt">—</span>');
+        :(inReqSubj?'<span class="b b-req">✦ 必考名單</span>':s.selected?'<span class="b b-sel">✔ 已選5%</span>':'<span class="b b-mt">—</span>');
       tableHtml+=`<tr ${rowClass}>
-        <td><input type="checkbox" ${s.selected?'checked':''} ${(!isGr1&&inReq)?'disabled title="已在必考名單"':''}
+        <td><input type="checkbox" ${s.selected?'checked':''} ${(!isFirst&&inReqSubj)?'disabled title="已在必考名單"':''}
           onchange="toggleB35Select('${s.id}',this.checked)"></td>
         <td class="mono mu">${i+1}</td>
         <td class="fw6">${g}年${s.classNum}班</td>

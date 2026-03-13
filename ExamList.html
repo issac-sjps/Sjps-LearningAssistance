@@ -127,6 +127,22 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:600px){.cols2{grid-template-columns:1fr}}
 
+/* ─── SCROLL TO TOP BTN ─── */
+#scroll-top{
+  position:fixed;right:14px;bottom:16px;z-index:600;
+  width:40px;height:40px;border-radius:50%;border:none;
+  background:#0d9488;color:#fff;font-size:16px;font-weight:700;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;
+  opacity:0;transform:translateY(10px);
+  transition:opacity .25s,transform .25s,background .15s;
+  pointer-events:none;
+}
+#scroll-top.vis{opacity:1;transform:none;pointer-events:auto}
+#scroll-top:hover{background:#0f766e}
+@media(max-width:680px){
+  #scroll-top{width:36px;height:36px;font-size:14px;right:6px;bottom:70px}
+}
+
 /* ─── B35 FLOATING PROGRESS PANEL ─── */
 #b35-float{
   position:fixed;right:14px;top:50%;transform:translateY(-50%);
@@ -468,6 +484,9 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0}
 <div id="b35-float" style="display:none">
   <div id="b35-float-inner"></div>
 </div>
+
+<!-- ═══════════════════ SCROLL TO TOP ═══════════════════ -->
+<button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到最上方">▲</button>
 
 <!-- ═══════════════════ FIREBASE MODULE ═══════════════════ -->
 <script type="module">
@@ -1563,6 +1582,11 @@ function exportExamList(){
 function emptyState(ico,msg){
   return `<div class="empty"><div class="ico">${ico}</div><p>${msg}</p></div>`;
 }
+
+// ─── SCROLL TO TOP VISIBILITY ───
+window.addEventListener('scroll',()=>{
+  document.getElementById('scroll-top').classList.toggle('vis',window.scrollY>300);
+},{passive:true});
 
 // ─── INIT ───
 document.addEventListener('fbReady',()=>{

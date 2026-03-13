@@ -541,7 +541,14 @@ async function fbLoadAll(){
     getDocs(col(db,'bottom35'))
   ]);
   REQ=rs.docs.map(d=>d.data());
-  B35=bs.docs.map(d=>d.data());
+  B35=bs.docs.map(d=>{
+    const data=d.data();
+    // Migrate old single `selected` field → three subject fields (default false)
+    if(!('selChinese' in data)){data.selChinese=false;}
+    if(!('selMath' in data)){data.selMath=false;}
+    if(!('selEnglish' in data)){data.selEnglish=false;}
+    return data;
+  });
 }
 
 // ─── TOAST ───
@@ -560,12 +567,13 @@ function classOf(classCode){return classCode%100;}
 function isInREQ(name,grade){return REQ.some(r=>r.name===name&&r.grade===grade);}
 function get5Target(grade){return Math.ceil(GRADE_TOTALS[grade]*0.05);}
 function selCount5(grade,subj){
-  return B35.filter(s=>s.grade===grade&&s.selected&&s[subj]!==null&&s[subj]!==undefined&&!isInREQ(s.name,s.grade)).length;
+  const sf=selField(subj);
+  return B35.filter(s=>s.grade===grade&&s[sf]&&s[subj]!==null&&s[subj]!==undefined&&!isInREQ(s.name,s.grade)).length;
 }
 function totalSelectedNew(grade){
-  // Count unique NEW students selected (not in REQ) in this grade
+  // Count unique NEW students selected for any subject (not in REQ) in this grade
   return [...new Set(
-    B35.filter(s=>s.grade===grade&&s.selected&&!isInREQ(s.name,s.grade)).map(s=>s.id)
+    B35.filter(s=>s.grade===grade&&(s.selChinese||s.selMath||s.selEnglish)&&!isInREQ(s.name,s.grade)).map(s=>s.id)
   )].length;
 }
 function reqStudentSubj(r,subj){
@@ -594,19 +602,29 @@ function buildExamList(){
     });
   });
   B35.forEach(b=>{
-    if(!b.selected)return;
+    const anySelected=b.selChinese||b.selMath||b.selEnglish;
+    if(!anySelected)return;
     const isGr1=b.grade===1&&GRADE1_FIRST_EXAM;
-    // Grade 1: all selected are in exam list (no req to deduplicate against)
-    if(!isGr1&&isInREQ(b.name,b.grade))return;
+    // For non-first-test: skip if ALL selected subjects are already covered in REQ
+    // (a student can be in REQ for chinese but selected for math — include them)
     const key=`${b.grade}|${b.classNum}|${b.seat}|${b.name}`;
+    // Determine which subjects this student needs to test via 5% selection
+    // (exclude subjects already covered by REQ X)
+    const chInReq=!isGr1&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r.chinese||'').trim().toUpperCase()==='X');
+    const mthInReq=!isGr1&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r.math||'').trim().toUpperCase()==='X');
+    const enInReq=!isGr1&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r.english||'').trim().toUpperCase()==='X');
+    const needCh=b.selChinese&&!chInReq;
+    const needMth=b.selMath&&!mthInReq;
+    const needEn=b.selEnglish&&b.grade>=3&&!enInReq;
+    if(!needCh&&!needMth&&!needEn)return; // all subjects already in REQ
     if(!map.has(key)){
       map.set(key,{
         id:b.id,name:b.name,grade:b.grade,classNum:b.classNum,seat:b.seat,
         identity:b.note||'',
         source:isGr1?'5pct_gr1':'5pct',
-        needChinese:b.chinese!==null&&b.chinese!==undefined,
-        needMath:b.math!==null&&b.math!==undefined,
-        needEnglish:b.grade>=3&&b.english!==null&&b.english!==undefined,
+        needChinese:needCh,
+        needMath:needMth,
+        needEnglish:needEn,
         prevChinese:b.chinese??null,
         prevMath:b.math??null,
         prevEnglish:b.english??null,
@@ -727,7 +745,7 @@ function parseBottom35Excel(file){
             chinese:isNaN(pc)?null:pc,
             math:isNaN(pm)?null:pm,
             english:isNaN(pe)?null:pe,
-            note,selected:false
+            note,selChinese:false,selMath:false,selEnglish:false
           });
         }
         res({students,dups});
@@ -763,6 +781,13 @@ async function saveBottom35List(){
   if(!pendingB35){toast('沒有待儲存的資料','warn');return;}
   try{
     syncNotes(REQ,pendingB35);
+    // Ensure per-subject selection fields exist
+    pendingB35.forEach(s=>{
+      if(!('selChinese' in s))s.selChinese=false;
+      if(!('selMath' in s))s.selMath=false;
+      if(!('selEnglish' in s))s.selEnglish=false;
+      delete s.selected; // remove old field if present
+    });
     await fbBatchWrite('bottom35',pendingB35);
     B35=pendingB35;pendingB35=null;
     document.getElementById('btn-save-b35').disabled=true;
@@ -815,7 +840,7 @@ async function loadAll(){
 function updateDBStatus(){
   document.getElementById('db-req-cnt').textContent=REQ.length;
   document.getElementById('db-b35-cnt').textContent=B35.length;
-  document.getElementById('db-sel-cnt').textContent=B35.filter(b=>b.selected).length;
+  document.getElementById('db-sel-cnt').textContent=B35.filter(b=>b.selChinese||b.selMath||b.selEnglish).length;
   document.getElementById('req-count').textContent=REQ.length+' 筆';
   document.getElementById('b35-count').textContent=B35.length+' 筆';
 }
@@ -977,6 +1002,8 @@ function subjBadge(v){
 //   三年級英語：首次施測，目標 = round(四年級英語必考人數/220 × 198) + ceil(198×5%)
 //   其餘：必考名單各科X人數 + 後35%已選有該科成績人數，目標 = ceil(年級人數×5%)
 const GRADE1_FIRST_EXAM=true;
+// Convert subj key to Firebase field name
+function selField(subj){return 'sel'+subj[0].toUpperCase()+subj.slice(1);}  // chinese→selChinese
 
 // 計算某年級某科「目前有效提報人數」
 function subjEffective(grade,subj){
@@ -986,9 +1013,10 @@ function subjEffective(grade,subj){
   const reqCnt=isFirst?0:REQ.filter(r=>r.grade===grade&&String(r[subj]||'').trim().toUpperCase()==='X').length;
   // 後35%中已勾選、且有該科成績的人
   // 排除「該科目有X在必考名單」的人（他們已算在reqCnt，首測科目不排除）
+  const sf=selField(subj);
   const selCnt=B35.filter(b=>{
     if(b.grade!==grade)return false;
-    if(!b.selected)return false;
+    if(!b[sf])return false;                          // not selected for THIS subject
     if(b[subj]===null||b[subj]===undefined)return false;
     if(!isFirst&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r[subj]||'').trim().toUpperCase()==='X'))return false;
     return true;
@@ -1191,7 +1219,7 @@ function renderB35(){
       ${gradeLabel}
       <span class="chips">
         <span class="chip">${gs.length}人</span>
-        <span class="chip ${diff>=0?'ok':'red'}">${isFirst?'已選':'必考'+reqCnt+'＋新增'}${isFirst?selected:selected}人 有效${effective}人 / 目標${tgt.total}人</span>
+        <span class="chip ${diff>=0?'ok':'red'}">${isFirst?'已選 '+selected+' 人':'必考'+reqCnt+'＋新增'+selected+' 人'} 有效 ${effective} / 目標 ${tgt.total}</span>
       </span>
     </div>`;
     tableHtml+=`<div class="card" style="padding:0"><div class="tw-wrap"><div class="tw"><table>
@@ -1202,17 +1230,19 @@ function renderB35(){
     gs.forEach((s,i)=>{
       // inReqSubj：只有當學生在必考名單且「該科目」標記為X才算
       // 首測科目（1年級國數、3年級英）沒有必考名單，一律 false
+      const sf=selField(subj);
       const inReqSubj=!isFirst&&REQ.some(r=>
         r.name===s.name&&r.grade===s.grade&&
         String(r[subj]||'').trim().toUpperCase()==='X'
       );
-      const rowClass=inReqSubj?'style="background:#fffbeb"':s.selected?'style="background:#faf5ff"':'';
+      const isSel=!!s[sf];
+      const rowClass=inReqSubj?'style="background:#fffbeb"':isSel?'style="background:#faf5ff"':'';
       const statusBadge=isFirst
-        ?(s.selected?'<span class="b b-sel">✔ 已選入名單</span>':'<span class="b b-mt">—</span>')
-        :(inReqSubj?'<span class="b b-req">✦ 必考名單</span>':s.selected?'<span class="b b-sel">✔ 已選5%</span>':'<span class="b b-mt">—</span>');
+        ?(isSel?'<span class="b b-sel">✔ 已選入名單</span>':'<span class="b b-mt">—</span>')
+        :(inReqSubj?'<span class="b b-req">✦ 必考名單</span>':isSel?'<span class="b b-sel">✔ 已選5%</span>':'<span class="b b-mt">—</span>');
       tableHtml+=`<tr ${rowClass}>
-        <td><input type="checkbox" ${s.selected?'checked':''} ${(!isFirst&&inReqSubj)?'disabled title="已在必考名單"':''}
-          onchange="toggleB35Select('${s.id}',this.checked)"></td>
+        <td><input type="checkbox" ${isSel?'checked':''} ${(!isFirst&&inReqSubj)?'disabled title="已在必考名單"':''}
+          onchange="toggleB35Select('${s.id}','${subj}',this.checked)"></td>
         <td class="mono mu">${i+1}</td>
         <td class="fw6">${g}年${s.classNum}班</td>
         <td class="mono">${String(s.seat).padStart(2,'0')}</td>
@@ -1259,30 +1289,30 @@ function updateB35FloatPanel(){
   inner.innerHTML=html;
 }
 
-// Global version of selCountForSubj (accessible outside renderB35 scope)
+// Count students selected for a specific subject in a grade
 function selCountForSubj_global(g,subj){
-  const isGr1first=g===1&&GRADE1_FIRST_EXAM&&subj!=='english';
-  const isGr3en=g===3&&subj==='english';
+  const isFirst=(g===1&&GRADE1_FIRST_EXAM&&subj!=='english')||(g===3&&subj==='english');
+  const sf=selField(subj);
   return B35.filter(b=>{
     if(b.grade!==g)return false;
-    if(!b.selected)return false;
+    if(!b[sf])return false;                          // not selected for THIS subject
     if(b[subj]===null||b[subj]===undefined)return false;
-    if(isGr1first||isGr3en)return true;
-    return !REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r[subj]||'').trim().toUpperCase()==='X');
+    if(!isFirst&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r[subj]||'').trim().toUpperCase()==='X'))return false;
+    return true;
   }).length;
 }
 
-async function toggleB35Select(id,checked){
+async function toggleB35Select(id,subj,checked){
   const s=B35.find(b=>b.id===id);
   if(!s)return;
-  s.selected=checked;
+  const sf=selField(subj);
+  s[sf]=checked;
   try{
-    await fbUpdateDoc('bottom35',id,{selected:checked});
+    await fbUpdateDoc('bottom35',id,{[sf]:checked});
   }catch(e){
     toast('更新失敗: '+e.message,'err');
-    s.selected=!checked; // revert
+    s[sf]=!checked; // revert
   }
-  // Re-render selection info
   renderB35();
   updateDBStatus();
   updateB35FloatPanel();

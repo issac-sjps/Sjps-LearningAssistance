@@ -441,9 +441,10 @@ function allCards(tt){
   const r=[];
   if(tt==='篩選'){
     for(let g=1;g<=6;g++){
-      const p=g<=2;
-      for(const s of(g>=3?['國','數','英']:['國','數']))
+      for(const s of(g>=3?['國','數','英']:['國','數'])){
+        const p = g<=2 || (g===3 && s==='英');
         r.push({id:`${tt}-${g}-${s}`,grade:g,subj:s,paper:p});
+      }
     }
   } else {
     for(let g=2;g<=6;g++){
@@ -463,7 +464,9 @@ function poolCards(tt){
 function cardById(id){
   const parts=id.split('-');
   const tt=parts[0]; const g=parseInt(parts[1]); const s=parts[2];
-  const p=tt==='篩選'?g<=2:g<=3;
+  let p;
+  if(tt==='篩選') p = g<=2 || (g===3 && s==='英');
+  else p = g<=3;
   return {id,grade:g,subj:s,paper:p,tt};
 }
 function findInSched(id){

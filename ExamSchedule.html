@@ -586,7 +586,9 @@ function renderSchedule(){
     const subj=ws[w]||'未定';
     const dates=weekDates(w);
     const tagStyle=subjTagStyle(subj);
-    const label=subj==='未定'?'未定（點擊切換）':'考'+subj+'（點擊切換）';
+    const label=subj==='未定'
+      ? (isEditMode?'未定（點擊切換）':'未定（編輯模式可切換）')
+      : (isEditMode?'考'+subj+'（點擊切換）':'考'+subj+'（編輯模式可切換）');
 
     html+=`<div class="week-block">
       <div class="week-head">
@@ -702,6 +704,7 @@ window.toggleEditMode = ()=>{
     document.body.classList.remove('edit-mode');
     document.getElementById('editModeBtn').textContent='🔒 瀏覽模式';
     document.getElementById('editModeBtn').classList.remove('unlocked');
+    renderSchedule();
   } else {
     // Unlock with password
     const pw = prompt('請輸入編輯密碼：');
@@ -710,13 +713,13 @@ window.toggleEditMode = ()=>{
       document.body.classList.add('edit-mode');
       document.getElementById('editModeBtn').textContent='🔓 編輯模式';
       document.getElementById('editModeBtn').classList.add('unlocked');
+      renderSchedule();
     } else if(pw !== null){
       alert('密碼錯誤');
     }
   }
 };
 window.cycleWeekSubj = (w)=>{
-  if(!isEditMode) return;
   const ws=ST.weekSubjs[ST.testType];
   const cur=ws[w]||'未定';
   const idx=SUBJ_CYCLE.indexOf(cur);

@@ -1498,7 +1498,7 @@ function renderExamList(){
     ss.forEach(s=>{
       html+=`<tr>
         <td class="mono fw6">${String(s.seat).padStart(2,'0')}</td>
-        <td class="fw6">${s.name}</td>
+        <td class="fw6" style="white-space:nowrap">${s.name}</td>
         <td style="text-align:center">${s.needChinese?'<span class="b b-fail">✗ 需考</span>':''}</td>
         <td style="text-align:center">${s.needMath?'<span class="b b-fail">✗ 需考</span>':''}</td>
         ${g>=3?`<td style="text-align:center">${s.needEnglish?'<span class="b b-fail">✗ 需考</span>':''}</td>`:''}

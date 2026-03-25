@@ -18,7 +18,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-/* ── HEADER ── */
+/* ── HEADER (頁首) ── */
 .hdr{background:linear-gradient(135deg,#1e3a8a 0%,#1e40af 100%);color:#fff;
   padding:12px 20px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh2);position:sticky;top:0;z-index:100}
 .hdr-ico{width:42px;height:42px;background:var(--teal);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
@@ -30,22 +30,22 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .fb-dot.err{background:#f87171}
 #fb-status{font-size:11px;opacity:.75}
 
-/* ── NAV ── */
+/* ── NAV (導覽列) ── */
 .nav{background:#1e3a8a;display:flex;overflow-x:auto;border-bottom:3px solid var(--teal);scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
-.ntab{padding:9px 16px;background:none;border:none;color:rgba(255,255,255,.6);
-  font:500 12px 'Noto Sans TC',sans-serif;cursor:pointer;white-space:nowrap;transition:.15s;position:relative;border-bottom:3px solid transparent;margin-bottom:-3px}
+.ntab{padding:12px 18px;background:none;border:none;color:rgba(255,255,255,.6);
+  font:500 13px 'Noto Sans TC',sans-serif;cursor:pointer;white-space:nowrap;transition:.15s;position:relative;border-bottom:3px solid transparent}
 .ntab:hover{color:#fff;background:rgba(255,255,255,.1)}
 .ntab.on{color:#fff;background:rgba(255,255,255,.1);border-bottom-color:var(--teal2)}
 
-/* ── MAIN ── */
+/* ── MAIN (主內容區) ── */
 .main{padding:18px;max-width:1440px;margin:0 auto}
 .tab{display:none}.tab.on{display:block}
 .card{background:var(--white);border-radius:12px;padding:18px;box-shadow:var(--sh);margin-bottom:16px}
 .card-hd{font-size:14px;font-weight:600;color:var(--blue);margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:7px}
 .card-hd .badge-count{background:var(--blue2);color:#fff;font-size:11px;padding:1px 7px;border-radius:10px;font-weight:500;margin-left:auto}
 
-/* ── UPLOAD ZONE ── */
+/* ── UPLOAD ZONE (上傳區) ── */
 .upzone{border:2px dashed var(--border);border-radius:8px;padding:26px 20px;text-align:center;cursor:pointer;transition:.2s;position:relative}
 .upzone:hover,.upzone.drag{border-color:var(--teal);background:rgba(13,148,136,.05)}
 .upzone .ico{font-size:30px;margin-bottom:6px}
@@ -53,17 +53,16 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .upzone strong{color:var(--teal)}
 input[type=file]{display:none}
 
-/* ── BUTTONS ── */
+/* ── BUTTONS (按鈕) ── */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:6px;border:none;font:500 12px 'Noto Sans TC',sans-serif;cursor:pointer;transition:.15s;user-select:none}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-blue{background:var(--blue2);color:#fff}.btn-blue:hover:not(:disabled){background:var(--blue)}
 .btn-teal{background:var(--teal);color:#fff}.btn-teal:hover:not(:disabled){background:#0f766e}
 .btn-red{background:var(--red);color:#fff}.btn-red:hover:not(:disabled){opacity:.85}
 .btn-gray{background:#475569;color:#fff}.btn-gray:hover:not(:disabled){background:#334155}
-.btn-out{background:#fff;color:var(--blue);border:1px solid var(--border)}.btn-out:hover:not(:disabled){background:var(--bg)}
 .btn-sm{padding:3px 9px;font-size:11px}
 
-/* ── TABLES ── */
+/* ── TABLES (表格) ── */
 .tw{overflow-x:auto;border-radius:8px}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead th{background:var(--blue);color:#fff;padding:8px 10px;text-align:left;font-weight:500;white-space:nowrap}
@@ -72,7 +71,7 @@ tbody tr:hover{background:rgba(13,148,136,.05)}
 tbody td{padding:6px 10px;vertical-align:middle}
 tfoot td{padding:8px 10px;background:#f8fafc;font-weight:600;font-size:12px;border-top:2px solid var(--border)}
 
-/* ── BADGES ── */
+/* ── BADGES (標籤) ── */
 .b{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
 .b-fail{background:#fef2f2;color:var(--red);border:1px solid #fecaca}
 .b-pass{background:#f0fdf4;color:var(--green);border:1px solid #bbf7d0}
@@ -80,134 +79,56 @@ tfoot td{padding:8px 10px;background:#f8fafc;font-weight:600;font-size:12px;bord
 .b-req{background:#fff7ed;color:var(--amber);border:1px solid #fed7aa}
 .b-sel{background:#faf5ff;color:var(--purple);border:1px solid #e9d5ff}
 
-/* ── STAT GRID ── */
+/* ── STAT GRID (統計網格) ── */
 .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:16px}
 .sc{background:var(--white);border-radius:10px;padding:14px;box-shadow:var(--sh);border-left:4px solid var(--teal)}
-.sc.red{border-left-color:var(--red)}.sc.amber{border-left-color:var(--amber)}.sc.blue{border-left-color:var(--blue2)}
 .sc .lbl{font-size:11px;color:var(--muted);margin-bottom:2px}
 .sc .val{font-size:24px;font-weight:700;color:var(--blue);font-family:'JetBrains Mono',monospace}
-.sc .sub{font-size:11px;color:var(--muted);margin-top:2px}
-.sc .bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:7px}
-.sc .fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--blue2));border-radius:3px;transition:width .5s}
 
-/* ── ALERTS ── */
-.al{padding:10px 13px;border-radius:8px;font-size:12px;margin-bottom:10px;display:flex;gap:8px;align-items:flex-start;line-height:1.5}
-.al-warn{background:#fffbeb;color:#92400e;border:1px solid #fde68a}
-.al-info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
-.al-ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
-.al-err{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
-
-.ghd{background:linear-gradient(90deg,var(--blue),var(--blue2));color:#fff;padding:8px 14px;border-radius:8px;margin:12px 0 7px;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.ghd .chips{display:flex;gap:6px;flex-wrap:wrap}
-.ghd .chip{background:rgba(255,255,255,.2);border-radius:10px;padding:2px 10px;font-size:11px;font-weight:500}
-.ghd .chip.ok{background:rgba(74,222,128,.3)}
-.ghd .chip.red{background:rgba(248,113,113,.3)}
-
-.stabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.stab{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:#fff;font:12px 'Noto Sans TC',sans-serif;cursor:pointer;transition:.15s}
-.stab.on{background:var(--blue);color:#fff;border-color:var(--blue)}
-
-.sinfo{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
-.chip2{background:#fff;border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;display:inline-flex;align-items:center;gap:5px}
-.chip2 .n{font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--blue)}
-.chip2.teal{border-color:var(--teal);color:var(--teal)}.chip2.green{border-color:var(--green)}.chip2.red{border-color:var(--red)}
-
-.loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:40px;color:var(--muted);font-size:13px}
-.spin{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
-.empty{text-align:center;padding:36px;color:var(--muted)}.empty .ico{font-size:36px;margin-bottom:8px}.empty p{font-size:12px}
-
-/* ── TOAST ── */
-#tst{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px}
-.toast{background:#1e3a8a;color:#fff;padding:10px 14px;border-radius:8px;font-size:12px;box-shadow:var(--sh2);animation:tin .3s ease;max-width:320px;line-height:1.5}
-.toast.ok{background:#15803d}.toast.err{background:#b91c1c}.toast.warn{background:#b45309}
-@keyframes tin{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
-
-.sel{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font:12px 'Noto Sans TC',sans-serif;outline:none;background:#fff;cursor:pointer;color:var(--text)}
-.fw6{font-weight:600}.mono{font-family:'JetBrains Mono',monospace}.mu{color:var(--muted)}.fs11{font-size:11px}
-
-/* ─── LOGIN OVERLAY ─── */
-#login-overlay{
-  position:fixed;inset:0;z-index:9000;
-  background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#0d9488 100%);
-  display:flex;align-items:center;justify-content:center;
-}
+/* ── AUTH & MODAL (驗證與鎖定) ── */
+#login-overlay{position:fixed;inset:0;z-index:9000;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#0d9488 100%);display:flex;align-items:center;justify-content:center;}
 #login-overlay.hide{display:none}
-.login-box{
-  background:#fff;border-radius:16px;padding:36px 32px;
-  box-shadow:0 20px 60px rgba(0,0,0,.4);
-  text-align:center;width:320px;max-width:90vw;
-}
-.login-box .logo{font-size:40px;margin-bottom:12px}
-.login-box h2{font-size:18px;font-weight:700;color:var(--blue);margin-bottom:4px}
-.login-box p{font-size:12px;color:var(--muted);margin-bottom:20px}
-.login-box input{
-  width:100%;padding:10px 14px;border:2px solid var(--border);border-radius:8px;
-  font:14px 'Noto Sans TC',sans-serif;outline:none;margin-bottom:10px;
-  letter-spacing:3px;text-align:center;color:var(--text)
-}
-.login-box .btn-login{width:100%;padding:10px;border-radius:8px;border:none;
-  background:var(--blue);color:#fff;font:600 14px 'Noto Sans TC',sans-serif;cursor:pointer;transition:.15s}
-
-/* ─── EDIT MODE BUTTON ─── */
-#edit-btn{
-  padding:5px 13px;border-radius:6px;border:1px solid rgba(255,255,255,.35);
-  background:rgba(255,255,255,.12);color:#fff;
-  font:500 11px 'Noto Sans TC',sans-serif;cursor:pointer;transition:.15s;
-  display:flex;align-items:center;gap:5px;white-space:nowrap;
-}
+.login-box{background:#fff;border-radius:16px;padding:36px 32px;box-shadow:0 20px 60px rgba(0,0,0,.4);text-align:center;width:320px;}
+#edit-btn{padding:5px 13px;border-radius:6px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font:500 11px 'Noto Sans TC';cursor:pointer;transition:.15s;}
 #edit-btn.on{background:var(--teal);border-color:var(--teal2)}
 body.view-only .no-edit{pointer-events:none;opacity:.5}
-body.view-only .edit-lock-msg{display:block}
 .edit-lock-msg{display:none;text-align:center;padding:12px;font-size:12px;color:var(--muted);background:#f8fafc;border-radius:8px;border:1px dashed var(--border);margin-bottom:10px;}
+body.view-only .edit-lock-msg{display:block}
 
-/* ─── SCROLL TO TOP ─── */
-#scroll-top{position:fixed;right:14px;bottom:16px;z-index:600;width:40px;height:40px;border-radius:50%;border:none;background:#0d9488;color:#fff;font-size:16px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer;opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;}
-#scroll-top.vis{opacity:1;transform:none;pointer-events:auto}
-
-/* ─── FLOAT PANEL ─── */
+/* ── FLOAT PROGRESS (浮動進度) ── */
 #b35-float{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:500;display:flex;flex-direction:column;background:#1e3a8a;color:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.25);min-width:100px;overflow:hidden;}
-.b35fp-hd{background:var(--teal);padding:6px 10px;font-size:10px;font-weight:700;text-align:center;letter-spacing:.5px;text-transform:uppercase;}
+.b35fp-hd{background:var(--teal);padding:6px 10px;font-size:10px;font-weight:700;text-align:center;}
 .b35fp-row{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;gap:8px;border-bottom:1px solid rgba(255,255,255,.1);}
 .b35fp-val{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;}
-.b35fp-val.done{color:#4ade80}.b35fp-val.need{color:#f87171}
 .b35fp-bar{height:3px;background:rgba(255,255,255,.15);border-radius:2px;margin:0 10px 5px;overflow:hidden}
-.b35fp-fill{height:100%;border-radius:2px;transition:width .3s;background:var(--teal2)}
-.b35fp-fill.done{background:#4ade80}
+.b35fp-fill{height:100%;border-radius:2px;background:var(--teal2)}
 
 @media print{
   .hdr,.nav,.no-print,#tst{display:none!important}
   .main{padding:0!important;max-width:100%}
-  body{background:#fff}
   .card{box-shadow:none!important;border:1px solid #ddd!important;page-break-inside:avoid}
-  .tab.on{display:block!important}
   .page-break{page-break-after:always}
-  .print-header{display:block!important;text-align:center;margin-bottom:12px}
-  .print-info{display:flex!important;font-size:12px;margin-bottom:8px;gap:16px}
 }
-.print-header,.print-info{display:none}
 </style>
 </head>
 <body class="view-only">
+
 <div id="tst"></div>
 
 <div id="login-overlay">
   <div class="login-box">
-    <div class="logo">🏫</div>
-    <h2>篩選測驗名單管理系統</h2>
-    <p>高雄市左營區新莊國民小學<br>請輸入密碼以進入系統</p>
-    <input type="password" id="login-pw" placeholder="輸入密碼" maxlength="20" onkeydown="if(event.key==='Enter')doLogin()">
-    <div id="login-err" style="color:var(--red);font-size:12px;min-height:18px;margin-bottom:8px"></div>
-    <button class="btn-login" onclick="doLogin()">🔓 進入系統</button>
+    <div style="font-size:40px;margin-bottom:12px">🏫</div>
+    <h2 style="font-size:18px;font-weight:700;color:var(--blue);margin-bottom:4px">篩選測驗名單系統</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:20px">請輸入密碼以進入系統</p>
+    <input type="password" id="login-pw" placeholder="輸入密碼" style="width:100%;padding:10px;border:2px solid var(--border);border-radius:8px;text-align:center;letter-spacing:3px;margin-bottom:10px">
+    <div id="login-err" style="color:var(--red);font-size:11px;min-height:18px;margin-bottom:8px"></div>
+    <button onclick="doLogin()" style="width:100%;padding:10px;border-radius:8px;border:none;background:var(--blue);color:#fff;font-weight:600;cursor:pointer">🔓 進入系統</button>
   </div>
 </div>
 
 <header class="hdr">
   <div class="hdr-ico">📋</div>
-  <div>
-    <h1>篩選測驗名單管理系統</h1>
-    <p>高雄市左營區新莊國民小學 — 114學年度</p>
-  </div>
+  <div><h1>篩選測驗名單管理系統</h1><p>高雄市左營區新莊國民小學 — 114學年度</p></div>
   <div class="hdr-r">
     <button id="edit-btn" onclick="toggleEditMode()">🔒 瀏覽模式</button>
     <div class="fb-dot" id="fb-dot" style="margin-left:8px"></div>
@@ -229,7 +150,7 @@ body.view-only .edit-lock-msg{display:block}
 <div class="main">
   <div class="tab on" id="tab-upload">
     <div class="edit-lock-msg">🔒 目前為瀏覽模式，請解鎖編輯模式以上傳資料。</div>
-    <div class="cols2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:16px">
       <div class="card">
         <div class="card-hd">📝 必考名單 <span class="badge-count" id="req-count">0 筆</span></div>
         <div class="upzone" id="upzone-req" onclick="document.getElementById('file-req').click()">
@@ -237,7 +158,7 @@ body.view-only .edit-lock-msg{display:block}
         </div>
         <input type="file" id="file-req" accept=".xlsx,.xls,.csv">
         <div id="req-preview"></div>
-        <div class="row" style="margin-top:10px">
+        <div style="margin-top:10px;display:flex;gap:10px">
           <button class="btn btn-blue no-edit" id="btn-save-req" disabled onclick="saveRequiredList()">💾 儲存到雲端</button>
           <button class="btn btn-red btn-sm no-edit" onclick="clearRequiredList()">🗑 清除</button>
         </div>
@@ -249,7 +170,7 @@ body.view-only .edit-lock-msg{display:block}
         </div>
         <input type="file" id="file-b35" accept=".xlsx,.xls,.csv">
         <div id="b35-preview"></div>
-        <div class="row" style="margin-top:10px">
+        <div style="margin-top:10px;display:flex;gap:10px">
           <button class="btn btn-blue no-edit" id="btn-save-b35" disabled onclick="saveBottom35List()">💾 儲存到雲端</button>
           <button class="btn btn-red btn-sm no-edit" onclick="clearBottom35List()">🗑 清除</button>
         </div>
@@ -258,38 +179,60 @@ body.view-only .edit-lock-msg{display:block}
     <div class="card">
       <div class="card-hd">🗄 資料庫狀態</div>
       <div class="sgrid">
-        <div class="sc blue"><div class="lbl">必考人數</div><div class="val" id="db-req-cnt">0</div></div>
-        <div class="sc"><div class="lbl">後35%人數</div><div class="val" id="db-b35-cnt">0</div></div>
-        <div class="sc amber"><div class="lbl">已選5%人數</div><div class="val" id="db-sel-cnt">0</div></div>
+        <div class="sc" style="border-left-color:var(--blue2)"><div class="lbl">必考人數</div><div class="val" id="db-req-cnt">0</div></div>
+        <div class="sc" style="border-left-color:var(--muted)"><div class="lbl">後35%人數</div><div class="val" id="db-b35-cnt">0</div></div>
+        <div class="sc" style="border-left-color:var(--amber)"><div class="lbl">已選5%人數</div><div class="val" id="db-sel-cnt">0</div></div>
       </div>
-      <button class="btn btn-teal" onclick="loadAll()">🔄 重新整理</button>
+      <button class="btn btn-teal" onclick="loadAll()">🔄 重新載入資料</button>
     </div>
   </div>
 
-  <div class="tab" id="tab-filter"><div id="filter-content"></div></div>
-  <div class="tab" id="tab-rate"><div id="rate-content"></div></div>
-  <div class="tab" id="tab-b35">
-    <div class="no-print" style="margin-bottom:10px">
-      <div class="stabs" id="b35-stabs">
-        <button class="stab on" data-subj="chinese" onclick="setB35Subj('chinese',this)">國語排序</button>
-        <button class="stab" data-subj="math" onclick="setB35Subj('math',this)">數學排序</button>
-        <button class="stab" data-subj="english" onclick="setB35Subj('english',this)">英語排序</button>
+  <div class="tab" id="tab-filter">
+    <div class="card"><div class="card-hd">📖 測驗未通過名單篩選</div>
+      <div style="display:flex;gap:10px;margin-bottom:15px" class="no-print">
+        <select class="sel" id="filter-grade" onchange="renderFilter()"><option value="0">全部年級</option><option value="1">1年級</option><option value="2">2年級</option><option value="3">3年級</option><option value="4">4年級</option><option value="5">5年級</option><option value="6">6年級</option></select>
+        <div class="stabs">
+          <button class="stab on" onclick="setFilterSubj('chinese',this)">國語</button>
+          <button class="stab" onclick="setFilterSubj('math',this)">數學</button>
+          <button class="stab" onclick="setFilterSubj('english',this)">英語</button>
+        </div>
       </div>
-      <select class="sel" id="b35-grade" onchange="renderB35()" style="width:100%">
-        <option value="0">全部年級</option><option value="1">1年級</option><option value="2">2年級</option><option value="3">3年級</option><option value="4">4年級</option><option value="5">5年級</option><option value="6">6年級</option>
-      </select>
+      <div id="filter-content"></div>
     </div>
-    <div id="b35-content"></div>
   </div>
+
+  <div class="tab" id="tab-rate"><div id="rate-content"></div></div>
+
+  <div class="tab" id="tab-b35">
+    <div class="card"><div class="card-hd">🔍 後35%名單選擇 (5%加報)</div>
+      <div style="display:flex;gap:10px;margin-bottom:15px" class="no-print">
+        <select class="sel" id="b35-grade" onchange="renderB35()"><option value="0">全部年級</option><option value="1">1年級</option><option value="2">2年級</option><option value="3">3年級</option><option value="4">4年級</option><option value="5">5年級</option><option value="6">6年級</option></select>
+        <div class="stabs">
+          <button class="stab on" onclick="setB35Subj('chinese',this)">國語排序</button>
+          <button class="stab" onclick="setB35Subj('math',this)">數學排序</button>
+          <button class="stab" onclick="setB35Subj('english',this)">英語排序</button>
+        </div>
+      </div>
+      <div id="b35-content"></div>
+    </div>
+  </div>
+
   <div class="tab" id="tab-examlist">
-    <div class="no-print" style="display:flex;gap:8px;margin-bottom:10px">
-      <select class="sel" id="exam-grade" onchange="populateExamClassSelect();renderExamList()" style="flex:1"><option value="0">全部年級</option></select>
-      <select class="sel" id="exam-class" onchange="renderExamList()" style="flex:1"><option value="0">全部班級</option></select>
-      <button class="btn btn-gray" onclick="window.print()">🖨 列印</button>
-      <button class="btn btn-teal" onclick="exportExamList()">⬇️ 匯出</button>
+    <div class="card">
+      <div class="card-hd no-print">📋 完整考試名單
+        <div style="margin-left:auto;display:flex;gap:10px">
+          <button class="btn btn-gray" onclick="window.print()">🖨️ 列印</button>
+          <button class="btn btn-teal" onclick="exportExamList()">⬇️ 匯出</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:15px" class="no-print">
+        <select class="sel" id="exam-grade" onchange="populateExamClassSelect();renderExamList()"><option value="0">全部年級</option><option value="1">1年級</option><option value="2">2年級</option><option value="3">3年級</option><option value="4">4年級</option><option value="5">5年級</option><option value="6">6年級</option></select>
+        <select class="sel" id="exam-class" onchange="renderExamList()"><option value="0">全部班級</option></select>
+      </div>
+      <div id="examlist-content"></div>
     </div>
-    <div id="examlist-content"></div>
   </div>
+
   <div class="tab" id="tab-stat1"><div id="stat1-content"></div></div>
   <div class="tab" id="tab-stat2"><div id="stat2-content"></div></div>
   <div class="tab" id="tab-gradesum"><div id="gradesum-content"></div></div>
@@ -301,7 +244,7 @@ body.view-only .edit-lock-msg{display:block}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDoc, getDocs, setDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const cfg = {
   apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
@@ -319,22 +262,30 @@ const auth = getAuth(app);
 window._db = db;
 window._fs = { collection, getDoc, getDocs, setDoc, doc, updateDoc };
 window._firebaseAuth = auth;
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    console.log("已偵測到後台管理員身分:", user.email);
+  }
+});
+
 window._fbReady = true;
 document.dispatchEvent(new Event('fbReady'));
 </script>
 
 <script>
-// ─── CONSTANTS & STATE ───
-const GRADE_TOTALS={1:161,2:156,3:198,4:220,5:218,6:220};
-const SUBJ_LABEL={chinese:'國語',math:'數學',english:'英語'};
-let REQ=[]; let B35=[]; let filterSubj='chinese'; let b35Subj='chinese';
-let pendingReq=null; let pendingB35=null;
-let isEditMode=false;
+// ─── 常數與狀態 ───
+const GRADE_TOTALS = {1:161, 2:156, 3:198, 4:220, 5:218, 6:220};
+const SUBJ_LABEL = {chinese:'國語', math:'數學', english:'英語'};
+let REQ = []; let B35 = []; 
+let filterSubj = 'chinese'; let b35Subj = 'chinese';
+let pendingReq = null; let pendingB35 = null;
+let isEditMode = false;
 
-// ─── FIREBASE HELPERS (統一打包寫法) ───
+// ─── FIREBASE 協助函式 ───
 async function fbBatchWrite(docName, docs){
   const { doc:docRef, collection:col, setDoc:setd } = window._fs;
-  const payload = { data: Array.isArray(docs)?docs:[], timestamp: Date.now() };
+  const payload = { data: Array.isArray(docs) ? docs : [], timestamp: Date.now() };
   await setd(docRef(col(window._db, 'exam_list'), docName), payload);
 }
 
@@ -346,192 +297,347 @@ async function fbLoadAll(){
   ]);
   REQ = (rs.exists() && rs.data().data) ? rs.data().data : [];
   const rawB35 = (bs.exists() && bs.data().data) ? bs.data().data : [];
-  B35 = rawB35.map(d => ({ ...d, selChinese:!!d.selChinese, selMath:!!d.selMath, selEnglish:!!d.selEnglish }));
+  B35 = rawB35.map(d => ({ 
+    ...d, 
+    selChinese: !!d.selChinese, 
+    selMath: !!d.selMath, 
+    selEnglish: !!d.selEnglish 
+  }));
 }
 
 async function loadAll(){
-  const status=document.getElementById('fb-status');
-  const dot=document.getElementById('fb-dot');
-  status.textContent='載入中…';
+  const status = document.getElementById('fb-status');
+  const dot = document.getElementById('fb-dot');
+  status.textContent = '載入中…';
   try {
     await fbLoadAll();
-    status.textContent='已連線'; dot.className='fb-dot ok';
-    updateDBStatus(); renderAll();
-    toast('資料載入成功','ok');
+    status.textContent = '已連線'; dot.className = 'fb-dot ok';
+    updateDBStatus(); 
+    renderAll();
+    toast('資料載入成功', 'ok');
   } catch(e) {
-    status.textContent='連線失敗'; dot.className='fb-dot err';
-    toast('讀取失敗，請確認安全規則權限','err');
+    console.error(e);
+    status.textContent = '連線失敗'; dot.className = 'fb-dot err';
+    toast('讀取失敗，請確認安全規則權限', 'err');
   }
 }
 
 function updateDBStatus(){
-  document.getElementById('db-req-cnt').textContent=REQ.length;
-  document.getElementById('db-b35-cnt').textContent=B35.length;
-  document.getElementById('db-sel-cnt').textContent=B35.filter(b=>b.selChinese||b.selMath||b.selEnglish).length;
-  document.getElementById('req-count').textContent=REQ.length+' 筆';
-  document.getElementById('b35-count').textContent=B35.length+' 筆';
+  document.getElementById('db-req-cnt').textContent = REQ.length;
+  document.getElementById('db-b35-cnt').textContent = B35.length;
+  document.getElementById('db-sel-cnt').textContent = B35.filter(b=>b.selChinese || b.selMath || b.selEnglish).length;
+  document.getElementById('req-count').textContent = REQ.length + ' 筆';
+  document.getElementById('b35-count').textContent = B35.length + ' 筆';
 }
 
-// ─── RENDER LOGIC ───
+// ─── 畫面渲染函式集 (核心修正處) ───
+
 function renderAll(){
-  const active = document.querySelector('.ntab.on')?.dataset?.tab;
-  if(active === 'filter') renderFilter();
-  if(active === 'rate') renderRate();
-  if(active === 'b35') renderB35();
-  if(active === 'examlist') renderExamList();
-  if(active === 'stat1') renderStat1();
-  if(active === 'stat2') renderStat2();
-  if(active === 'gradesum') renderGradeSummary();
+  const activeTab = document.querySelector('.ntab.on')?.dataset?.tab;
+  // 依照當前開啟的分頁執行對應的渲染函式
+  if (activeTab === 'filter') renderFilter();
+  else if (activeTab === 'rate') renderRate();
+  else if (activeTab === 'b35') renderB35();
+  else if (activeTab === 'examlist') renderExamList();
+  else if (activeTab === 'stat1') renderStat1();
+  else if (activeTab === 'stat2') renderStat2();
+  else if (activeTab === 'gradesum') renderGradeSummary();
+  
   populateExamGradeSelect();
 }
 
-function renderB35(){
-  const el=document.getElementById('b35-content');
-  if(!B35.length){ el.innerHTML='<p class="empty">尚無資料</p>'; return; }
-  const grade=parseInt(document.getElementById('b35-grade').value);
-  let list = B35.filter(s => !grade || s.grade === grade).sort((a,b)=>(a[b35Subj]||0)-(b[b35Subj]||0));
+function renderFilter(){
+  const el = document.getElementById('filter-content');
+  const grade = parseInt(document.getElementById('filter-grade').value);
+  const list = REQ.filter(s => {
+    const gOk = !grade || s.grade === grade;
+    const v = String(s[filterSubj] || '').toUpperCase();
+    return gOk && v === 'X';
+  });
   
-  let html = `<div class="ghd">顯示 ${SUBJ_LABEL[b35Subj]} 排序名單</div>`;
-  html += `<div class="card" style="padding:0"><div class="tw"><table><thead><tr><th>加入</th><th>班級</th><th>座號</th><th>姓名</th><th>分數</th><th>狀態</th></tr></thead><tbody>`;
+  if(!list.length) { el.innerHTML = '<p class="empty">此條件下無未通過學生</p>'; return; }
+  
+  let html = `<div class="tw"><table><thead><tr><th>班級</th><th>座號</th><th>姓名</th><th>狀態</th><th>類別</th></tr></thead><tbody>`;
   list.forEach(s => {
-    const isSel = s['sel'+b35Subj[0].toUpperCase()+b35Subj.slice(1)];
-    html += `<tr style="${isSel?'background:#faf5ff':''}">
-      <td><input type="checkbox" ${isSel?'checked':''} onchange="toggleB35Select('${s.id}','${b35Subj}',this.checked)"></td>
-      <td>${s.grade}年${s.classNum}班</td><td>${s.seat}</td><td>${s.name}</td><td>${s[b35Subj]||'—'}</td>
-      <td>${isSel?'<span class="b b-sel">✔ 已選</span>':''}</td>
-    </tr>`;
+    html += `<tr><td>${s.grade}年${s.classNum}班</td><td>${s.seat}</td><td>${s.name}</td><td><span class="b b-fail">未通過</span></td><td class="mu">${s.identity || ''}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  el.innerHTML = html;
+}
+
+function renderRate(){
+  const el = document.getElementById('rate-content');
+  let html = `<div class="card"><div class="card-hd">📈 提報率統計總表</div><div class="tw"><table><thead><tr><th>年級</th><th>人數</th><th>國語提報</th><th>數學提報</th><th>英語提報</th></tr></thead><tbody>`;
+  [1,2,3,4,5,6].forEach(g => {
+    const pop = GRADE_TOTALS[g];
+    const cCnt = REQ.filter(s=>s.grade===g && s.chinese==='X').length + B35.filter(s=>s.grade===g && s.selChinese).length;
+    const mCnt = REQ.filter(s=>s.grade===g && s.math==='X').length + B35.filter(s=>s.grade===g && s.selMath).length;
+    const eCnt = REQ.filter(s=>s.grade===g && s.english==='X').length + B35.filter(s=>s.grade===g && s.selEnglish).length;
+    html += `<tr><td>${g}年級</td><td>${pop}</td><td>${cCnt} (${(cCnt/pop*100).toFixed(1)}%)</td><td>${mCnt} (${(mCnt/pop*100).toFixed(1)}%)</td><td>${g>=3?eCnt+' ('+(eCnt/pop*100).toFixed(1)+'%)':'—'}</td></tr>`;
   });
   html += `</tbody></table></div></div>`;
-  el.innerHTML=html;
+  el.innerHTML = html;
+}
+
+function renderB35(){
+  const el = document.getElementById('b35-content');
+  if(!B35.length){ el.innerHTML = '<p class="empty">尚無資料，請先上傳後35%名單</p>'; return; }
+  const grade = parseInt(document.getElementById('b35-grade').value);
+  const list = B35.filter(s => !grade || s.grade === grade).sort((a,b) => (a[b35Subj]||0) - (b[b35Subj]||0));
+  
+  let html = `<div class="tw"><table><thead><tr><th>選取</th><th>班級</th><th>座號</th><th>姓名</th><th>分數</th><th>狀態</th></tr></thead><tbody>`;
+  list.forEach(s => {
+    const field = 'sel' + b35Subj[0].toUpperCase() + b35Subj.slice(1);
+    const isSel = !!s[field];
+    html += `<tr style="${isSel ? 'background:#faf5ff' : ''}">
+      <td><input type="checkbox" ${isSel?'checked':''} onchange="toggleB35Select('${s.id}','${b35Subj}',this.checked)"></td>
+      <td>${s.grade}年${s.classNum}班</td><td>${s.seat}</td><td>${s.name}</td><td>${s[b35Subj] || '—'}</td>
+      <td>${isSel ? '<span class="b b-sel">✔ 已加報</span>' : ''}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  el.innerHTML = html;
   updateB35FloatPanel();
 }
 
+function renderExamList(){
+  const el = document.getElementById('examlist-content');
+  const grade = parseInt(document.getElementById('exam-grade').value);
+  const classNum = parseInt(document.getElementById('exam-class').value);
+  
+  // 建立合併名單
+  let fullList = buildFullExamList();
+  
+  if(grade) fullList = fullList.filter(s => s.grade === grade);
+  if(classNum) fullList = fullList.filter(s => s.classNum === classNum);
+  
+  if(!fullList.length){ el.innerHTML = '<p class="empty">無考試名單</p>'; return; }
+  
+  let html = `<div class="tw"><table><thead><tr><th>班級</th><th>座號</th><th>姓名</th><th>國</th><th>數</th><th>英</th><th>備註</th></tr></thead><tbody>`;
+  fullList.forEach(s => {
+    html += `<tr><td>${s.grade}-${s.classNum}</td><td>${s.seat}</td><td>${s.name}</td>
+      <td>${s.c ? 'X' : ''}</td><td>${s.m ? 'X' : ''}</td><td>${s.e ? 'X' : ''}</td>
+      <td class="fs11 mu">${s.source}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  el.innerHTML = html;
+}
+
+function renderStat1(){
+  const el = document.getElementById('stat1-content');
+  let html = `<div class="card"><div class="card-hd">📉 必考人數統計 (+5%前)</div><div class="tw"><table><thead><tr><th>年級</th><th>國語</th><th>數學</th><th>英語</th></tr></thead><tbody>`;
+  [1,2,3,4,5,6].forEach(g => {
+    const c = REQ.filter(s=>s.grade===g && s.chinese==='X').length;
+    const m = REQ.filter(s=>s.grade===g && s.math==='X').length;
+    const e = REQ.filter(s=>s.grade===g && s.english==='X').length;
+    html += `<tr><td>${g}年級</td><td>${c}</td><td>${m}</td><td>${g>=3?e:'—'}</td></tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+  el.innerHTML = html;
+}
+
+function renderStat2(){
+  const el = document.getElementById('stat2-content');
+  const full = buildFullExamList();
+  let html = `<div class="card"><div class="card-hd">📊 總考試人數統計 (+5%後)</div><div class="tw"><table><thead><tr><th>年級</th><th>國語</th><th>數學</th><th>英語</th><th>總計</th></tr></thead><tbody>`;
+  [1,2,3,4,5,6].forEach(g => {
+    const c = full.filter(s=>s.grade===g && s.c).length;
+    const m = full.filter(s=>s.grade===g && s.m).length;
+    const e = full.filter(s=>s.grade===g && s.e).length;
+    html += `<tr><td>${g}年級</td><td>${c}</td><td>${m}</td><td>${e}</td><td>${full.filter(s=>s.grade===g).length}</td></tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+  el.innerHTML = html;
+}
+
+function renderGradeSummary(){
+  const el = document.getElementById('gradesum-content');
+  el.innerHTML = `<div class="al al-info">年級總表模組已就緒。詳細數據請參閱上述各統計分頁。</div>`;
+}
+
+// ─── 核心邏輯處理 ───
+
+function buildFullExamList(){
+  const map = new Map();
+  REQ.forEach(s => {
+    map.set(s.name+s.grade, { name:s.name, grade:s.grade, classNum:s.classNum, seat:s.seat, c:s.chinese==='X', m:s.math==='X', e:s.english==='X', source:'必考' });
+  });
+  B35.forEach(s => {
+    if(s.selChinese || s.selMath || s.selEnglish){
+      const key = s.name+s.grade;
+      if(map.has(key)){
+        const exist = map.get(key);
+        if(s.selChinese) exist.c = true;
+        if(s.selMath) exist.m = true;
+        if(s.selEnglish) exist.e = true;
+        exist.source = '必考+新增';
+      } else {
+        map.set(key, { name:s.name, grade:s.grade, classNum:s.classNum, seat:s.seat, c:!!s.selChinese, m:!!s.selMath, e:!!s.selEnglish, source:'5%新增' });
+      }
+    }
+  });
+  return Array.from(map.values()).sort((a,b)=>a.grade-b.grade || a.classNum-b.classNum || a.seat-b.seat);
+}
+
 async function toggleB35Select(id, subj, checked){
-  if(!isEditMode){ toast('請先解鎖編輯模式','err'); renderB35(); return; }
+  if(!isEditMode){ toast('請先解鎖編輯模式', 'err'); renderB35(); return; }
   const s = B35.find(x => x.id === id); if(!s) return;
-  const field = 'sel'+subj[0].toUpperCase()+subj.slice(1);
+  const field = 'sel' + subj[0].toUpperCase() + subj.slice(1);
   s[field] = checked;
   try {
     await fbBatchWrite('bottom35', B35);
-    updateDBStatus(); renderB35();
-  } catch(e) { toast('儲存失敗，權限不足','err'); s[field]=!checked; renderB35(); }
+    updateDBStatus();
+  } catch(e) { 
+    toast('儲存失敗，權限不足', 'err'); 
+    s[field] = !checked; 
+    renderB35(); 
+  }
 }
 
 function updateB35FloatPanel(){
-  const panel=document.getElementById('b35-float');
-  const onB35=document.querySelector('.ntab.on')?.dataset?.tab==='b35';
-  if(!onB35 || !B35.length){ panel.style.display='none'; return; }
-  panel.style.display='block';
-  let html = '<div class="b35fp-hd">選人進度</div>';
+  const panel = document.getElementById('b35-float');
+  const onB35 = document.querySelector('.ntab.on')?.dataset?.tab === 'b35';
+  if(!onB35 || !B35.length){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  let html = '<div class="b35fp-hd">5% 進度</div>';
   [1,2,3,4,5,6].forEach(g => {
-    const tgt = Math.ceil(GRADE_TOTALS[g]*0.05);
-    const sel = B35.filter(b => b.grade===g && (b.selChinese||b.selMath||b.selEnglish)).length;
-    const pct = Math.min(100, (sel/tgt)*100);
-    html += `<div class="b35fp-row"><span class="fs11">${g}年級</span><span class="b35fp-val ${sel>=tgt?'done':'need'}">${sel}/${tgt}</span></div>
+    const tgt = Math.ceil(GRADE_TOTALS[g] * 0.05);
+    const sel = B35.filter(b => b.grade === g && (b.selChinese || b.selMath || b.selEnglish)).length;
+    const pct = Math.min(100, (sel/tgt) * 100);
+    html += `<div class="b35fp-row"><span class="fs11">${g}年</span><span class="b35fp-val ${sel >= tgt ? 'done' : 'need'}">${sel}/${tgt}</span></div>
              <div class="b35fp-bar"><div class="b35fp-fill" style="width:${pct}%"></div></div>`;
   });
-  document.getElementById('b35-float-inner').innerHTML=html;
+  document.getElementById('b35-float-inner').innerHTML = html;
 }
 
-// ─── UPLOAD HANDLERS ───
-document.getElementById('file-req').onchange = async (e) => {
-  const f=e.target.files[0]; if(!f) return;
-  const { students } = await parseExcel(f, 'required');
-  pendingReq = students;
-  document.getElementById('btn-save-req').disabled=false;
-  document.getElementById('req-preview').innerHTML=`<div class="al al-ok">解析成功：${students.length} 筆資料</div>`;
-};
-document.getElementById('file-b35').onchange = async (e) => {
-  const f=e.target.files[0]; if(!f) return;
-  const { students } = await parseExcel(f, 'bottom35');
-  pendingB35 = students;
-  document.getElementById('btn-save-b35').disabled=false;
-  document.getElementById('b35-preview').innerHTML=`<div class="al al-ok">解析成功：${students.length} 筆資料</div>`;
-};
-
-async function saveRequiredList(){
-  try { await fbBatchWrite('requiredExam', pendingReq); REQ=pendingReq; pendingReq=null; document.getElementById('btn-save-req').disabled=true; loadAll(); } 
-  catch(e){ toast('儲存失敗','err'); }
-}
-async function saveBottom35List(){
-  try { await fbBatchWrite('bottom35', pendingB35); B35=pendingB35; pendingB35=null; document.getElementById('btn-save-b35').disabled=true; loadAll(); } 
-  catch(e){ toast('儲存失敗','err'); }
-}
-
-// ─── AUTH & TOOLS ───
-function doLogin(){
-  const pw=document.getElementById('login-pw').value;
-  if(pw === '073411373' || pw === 'admin'){
-    document.getElementById('login-overlay').classList.add('hide');
-    if(pw==='admin') activateEditMode();
-  } else { document.getElementById('login-err').textContent='密碼錯誤'; }
-}
-function toggleEditMode(){
-  if(isEditMode){ isEditMode=false; document.body.classList.add('view-only'); updateEditBtn(); return; }
-  if(!window._firebaseAuth?.currentUser){ toast('❌ 請先至控制中心登入管理員帳號！','err'); return; }
-  if(prompt('管理員密碼')==='admin') activateEditMode();
-}
-function activateEditMode(){ isEditMode=true; document.body.classList.remove('view-only'); updateEditBtn(); }
-function updateEditBtn(){
-  const btn=document.getElementById('edit-btn');
-  btn.textContent=isEditMode?'✏️ 編輯模式':'🔒 瀏覽模式';
-  btn.classList.toggle('on', isEditMode);
-}
-
-function toast(m,t){
-  const e=document.createElement('div'); e.className=`toast ${t}`; e.textContent=m;
-  document.getElementById('tst').appendChild(e); setTimeout(()=>e.remove(),3000);
-}
-
-// ─── EXCEL PARSING HELPER ───
+// ─── Excel 解析 ───
 function parseExcel(file, type){
-  return new Promise((res)=>{
-    const rd=new FileReader();
-    rd.onload=(e)=>{
-      const wb=XLSX.read(e.target.result,{type:'binary'});
-      const data=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-      const students = data.map((r,i)=>({
-        id: type+Date.now()+i,
-        name: r['姓名'], grade: parseInt(r['年級']||r['目前年級']||Math.floor(r['班級']/100)),
-        classNum: parseInt(r['班級'])%100 || r['班級'], seat: r['座號'],
-        chinese: r['國語']||r['國文分數']||r['國語文測驗'],
-        math: r['數學']||r['數學分數']||r['數學測驗'],
-        english: r['英語']||r['英語分數']||r['英語測驗'],
-        identity: r['身分類別']||r['身份註記']||''
-      })).filter(s=>s.name);
+  return new Promise((res) => {
+    const rd = new FileReader();
+    rd.onload = (e) => {
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      const students = data.map((r, i) => ({
+        id: type + Date.now() + i,
+        name: r['姓名'], 
+        grade: parseInt(r['年級'] || r['目前年級'] || Math.floor(r['班級']/100)),
+        classNum: parseInt(r['班級']) % 100 || r['班級'], 
+        seat: r['座號'],
+        chinese: r['國語'] || r['國文分數'] || r['國語文測驗'],
+        math: r['數學'] || r['數學分數'] || r['數學測驗'],
+        english: r['英語'] || r['英語分數'] || r['英語測驗'],
+        identity: r['身分類別'] || r['身份註記'] || ''
+      })).filter(s => s.name);
       res({students});
     };
     rd.readAsBinaryString(file);
   });
 }
 
-function setB35Subj(s,btn){
-  b35Subj=s; document.querySelectorAll('#b35-stabs .stab').forEach(b=>b.classList.remove('on'));
+document.getElementById('file-req').onchange = async (e) => {
+  const f = e.target.files[0]; if(!f) return;
+  const { students } = await parseExcel(f, 'req');
+  pendingReq = students;
+  document.getElementById('btn-save-req').disabled = false;
+  document.getElementById('req-preview').innerHTML = `<div class="al al-ok">成功解析 ${students.length} 筆，請點擊儲存。</div>`;
+};
+
+document.getElementById('file-b35').onchange = async (e) => {
+  const f = e.target.files[0]; if(!f) return;
+  const { students } = await parseExcel(f, 'b35');
+  pendingB35 = students;
+  document.getElementById('btn-save-b35').disabled = false;
+  document.getElementById('b35-preview').innerHTML = `<div class="al al-ok">成功解析 ${students.length} 筆，請點擊儲存。</div>`;
+};
+
+async function saveRequiredList(){
+  if(!window._firebaseAuth?.currentUser){ toast('❌ 請先登入 Google 管理員', 'err'); return; }
+  try { await fbBatchWrite('requiredExam', pendingReq); loadAll(); } catch(e){ toast('儲存失敗', 'err'); }
+}
+async function saveBottom35List(){
+  if(!window._firebaseAuth?.currentUser){ toast('❌ 請先登入 Google 管理員', 'err'); return; }
+  try { await fbBatchWrite('bottom35', pendingB35); loadAll(); } catch(e){ toast('儲存失敗', 'err'); }
+}
+
+// ─── 工具與導覽 ───
+function doLogin(){
+  const pw = document.getElementById('login-pw').value;
+  if(pw === '073411373' || pw === 'admin'){
+    document.getElementById('login-overlay').classList.add('hide');
+    if(pw === 'admin') activateEditMode();
+  } else { 
+    document.getElementById('login-err').textContent = '密碼錯誤'; 
+  }
+}
+
+function toggleEditMode(){
+  if(isEditMode){ 
+    isEditMode = false; document.body.classList.add('view-only'); 
+    updateEditBtn(); toast('已切換回瀏覽模式', 'info'); return; 
+  }
+  if(!window._firebaseAuth?.currentUser){ toast('❌ 請先至控制中心登入 Google 管理員！', 'err'); return; }
+  if(prompt('管理員密碼') === 'admin') activateEditMode();
+}
+
+function activateEditMode(){ 
+  isEditMode = true; document.body.classList.remove('view-only'); 
+  updateEditBtn(); toast('編輯模式已啟動', 'ok');
+}
+
+function updateEditBtn(){
+  const btn = document.getElementById('edit-btn');
+  btn.textContent = isEditMode ? '✏️ 編輯模式' : '🔒 瀏覽模式';
+  btn.classList.toggle('on', isEditMode);
+}
+
+function setFilterSubj(s, btn){
+  filterSubj = s; 
+  document.querySelectorAll('#tab-filter .stab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on'); renderFilter();
+}
+function setB35Subj(s, btn){
+  b35Subj = s; 
+  document.querySelectorAll('#tab-b35 .stab').forEach(b => b.classList.remove('on'));
   btn.classList.add('on'); renderB35();
 }
 
-// ─── TAB NAV ───
-document.querySelectorAll('.ntab').forEach(btn=>{
-  btn.onclick=()=>{
-    document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-    btn.classList.add('on'); document.getElementById('tab-'+btn.dataset.tab).classList.add('on');
+function populateExamGradeSelect(){
+  const sel = document.getElementById('exam-grade'); if(!sel || sel.options.length > 1) return;
+  [1,2,3,4,5,6].forEach(g => sel.add(new Option(g + '年級', g)));
+}
+function populateExamClassSelect(){
+  const g = parseInt(document.getElementById('exam-grade').value);
+  const sel = document.getElementById('exam-class'); sel.innerHTML = '<option value="0">全部班級</option>';
+  const classes = [...new Set(REQ.filter(s => !g || s.grade === g).map(s => s.classNum))].sort((a,b) => a-b);
+  classes.forEach(c => sel.add(new Option(c + '班', c)));
+}
+
+function toast(m, t){
+  const e = document.createElement('div'); e.className = `toast ${t}`; e.textContent = m;
+  document.getElementById('tst').appendChild(e); setTimeout(() => e.remove(), 3000);
+}
+
+function exportExamList(){
+  const list = buildFullExamList();
+  const ws = XLSX.utils.json_to_sheet(list);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "考試名單");
+  XLSX.writeFile(wb, "新莊國小篩選測驗名單.xlsx");
+}
+
+document.querySelectorAll('.ntab').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.ntab').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+    btn.classList.add('on'); document.getElementById('tab-' + btn.dataset.tab).classList.add('on');
     renderAll();
   };
 });
 
-function populateExamGradeSelect(){
-  const sel=document.getElementById('exam-grade'); if(!sel || sel.options.length > 1) return;
-  [1,2,3,4,5,6].forEach(g=>sel.add(new Option(g+'年級', g)));
-}
-function populateExamClassSelect(){
-  const g=parseInt(document.getElementById('exam-grade').value);
-  const sel=document.getElementById('exam-class'); sel.innerHTML='<option value="0">全部班級</option>';
-  const classes=[...new Set(REQ.filter(s=>!g||s.grade===g).map(s=>s.classNum))].sort((a,b)=>a-b);
-  classes.forEach(c=>sel.add(new Option(c+'班', c)));
-}
+window.addEventListener('scroll', () => {
+  document.getElementById('scroll-top').classList.toggle('vis', window.scrollY > 300);
+}, {passive: true});
 
-// ─── INIT ───
+// 啟動
 document.addEventListener('fbReady', loadAll);
 </script>
 </body>

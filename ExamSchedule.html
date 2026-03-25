@@ -335,21 +335,28 @@ tr.teacher-row.visible{display:table-row}
 </div>
 
 <script type="module">
-import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc }
-                                   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// 統一使用 CDN 絕對路徑引入 Firebase 模組
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
 
+// 替換為全新專案 (sjps-learningassistance) 的設定檔
 const firebaseConfig = {
-  apiKey:            "AIzaSyDqbYCxLjRSbEhrqNlTNl6GXx6a45LdFvQ",
-  authDomain:        "sjps-examschedule.firebaseapp.com",
-  projectId:         "sjps-examschedule",
-  storageBucket:     "sjps-examschedule.firebasestorage.app",
-  messagingSenderId: "164163436928",
-  appId:             "1:164163436928:web:4127c8585667a59941c165",
-  measurementId:     "G-84TREHND08"
+  apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
+  authDomain: "sjps-learningassistance.firebaseapp.com",
+  projectId: "sjps-learningassistance",
+  storageBucket: "sjps-learningassistance.firebasestorage.app",
+  messagingSenderId: "108951710153",
+  appId: "1:108951710153:web:434de73a24160fe3e2e018",
+  measurementId: "G-EGQ7BLK57Y"
 };
+
+// 依序初始化 App、Analytics 與 Firestore
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const db  = getFirestore(app);
+
+// 定義資料庫路徑：指向新專案下的 'schedule' 集合，'main' 文件
 const DOC_REF = doc(db, 'schedule', 'main');
 
 // ─────────────────────────────────────────────────────────
@@ -417,7 +424,7 @@ async function loadST(){
       // merge to ensure all keys exist
       ST.testType  = data.testType  ?? ST.testType;
       ST.startDate = data.startDate ?? ST.startDate;
-      ST.counts    = Object.assign({...ST.counts},  data.counts   ?? {});
+      ST.counts    = Object.assign({...ST.counts},  data.counts    ?? {});
       ST.rooms     = Object.assign({...ST.rooms},   data.rooms    ?? {});
       for(const tt of['篩選','成長']){
         if(data.sched?.[tt])    ST.sched[tt]    = Object.assign(mkEmptySched(),    data.sched[tt]);
@@ -674,9 +681,6 @@ function renderSlots(w,sc,tc){
   return html;
 }
 
-// ─────────────────────────────────────────────────────────
-//  Event handlers
-// ─────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────
 //  Event handlers  (exposed to window for inline HTML handlers)
 // ─────────────────────────────────────────────────────────

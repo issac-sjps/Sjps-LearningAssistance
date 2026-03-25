@@ -503,29 +503,32 @@ body.view-only input[type=checkbox]{pointer-events:none}
 <button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到最上方">▲</button>
 
 <script type="module">
-// 【修正 1】：載入穩定的 10.12.0 版
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,collection,getDocs,setDoc,doc,deleteDoc,writeBatch,updateDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-// 【無痕植入】：載入 Auth 模組
+// 【修正 1】：載入穩定的 10.12.0 版，並補上讀取單一文件必備的 getDoc
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { 
+    getFirestore, collection, getDocs, getDoc, setDoc, doc, deleteDoc, writeBatch, updateDoc 
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-// 【修正 2】：統一指向 sjps-learningassistance 專案
-const cfg={
-  apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
-  authDomain: "sjps-learningassistance.firebaseapp.com",
-  projectId: "sjps-learningassistance",
-  storageBucket: "sjps-learningassistance.firebasestorage.app",
-  messagingSenderId: "108951710153",
-  appId: "1:108951710153:web:434de73a24160fe3e2e018"
+// 【修正 2】：指向你的主力專案
+const cfg = {
+    apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
+    authDomain: "sjps-learningassistance.firebaseapp.com",
+    projectId: "sjps-learningassistance",
+    storageBucket: "sjps-learningassistance.firebasestorage.app",
+    messagingSenderId: "108951710153",
+    appId: "1:108951710153:web:434de73a24160fe3e2e018"
 };
-const app=initializeApp(cfg);
-const db=getFirestore(app);
-const auth = getAuth(app); // 啟動 Auth，它會在背景抓取你登入的神級鑰匙
 
-window._db=db;
-window._fs={collection,getDocs,setDoc,doc,deleteDoc,writeBatch,updateDoc};
-window._firebaseAuth = auth; // 匯出供前端全域驗證使用
-window._fbReady=true;
+const app = initializeApp(cfg);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+window._db = db;
+// 【關鍵修正】：務必把 getDoc 放入全域工具箱，否則 fbLoadAll 會報錯
+window._fs = { collection, getDocs, getDoc, setDoc, doc, deleteDoc, writeBatch, updateDoc };
+window._firebaseAuth = auth; 
+window._fbReady = true;
 document.dispatchEvent(new Event('fbReady'));
 </script>
 

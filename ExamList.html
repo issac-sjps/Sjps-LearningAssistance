@@ -1306,23 +1306,46 @@ function selCountForSubj_global(g,subj){
   }).length;
 }
 
-async function toggleB35Select(id,subj,checked){
+// ─── DEBOUNCED SAVE：防止連續勾選爆掉 Firebase 寫入佇列 ───
+// 原理：每次勾選只更新本地狀態 + 畫面，並重置計時器。
+// 停止勾選 1.2 秒後才真正寫入 Firebase，無論連續勾幾個都只算一次寫入。
+let _b35SaveTimer=null;
+let _b35SavePending=false;
+
+function scheduleB35Save(){
+  _b35SavePending=true;
+  document.getElementById('fb-status').textContent='✏️ 有變更待存…';
+  clearTimeout(_b35SaveTimer);
+  _b35SaveTimer=setTimeout(async()=>{
+    try{
+      await fbBatchWrite('bottom35',B35);
+      _b35SavePending=false;
+      document.getElementById('fb-dot').className='fb-dot ok';
+      document.getElementById('fb-status').textContent='已儲存';
+      setTimeout(()=>{
+        if(!_b35SavePending)document.getElementById('fb-status').textContent='已連線';
+      },2000);
+    }catch(e){
+      document.getElementById('fb-dot').className='fb-dot err';
+      document.getElementById('fb-status').textContent='儲存失敗';
+      toast('儲存失敗，請確保您具有管理員權限','err');
+    }
+  },1200);
+}
+
+function toggleB35Select(id,subj,checked){
   if(!isEditMode){toast('請先進入編輯模式才能修改','warn');
     renderB35();return;}
   const s=B35.find(b=>b.id===id);
   if(!s)return;
   const sf=selField(subj);
   s[sf]=checked;
-  try{
-    // ✅ 新架構：直接將整個 B35 陣列打包存回（一次寫入）
-    await fbBatchWrite('bottom35',B35);
-  }catch(e){
-    toast('儲存失敗，請確保您具有管理員權限','err');
-    s[sf]=!checked; // rollback
-  }
+  // 立即更新畫面（不等 Firebase）
   renderB35();
   updateDBStatus();
   updateB35FloatPanel();
+  // 延遲寫入（防抖 1.2 秒）
+  scheduleB35Save();
 }
 
 // ─── RENDER: EXAM LIST TAB ───

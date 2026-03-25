@@ -9,12 +9,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
     <script type="module">
+        // 【修正 1】：統一使用穩定的 10.12.0 版本
         import { initializeApp }
-            from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged }
-            from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth }
+            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot }
-            from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey:            "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
@@ -27,30 +28,38 @@
         };
 
         const app  = initializeApp(firebaseConfig);
+        // 【修正 2】：只啟動 Auth 攔截器，拔除匿名登入
         const auth = getAuth(app);
         const db   = getFirestore(app);
         const REF  = doc(db, "shared", "main");
 
-        // 頁面載入時自動匿名登入
-        signInAnonymously(auth).catch(e => console.error("匿名登入失敗", e));
+        // 匯出 auth 給全域使用，用來做前端雙重鎖檢查
+        window._firebaseAuth = auth;
 
-        // 登入完成後開始監聽資料
-        onAuthStateChanged(auth, (user) => {
-            if (!user) return;
-            window._uid = user.uid;
-
-            // 即時同步（所有人開著頁面都會自動更新）
-            onSnapshot(REF, (snap) => {
-                if (snap.exists() && window._onRemoteUpdate) {
-                    window._onRemoteUpdate(snap.data());
-                }
-            }, (err) => console.error("監聽失敗", err));
+        // 【修正 3】：直接監聽資料庫。只要 Rules 設為 allow read: if true，就不需要登入即可讀取
+        onSnapshot(REF, (snap) => {
+            if (snap.exists() && window._onRemoteUpdate) {
+                window._onRemoteUpdate(snap.data());
+            } else if (!snap.exists() && window._onRemoteUpdate) {
+                // 如果是全新專案第一次開啟，給予預設空資料
+                window._onRemoteUpdate({ students: [], classes: [], settings: {} });
+            }
+        }, (err) => {
+            console.error("監聽失敗，請確認 Firebase Rules 已開放 /shared 路徑的 read 權限", err);
+            toast('❌ 讀取資料庫失敗，請檢查系統權限設定');
         });
 
-        // 寫入 Firestore
+        // 寫入 Firestore (後端防護會自動檢查 auth.currentUser 夾帶的憑證)
         window._fbSave = async (payload) => {
-            try { await setDoc(REF, payload); return true; }
-            catch (e) { console.error("存檔失敗", e); return false; }
+            try { 
+                await setDoc(REF, payload); 
+                return true; 
+            }
+            catch (e) { 
+                console.error("存檔失敗（可能無權限或網路斷線）", e); 
+                toast('❌ 存檔失敗：系統拒絕未授權的寫入');
+                return false; 
+            }
         };
     </script>
 
@@ -203,12 +212,10 @@
         .active-filter-green { background: #16a34a !important; color: white !important; border-color: #16a34a !important; }
 
         /* ── 手機版 ───────────────────────────────────────── */
-        /* 桌機預設：手機介面隱藏 */
         #mobile-app  { display: none; }
         #desktop-app { display: block; }
 
         @media (max-width: 767px) {
-            /* 手機：隱藏桌機介面，顯示手機介面 */
             #desktop-app { display: none !important; }
             #mobile-app  { display: flex !important; flex-direction: column; min-height: 100vh; }
         }
@@ -248,14 +255,8 @@
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
 
-<!-- ══════════════════════════════════════════════════════════════
-     手機版介面（< 768px 才顯示）
-══════════════════════════════════════════════════════════════ -->
 <div id="mobile-app" class="bg-gray-100">
 
-    <!-- 手機通關碼畫面（與桌機共用同一個 gate-screen，透過 JS 控制） -->
-
-    <!-- 手機頂部標題列 -->
     <div class="bg-white shadow-sm px-4 py-3 flex items-center justify-between sticky top-0 z-40 border-b">
         <div>
             <div class="font-black text-gray-800 text-base leading-tight">新莊國小</div>
@@ -270,11 +271,9 @@
         </div>
     </div>
 
-    <!-- ── 手機頁面：學生名單 ───────────────────────────────── -->
     <div id="mob-page-students" class="mob-page active">
         <h2 class="font-black text-gray-700 text-base mb-3">📋 學生名單</h2>
 
-        <!-- 年級篩選 -->
         <div class="flex gap-2 overflow-x-auto pb-2 mb-2" style="scrollbar-width:none">
             <button onclick="mobSetGrade('all')"  id="mob-g-all" class="mob-pill on-blue">全部</button>
             <button onclick="mobSetGrade('1')"    id="mob-g-1"   class="mob-pill">一年</button>
@@ -284,7 +283,6 @@
             <button onclick="mobSetGrade('5')"    id="mob-g-5"   class="mob-pill">五年</button>
             <button onclick="mobSetGrade('6')"    id="mob-g-6"   class="mob-pill">六年</button>
         </div>
-        <!-- 科目篩選 -->
         <div class="flex gap-2 mb-4">
             <button onclick="mobSetSub('all')"  id="mob-s-all"  class="mob-pill on-blue">全科</button>
             <button onclick="mobSetSub('國語')" id="mob-s-chi"  class="mob-pill text-red-600 border-red-300">國語</button>
@@ -292,20 +290,16 @@
             <button onclick="mobSetSub('英語')" id="mob-s-eng"  class="mob-pill text-green-600 border-green-300">英語</button>
         </div>
 
-        <!-- 人數顯示 -->
         <div class="text-xs text-gray-500 mb-3 font-bold" id="mob-student-count">共 0 人</div>
 
-        <!-- 學生清單 -->
         <div id="mob-student-list" class="space-y-2"></div>
     </div>
 
-    <!-- ── 手機頁面：班級資訊 ───────────────────────────────── -->
     <div id="mob-page-classes" class="mob-page">
         <h2 class="font-black text-gray-700 text-base mb-4">🏫 班級資訊</h2>
         <div id="mob-class-list" class="space-y-3"></div>
     </div>
 
-    <!-- ── 手機頁面：家長電話 ───────────────────────────────── -->
     <div id="mob-page-phone" class="mob-page">
         <h2 class="font-black text-gray-700 text-base mb-3">📞 家長電話</h2>
         <input type="text" id="mob-phone-search" placeholder="搜尋姓名…"
@@ -314,7 +308,6 @@
         <div id="mob-phone-list" class="space-y-2"></div>
     </div>
 
-    <!-- ── 手機底部導覽列 ────────────────────────────────────── -->
     <nav class="mob-nav">
         <button class="mob-nav-btn active" id="mob-nav-students" onclick="mobSwitchTab('students')">
             <span class="icon">👥</span>學生名單
@@ -328,17 +321,10 @@
     </nav>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     桌機版介面（>= 768px 才顯示）
-══════════════════════════════════════════════════════════════ -->
 <div id="desktop-app" class="bg-gray-100 min-h-screen flex flex-col">
 
-<!-- ══ Toast ════════════════════════════════════════════════════ -->
 <div id="toast"></div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     通關碼關卡
-══════════════════════════════════════════════════════════════ -->
 <div id="gate-screen">
     <div class="gate-card">
         <p class="gate-school">新 莊 國 小</p>
@@ -354,9 +340,6 @@
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     管理員密碼 Modal
-══════════════════════════════════════════════════════════════ -->
 <div id="admin-modal" class="modal-overlay hidden">
     <div class="modal-content">
         <div class="text-4xl text-center mb-3">🔐</div>
@@ -376,9 +359,6 @@
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     編輯學生 Modal
-══════════════════════════════════════════════════════════════ -->
 <div id="editModal" class="modal-overlay hidden">
     <div class="modal-content">
         <h3 class="text-lg font-bold mb-4 text-gray-800">編輯學生資料</h3>
@@ -412,9 +392,6 @@
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     頂部導覽列
-══════════════════════════════════════════════════════════════ -->
 <div class="no-print w-full bg-white shadow-sm p-3 sticky top-0 z-50 px-6 border-b border-gray-200">
     <div class="flex justify-between items-center flex-wrap gap-3">
         <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2 shrink-0">
@@ -443,13 +420,9 @@
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     步驟1：學生登錄
-══════════════════════════════════════════════════════════════ -->
 <div id="scan-section" class="no-print w-full max-w-6xl mx-auto bg-white p-6 rounded-xl shadow mt-6">
     <div class="flex gap-6 flex-col md:flex-row">
 
-        <!-- 新增表單（管理員限定） -->
         <div class="md:w-1/3 border-2 border-blue-200 rounded-xl p-5 bg-blue-50 edit-only">
             <h3 class="font-bold text-blue-800 mb-4 text-lg">📝 手動新增學生回條</h3>
             <div class="space-y-3">
@@ -470,7 +443,6 @@
             </div>
         </div>
 
-        <!-- 瀏覽模式提示 -->
         <div id="scan-view-hint" class="md:w-1/3 flex border-2 border-yellow-200 rounded-xl p-5 bg-yellow-50 items-center justify-center flex-col text-center">
             <div class="text-4xl mb-3">👁️</div>
             <p class="text-yellow-800 font-bold text-base">目前為瀏覽模式</p>
@@ -478,11 +450,8 @@
             <button onclick="openAdminModal()" class="mt-4 bg-yellow-500 text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-yellow-600">🔐 管理員登入</button>
         </div>
 
-        <!-- 名單 -->
         <div class="flex-1">
-            <!-- 篩選器 -->
             <div class="mb-3 space-y-2">
-                <!-- 年級篩選 -->
                 <div class="flex flex-wrap gap-1.5 items-center">
                     <span class="text-xs text-gray-500 font-bold w-8">年級</span>
                     <button onclick="setFilter('grade','all')" id="f-grade-all"
@@ -500,7 +469,6 @@
                     <button onclick="setFilter('grade','6')" id="f-grade-6"
                             class="filter-btn-grade px-3 py-1 text-xs rounded-full border font-bold transition">六年級</button>
                 </div>
-                <!-- 科目篩選 -->
                 <div class="flex flex-wrap gap-1.5 items-center">
                     <span class="text-xs text-gray-500 font-bold w-8">科目</span>
                     <button onclick="setFilter('subject','all')" id="f-sub-all"
@@ -513,7 +481,6 @@
                             class="filter-btn-sub px-3 py-1 text-xs rounded-full border font-bold transition text-green-600 border-green-300">英語</button>
                 </div>
             </div>
-            <!-- 標題列 -->
             <div class="flex justify-between items-center mb-2 bg-gray-100 p-2 rounded-lg">
                 <h3 class="font-bold text-gray-700">已登錄名單</h3>
                 <div class="flex items-center gap-2">
@@ -526,9 +493,6 @@
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     步驟2：班級設定
-══════════════════════════════════════════════════════════════ -->
 <div id="class-settings-section" class="no-print w-full max-w-7xl mx-auto bg-white p-6 rounded-xl shadow hidden flex-col mt-6">
     <div class="flex justify-between items-center mb-4 border-b pb-2">
         <h2 class="text-xl font-bold text-gray-800">班級詳細資料設定</h2>
@@ -547,12 +511,8 @@
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     步驟3：拖曳編班
-══════════════════════════════════════════════════════════════ -->
 <div id="arrange-section" class="no-print w-full hidden flex-1 overflow-hidden" style="height:calc(100vh - 110px);">
 
-    <!-- 待分發側欄 -->
     <div class="w-64 flex-shrink-0 flex flex-col h-full bg-white border-r border-gray-200 shadow-md z-10">
         <div class="bg-gray-700 text-white p-2 text-center font-bold text-lg">待分發名單</div>
         <div class="bg-gray-100 p-2 flex gap-1 justify-center border-b edit-only">
@@ -562,7 +522,6 @@
         <div id="unassigned-pool" class="flex-1 p-2 bg-gray-100 overflow-y-auto" data-class-id="null"></div>
     </div>
 
-    <!-- 主作業區 -->
     <div class="flex-1 flex flex-col h-full bg-gray-50">
         <div class="flex justify-between items-center p-3 bg-white border-b shadow-sm sticky top-0 z-10">
             <div class="flex items-center gap-4">
@@ -588,9 +547,6 @@
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     步驟4：列印與匯出
-══════════════════════════════════════════════════════════════ -->
 <div id="print-section" class="no-print max-w-6xl mx-auto bg-white p-6 rounded-xl shadow hidden mt-6">
     <h2 class="text-xl font-bold mb-4 border-b pb-2">列印與匯出</h2>
 
@@ -608,7 +564,6 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- 通知單設定 -->
         <div class="lg:col-span-2 bg-purple-50 p-5 rounded-xl border border-purple-200">
             <h3 class="font-bold text-purple-800 mb-3 text-lg">📄 通知單設定</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -643,7 +598,6 @@
             </div>
         </div>
 
-        <!-- 匯出按鈕 -->
         <div class="space-y-3">
             <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">報表匯出</p>
             <div onclick="exportExcel()"
@@ -658,7 +612,6 @@
                  class="border p-3 rounded-xl hover:bg-pink-50 cursor-pointer bg-white shadow-sm flex items-center gap-3">
                 <span class="text-2xl">📝</span><span class="font-bold text-pink-700 text-sm">下載 各班點名單</span>
             </div>
-            <!-- 列印：兩種排序選項 -->
             <div class="border-2 border-purple-400 rounded-xl bg-white shadow-sm overflow-hidden">
                 <div class="bg-purple-50 px-3 py-2 flex items-center gap-2 border-b border-purple-200">
                     <span class="text-xl">🖨️</span>
@@ -695,13 +648,9 @@
 </div>
 
 
-<!-- ══════════════════════════════════════════════════════════════
-     步驟5：數據分析
-══════════════════════════════════════════════════════════════ -->
 <div id="stats-section" class="no-print w-full max-w-6xl mx-auto bg-white p-6 rounded-xl shadow hidden mt-6 mb-10">
     <h2 class="text-xl font-bold mb-6 border-b pb-2">📊 數據分析</h2>
 
-    <!-- 總覽卡片 -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
             <div class="text-3xl font-black text-blue-600" id="st-total">0</div>
@@ -723,25 +672,21 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-        <!-- 各年級人數 -->
         <div class="border rounded-xl p-5 bg-gray-50">
             <h3 class="font-bold text-gray-700 mb-4 text-base">📚 各年級人數</h3>
             <div id="stats-grade-bars" class="space-y-3"></div>
         </div>
 
-        <!-- 各科目人數 -->
         <div class="border rounded-xl p-5 bg-gray-50">
             <h3 class="font-bold text-gray-700 mb-4 text-base">📖 各科目報名人數</h3>
             <div id="stats-subject-bars" class="space-y-3"></div>
         </div>
 
-        <!-- 各扶助班人數 -->
         <div class="border rounded-xl p-5 bg-gray-50 lg:col-span-2">
             <h3 class="font-bold text-gray-700 mb-4 text-base">🏫 各扶助班人數</h3>
             <div id="stats-class-bars" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3"></div>
         </div>
 
-        <!-- 年級 × 科目交叉表 -->
         <div class="border rounded-xl p-5 bg-gray-50 lg:col-span-2 overflow-x-auto">
             <h3 class="font-bold text-gray-700 mb-4 text-base">📋 年級 × 科目 交叉統計</h3>
             <table class="w-full text-sm text-center border-collapse" id="stats-cross-table">
@@ -760,14 +705,10 @@
     </div>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════════
-     步驟6：家長電話對應表
-══════════════════════════════════════════════════════════════ -->
 <div id="phone-section" class="no-print w-full max-w-6xl mx-auto bg-white p-6 rounded-xl shadow hidden mt-6 mb-10">
     <div class="flex justify-between items-center mb-5 border-b pb-3 flex-wrap gap-3">
         <h2 class="text-xl font-bold text-gray-800">📞 家長電話對應表</h2>
         <div class="flex gap-2 items-center flex-wrap">
-            <!-- Excel 匯入（管理員限定） -->
             <div class="edit-only flex gap-2">
                 <input type="file" id="phoneImportFile" accept=".xlsx,.xls" class="hidden" onchange="importPhoneExcel(this)">
                 <button onclick="document.getElementById('phoneImportFile').click()"
@@ -783,14 +724,12 @@
                     🖨️ 列印電話表
                 </button>
             </div>
-            <!-- 搜尋 -->
             <input type="text" id="phone-search" placeholder="搜尋姓名…"
                    oninput="renderPhoneTable()"
                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-36 focus:outline-none focus:border-blue-400">
         </div>
     </div>
 
-    <!-- Excel 格式說明（管理員） -->
     <div id="phone-import-hint" class="edit-only mb-4 bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
         <strong>📋 Excel 匯入格式說明：</strong>
         欄位名稱需包含 <code class="bg-white px-1 rounded">姓名</code>、
@@ -799,7 +738,6 @@
         系統會依姓名自動比對，只更新有找到的學生。
     </div>
 
-    <!-- 電話表格 -->
     <div id="phone-table-container" class="overflow-x-auto"></div>
 </div>
 <script>
@@ -861,7 +799,7 @@ function renderAll() {
     }
 }
 
-// ── 管理員密碼 ────────────────────────────────────────────────────
+// ── 管理員密碼與雙重鎖防護 ─────────────────────────────────────────
 function openAdminModal() {
     document.getElementById('admin-pw-input').value = '';
     document.getElementById('admin-pw-error').innerText = '';
@@ -872,6 +810,13 @@ function closeAdminModal() {
     document.getElementById('admin-modal').classList.add('hidden');
 }
 function submitAdminPw() {
+    // 【無痕植入】：先檢查瀏覽器是否帶有 Google Auth 的登入憑證
+    if (!window._firebaseAuth || !window._firebaseAuth.currentUser) {
+        document.getElementById('admin-pw-error').innerText = '❌ 系統拒絕：未偵測到後台管理員憑證。請先至控制中心登入！';
+        setTimeout(() => document.getElementById('admin-pw-error').innerText = '', 3500);
+        return; // 直接中斷，就算密碼打對也不給過
+    }
+
     if (document.getElementById('admin-pw-input').value === ADMIN_PW) {
         IS_ADMIN = true;
         closeAdminModal();
@@ -1093,15 +1038,15 @@ function renderScanList() {
 function renderClassSettings() {
     const ro = !IS_ADMIN;
     document.getElementById('class-settings-tbody').innerHTML = classes.map((c, i) => `<tr>
-        <td><input type="text"   value="${c.name     || ''}" onchange="updCls(${i},'name',this.value)"      ${ro ? 'disabled' : ''}></td>
-        <td><input type="number" value="${c.grade    || ''}" onchange="updCls(${i},'grade',this.value)"     ${ro ? 'disabled' : ''}></td>
+        <td><input type="text"   value="${c.name     || ''}" onchange="updCls(${i},'name',this.value)"       ${ro ? 'disabled' : ''}></td>
+        <td><input type="number" value="${c.grade    || ''}" onchange="updCls(${i},'grade',this.value)"      ${ro ? 'disabled' : ''}></td>
         <td><select onchange="updCls(${i},'subject',this.value)" ${ro ? 'disabled' : ''}>
             ${SUBJECTS.map(s => `<option value="${s}" ${c.subject === s ? 'selected' : ''}>${s}</option>`).join('')}
         </select></td>
         <td><input type="text" value="${c.teacher   || ''}" onchange="updCls(${i},'teacher',this.value)"   ${ro ? 'disabled' : ''}></td>
         <td><input type="text" value="${c.extension || ''}" onchange="updCls(${i},'extension',this.value)" ${ro ? 'disabled' : ''}></td>
-        <td><input type="text" value="${c.code      || ''}" onchange="updCls(${i},'code',this.value)"      ${ro ? 'disabled' : ''}></td>
-        <td><input type="text" value="${c.floor     || ''}" onchange="updCls(${i},'floor',this.value)"     ${ro ? 'disabled' : ''}></td>
+        <td><input type="text" value="${c.code      || ''}" onchange="updCls(${i},'code',this.value)"       ${ro ? 'disabled' : ''}></td>
+        <td><input type="text" value="${c.floor     || ''}" onchange="updCls(${i},'floor',this.value)"      ${ro ? 'disabled' : ''}></td>
         <td><input type="text" value="${c.roomName  || ''}" onchange="updCls(${i},'roomName',this.value)"  ${ro ? 'disabled' : ''}></td>
         ${!ro ? `<td class="text-center"><button onclick="delCls(${i})" class="text-red-500 font-bold">刪除</button></td>` : '<td></td>'}
     </tr>`).join('');
@@ -1468,7 +1413,9 @@ ${container.innerHTML}
     printWin.document.close();
     // 清空殘留的通知單 HTML，避免顯示在其他頁面下方
     setTimeout(() => { container.innerHTML = ''; }, 500);
-}// ── 數據分析 ──────────────────────────────────────────────────────
+}
+
+// ── 數據分析 ──────────────────────────────────────────────────────
 function renderStats() {
     const total      = students.length;
     const assigned   = students.filter(s =>  s.classId).length;
@@ -1844,13 +1791,8 @@ function printPhoneList() {
 
 </script>
 
-</div><!-- end #desktop-app -->
+</div><div id="print-layout"></div>
 
-<div id="print-layout"></div>
-
-<!-- ══════════════════════════════════════════════════════════════
-     手機版 JS
-══════════════════════════════════════════════════════════════ -->
 <script>
 // ── 手機版狀態 ────────────────────────────────────────────────────
 let mobFilterGrade = 'all';
@@ -1963,7 +1905,6 @@ function renderMobClasses() {
         const ext    = c.extension ? `3411373#${c.extension}` : '—';
         let room = c.roomName || '—'; if (c.code) room += ` (${c.code})`; if (c.floor) room += ` ${c.floor}`;
         return `<div class="mob-class-card ${topCls} ${bgCls}">
-            <!-- 班級標題 -->
             <div class="flex justify-between items-start mb-3">
                 <div>
                     <span class="text-xl font-black text-gray-800">${c.name}</span>
@@ -1971,7 +1912,6 @@ function renderMobClasses() {
                 </div>
                 <span class="text-xs font-bold px-2.5 py-1 rounded-full ${tagCls}">${c.subject}</span>
             </div>
-            <!-- 資訊列 -->
             <div class="grid grid-cols-2 gap-2 text-xs mb-3">
                 <div class="bg-white/70 rounded-lg p-2.5">
                     <div class="text-gray-400 mb-0.5">授課教師</div>
@@ -1986,7 +1926,6 @@ function renderMobClasses() {
                     <div class="font-bold text-gray-700">${room}</div>
                 </div>
             </div>
-            <!-- 學生人數與名單 -->
             <div class="border-t border-white/50 pt-3">
                 <div class="text-xs font-bold text-gray-500 mb-2">學生 ${inClass.length} 人</div>
                 ${inClass.length ? `<div class="flex flex-wrap gap-1.5">

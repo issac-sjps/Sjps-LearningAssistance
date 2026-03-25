@@ -18,7 +18,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-/* ── HEADER (頁首) ── */
+/* ── HEADER ── */
 .hdr{background:linear-gradient(135deg,#1e3a8a 0%,#1e40af 100%);color:#fff;
   padding:12px 20px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh2);position:sticky;top:0;z-index:100}
 .hdr-ico{width:42px;height:42px;background:var(--teal);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
@@ -30,7 +30,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .fb-dot.err{background:#f87171}
 #fb-status{font-size:11px;opacity:.75}
 
-/* ── NAV (導覽列) ── */
+/* ── NAV ── */
 .nav{background:#1e3a8a;display:flex;overflow-x:auto;border-bottom:3px solid var(--teal);scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
 .ntab{padding:12px 18px;background:none;border:none;color:rgba(255,255,255,.6);
@@ -38,14 +38,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .ntab:hover{color:#fff;background:rgba(255,255,255,.1)}
 .ntab.on{color:#fff;background:rgba(255,255,255,.1);border-bottom-color:var(--teal2)}
 
-/* ── MAIN (主內容區) ── */
+/* ── MAIN ── */
 .main{padding:18px;max-width:1440px;margin:0 auto}
 .tab{display:none}.tab.on{display:block}
 .card{background:var(--white);border-radius:12px;padding:18px;box-shadow:var(--sh);margin-bottom:16px}
 .card-hd{font-size:14px;font-weight:600;color:var(--blue);margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:7px}
 .card-hd .badge-count{background:var(--blue2);color:#fff;font-size:11px;padding:1px 7px;border-radius:10px;font-weight:500;margin-left:auto}
 
-/* ── UPLOAD ZONE (上傳區) ── */
+/* ── UPLOAD ZONE ── */
 .upzone{border:2px dashed var(--border);border-radius:8px;padding:26px 20px;text-align:center;cursor:pointer;transition:.2s;position:relative}
 .upzone:hover,.upzone.drag{border-color:var(--teal);background:rgba(13,148,136,.05)}
 .upzone .ico{font-size:30px;margin-bottom:6px}
@@ -53,7 +53,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .upzone strong{color:var(--teal)}
 input[type=file]{display:none}
 
-/* ── BUTTONS (按鈕) ── */
+/* ── BUTTONS ── */
 .btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:6px;border:none;font:500 12px 'Noto Sans TC',sans-serif;cursor:pointer;transition:.15s;user-select:none}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-blue{background:var(--blue2);color:#fff}.btn-blue:hover:not(:disabled){background:var(--blue)}
@@ -62,7 +62,7 @@ input[type=file]{display:none}
 .btn-gray{background:#475569;color:#fff}.btn-gray:hover:not(:disabled){background:#334155}
 .btn-sm{padding:3px 9px;font-size:11px}
 
-/* ── TABLES (表格) ── */
+/* ── TABLES ── */
 .tw{overflow-x:auto;border-radius:8px}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead th{background:var(--blue);color:#fff;padding:8px 10px;text-align:left;font-weight:500;white-space:nowrap}
@@ -71,7 +71,7 @@ tbody tr:hover{background:rgba(13,148,136,.05)}
 tbody td{padding:6px 10px;vertical-align:middle}
 tfoot td{padding:8px 10px;background:#f8fafc;font-weight:600;font-size:12px;border-top:2px solid var(--border)}
 
-/* ── BADGES (標籤) ── */
+/* ── BADGES ── */
 .b{display:inline-flex;align-items:center;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
 .b-fail{background:#fef2f2;color:var(--red);border:1px solid #fecaca}
 .b-pass{background:#f0fdf4;color:var(--green);border:1px solid #bbf7d0}
@@ -79,13 +79,13 @@ tfoot td{padding:8px 10px;background:#f8fafc;font-weight:600;font-size:12px;bord
 .b-req{background:#fff7ed;color:var(--amber);border:1px solid #fed7aa}
 .b-sel{background:#faf5ff;color:var(--purple);border:1px solid #e9d5ff}
 
-/* ── STAT GRID (統計網格) ── */
+/* ── STAT GRID ── */
 .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:16px}
 .sc{background:var(--white);border-radius:10px;padding:14px;box-shadow:var(--sh);border-left:4px solid var(--teal)}
 .sc .lbl{font-size:11px;color:var(--muted);margin-bottom:2px}
 .sc .val{font-size:24px;font-weight:700;color:var(--blue);font-family:'JetBrains Mono',monospace}
 
-/* ── AUTH & MODAL (驗證與鎖定) ── */
+/* ── AUTH & MODAL ── */
 #login-overlay{position:fixed;inset:0;z-index:9000;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#0d9488 100%);display:flex;align-items:center;justify-content:center;}
 #login-overlay.hide{display:none}
 .login-box{background:#fff;border-radius:16px;padding:36px 32px;box-shadow:0 20px 60px rgba(0,0,0,.4);text-align:center;width:320px;}
@@ -95,7 +95,7 @@ body.view-only .no-edit{pointer-events:none;opacity:.5}
 .edit-lock-msg{display:none;text-align:center;padding:12px;font-size:12px;color:var(--muted);background:#f8fafc;border-radius:8px;border:1px dashed var(--border);margin-bottom:10px;}
 body.view-only .edit-lock-msg{display:block}
 
-/* ── FLOAT PROGRESS (浮動進度) ── */
+/* ── FLOAT PROGRESS ── */
 #b35-float{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:500;display:flex;flex-direction:column;background:#1e3a8a;color:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.25);min-width:100px;overflow:hidden;}
 .b35fp-hd{background:var(--teal);padding:6px 10px;font-size:10px;font-weight:700;text-align:center;}
 .b35fp-row{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;gap:8px;border-bottom:1px solid rgba(255,255,255,.1);}
@@ -244,7 +244,7 @@ body.view-only .edit-lock-msg{display:block}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDoc, getDocs, setDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const cfg = {
   apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
@@ -262,12 +262,6 @@ const auth = getAuth(app);
 window._db = db;
 window._fs = { collection, getDoc, getDocs, setDoc, doc, updateDoc };
 window._firebaseAuth = auth;
-
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    console.log("已偵測到後台管理員身分:", user.email);
-  }
-});
 
 window._fbReady = true;
 document.dispatchEvent(new Event('fbReady'));
@@ -297,12 +291,7 @@ async function fbLoadAll(){
   ]);
   REQ = (rs.exists() && rs.data().data) ? rs.data().data : [];
   const rawB35 = (bs.exists() && bs.data().data) ? bs.data().data : [];
-  B35 = rawB35.map(d => ({ 
-    ...d, 
-    selChinese: !!d.selChinese, 
-    selMath: !!d.selMath, 
-    selEnglish: !!d.selEnglish 
-  }));
+  B35 = rawB35.map(d => ({ ...d, selChinese: !!d.selChinese, selMath: !!d.selMath, selEnglish: !!d.selEnglish }));
 }
 
 async function loadAll(){
@@ -312,11 +301,9 @@ async function loadAll(){
   try {
     await fbLoadAll();
     status.textContent = '已連線'; dot.className = 'fb-dot ok';
-    updateDBStatus(); 
-    renderAll();
+    updateDBStatus(); renderAll();
     toast('資料載入成功', 'ok');
   } catch(e) {
-    console.error(e);
     status.textContent = '連線失敗'; dot.className = 'fb-dot err';
     toast('讀取失敗，請確認安全規則權限', 'err');
   }
@@ -330,11 +317,9 @@ function updateDBStatus(){
   document.getElementById('b35-count').textContent = B35.length + ' 筆';
 }
 
-// ─── 畫面渲染函式集 (核心修正處) ───
-
+// ─── 畫面渲染函式集 ───
 function renderAll(){
   const activeTab = document.querySelector('.ntab.on')?.dataset?.tab;
-  // 依照當前開啟的分頁執行對應的渲染函式
   if (activeTab === 'filter') renderFilter();
   else if (activeTab === 'rate') renderRate();
   else if (activeTab === 'b35') renderB35();
@@ -342,60 +327,44 @@ function renderAll(){
   else if (activeTab === 'stat1') renderStat1();
   else if (activeTab === 'stat2') renderStat2();
   else if (activeTab === 'gradesum') renderGradeSummary();
-  
   populateExamGradeSelect();
 }
 
 function renderFilter(){
   const el = document.getElementById('filter-content');
   const grade = parseInt(document.getElementById('filter-grade').value);
-  const list = REQ.filter(s => {
-    const gOk = !grade || s.grade === grade;
-    const v = String(s[filterSubj] || '').toUpperCase();
-    return gOk && v === 'X';
-  });
-  
-  if(!list.length) { el.innerHTML = '<p class="empty">此條件下無未通過學生</p>'; return; }
-  
-  let html = `<div class="tw"><table><thead><tr><th>班級</th><th>座號</th><th>姓名</th><th>狀態</th><th>類別</th></tr></thead><tbody>`;
-  list.forEach(s => {
-    html += `<tr><td>${s.grade}年${s.classNum}班</td><td>${s.seat}</td><td>${s.name}</td><td><span class="b b-fail">未通過</span></td><td class="mu">${s.identity || ''}</td></tr>`;
-  });
-  html += `</tbody></table></div>`;
-  el.innerHTML = html;
+  const list = REQ.filter(s => (!grade || s.grade === grade) && String(s[filterSubj] || '').toUpperCase() === 'X');
+  if(!list.length) { el.innerHTML = '<p class="empty">無未通過學生</p>'; return; }
+  let html = `<div class="tw"><table><thead><tr><th>班級</th><th>座號</th><th>姓名</th><th>狀態</th><th>備註</th></tr></thead><tbody>`;
+  list.forEach(s => { html += `<tr><td>${s.grade}年${s.classNum}班</td><td>${s.seat}</td><td>${s.name}</td><td><span class="b b-fail">需考</span></td><td class="mu">${s.identity || ''}</td></tr>`; });
+  el.innerHTML = html + `</tbody></table></div>`;
 }
 
 function renderRate(){
   const el = document.getElementById('rate-content');
-  let html = `<div class="card"><div class="card-hd">📈 提報率統計總表</div><div class="tw"><table><thead><tr><th>年級</th><th>人數</th><th>國語提報</th><th>數學提報</th><th>英語提報</th></tr></thead><tbody>`;
+  let html = `<div class="card"><div class="card-hd">📈 提報率統計</div><div class="tw"><table><thead><tr><th>年級</th><th>人數</th><th>國語提報</th><th>數學提報</th><th>英語提報</th></tr></thead><tbody>`;
   [1,2,3,4,5,6].forEach(g => {
     const pop = GRADE_TOTALS[g];
     const cCnt = REQ.filter(s=>s.grade===g && s.chinese==='X').length + B35.filter(s=>s.grade===g && s.selChinese).length;
     const mCnt = REQ.filter(s=>s.grade===g && s.math==='X').length + B35.filter(s=>s.grade===g && s.selMath).length;
     const eCnt = REQ.filter(s=>s.grade===g && s.english==='X').length + B35.filter(s=>s.grade===g && s.selEnglish).length;
-    html += `<tr><td>${g}年級</td><td>${pop}</td><td>${cCnt} (${(cCnt/pop*100).toFixed(1)}%)</td><td>${mCnt} (${(mCnt/pop*100).toFixed(1)}%)</td><td>${g>=3?eCnt+' ('+(eCnt/pop*100).toFixed(1)+'%)':'—'}</td></tr>`;
+    html += `<tr><td>${g}年級</td><td>${pop}</td><td>${cCnt}</td><td>${mCnt}</td><td>${g>=3?eCnt:'—'}</td></tr>`;
   });
-  html += `</tbody></table></div></div>`;
-  el.innerHTML = html;
+  el.innerHTML = html + `</tbody></table></div></div>`;
 }
 
 function renderB35(){
   const el = document.getElementById('b35-content');
-  if(!B35.length){ el.innerHTML = '<p class="empty">尚無資料，請先上傳後35%名單</p>'; return; }
+  if(!B35.length){ el.innerHTML = '<p class="empty">尚無資料</p>'; return; }
   const grade = parseInt(document.getElementById('b35-grade').value);
   const list = B35.filter(s => !grade || s.grade === grade).sort((a,b) => (a[b35Subj]||0) - (b[b35Subj]||0));
-  
-  let html = `<div class="tw"><table><thead><tr><th>選取</th><th>班級</th><th>座號</th><th>姓名</th><th>分數</th><th>狀態</th></tr></thead><tbody>`;
+  let html = `<div class="tw"><table><thead><tr><th>選取</th><th>班級</th><th>姓名</th><th>分數</th><th>狀態</th></tr></thead><tbody>`;
   list.forEach(s => {
     const field = 'sel' + b35Subj[0].toUpperCase() + b35Subj.slice(1);
     const isSel = !!s[field];
-    html += `<tr style="${isSel ? 'background:#faf5ff' : ''}">
-      <td><input type="checkbox" ${isSel?'checked':''} onchange="toggleB35Select('${s.id}','${b35Subj}',this.checked)"></td>
-      <td>${s.grade}年${s.classNum}班</td><td>${s.seat}</td><td>${s.name}</td><td>${s[b35Subj] || '—'}</td>
-      <td>${isSel ? '<span class="b b-sel">✔ 已加報</span>' : ''}</td></tr>`;
+    html += `<tr style="${isSel ? 'background:#faf5ff' : ''}"><td><input type="checkbox" ${isSel?'checked':''} onchange="toggleB35Select('${s.id}','${b35Subj}',this.checked)"></td><td>${s.grade}-${s.classNum}</td><td>${s.name}</td><td>${s[b35Subj] || '—'}</td><td>${isSel ? '<span class="b b-sel">已加報</span>' : ''}</td></tr>`;
   });
-  html += `</tbody></table></div>`;
-  el.innerHTML = html;
+  el.innerHTML = html + `</tbody></table></div>`;
   updateB35FloatPanel();
 }
 
@@ -403,76 +372,44 @@ function renderExamList(){
   const el = document.getElementById('examlist-content');
   const grade = parseInt(document.getElementById('exam-grade').value);
   const classNum = parseInt(document.getElementById('exam-class').value);
-  
-  // 建立合併名單
   let fullList = buildFullExamList();
-  
   if(grade) fullList = fullList.filter(s => s.grade === grade);
   if(classNum) fullList = fullList.filter(s => s.classNum === classNum);
-  
   if(!fullList.length){ el.innerHTML = '<p class="empty">無考試名單</p>'; return; }
-  
-  let html = `<div class="tw"><table><thead><tr><th>班級</th><th>座號</th><th>姓名</th><th>國</th><th>數</th><th>英</th><th>備註</th></tr></thead><tbody>`;
-  fullList.forEach(s => {
-    html += `<tr><td>${s.grade}-${s.classNum}</td><td>${s.seat}</td><td>${s.name}</td>
-      <td>${s.c ? 'X' : ''}</td><td>${s.m ? 'X' : ''}</td><td>${s.e ? 'X' : ''}</td>
-      <td class="fs11 mu">${s.source}</td></tr>`;
-  });
-  html += `</tbody></table></div>`;
-  el.innerHTML = html;
+  let html = `<div class="tw"><table><thead><tr><th>班級</th><th>座號</th><th>姓名</th><th>國</th><th>數</th><th>英</th><th>來源</th></tr></thead><tbody>`;
+  fullList.forEach(s => { html += `<tr><td>${s.grade}-${s.classNum}</td><td>${s.seat}</td><td>${s.name}</td><td>${s.c ? 'X' : ''}</td><td>${s.m ? 'X' : ''}</td><td>${s.e ? 'X' : ''}</td><td class="fs11 mu">${s.source}</td></tr>`; });
+  el.innerHTML = html + `</tbody></table></div>`;
 }
 
 function renderStat1(){
   const el = document.getElementById('stat1-content');
-  let html = `<div class="card"><div class="card-hd">📉 必考人數統計 (+5%前)</div><div class="tw"><table><thead><tr><th>年級</th><th>國語</th><th>數學</th><th>英語</th></tr></thead><tbody>`;
-  [1,2,3,4,5,6].forEach(g => {
-    const c = REQ.filter(s=>s.grade===g && s.chinese==='X').length;
-    const m = REQ.filter(s=>s.grade===g && s.math==='X').length;
-    const e = REQ.filter(s=>s.grade===g && s.english==='X').length;
-    html += `<tr><td>${g}年級</td><td>${c}</td><td>${m}</td><td>${g>=3?e:'—'}</td></tr>`;
-  });
-  html += `</tbody></table></div></div>`;
-  el.innerHTML = html;
+  let html = `<div class="card"><div class="card-hd">📉 必考人數統計</div><div class="tw"><table><thead><tr><th>年級</th><th>國語</th><th>數學</th><th>英語</th></tr></thead><tbody>`;
+  [1,2,3,4,5,6].forEach(g => { html += `<tr><td>${g}年級</td><td>${REQ.filter(s=>s.grade===g && s.chinese==='X').length}</td><td>${REQ.filter(s=>s.grade===g && s.math==='X').length}</td><td>${g>=3?REQ.filter(s=>s.grade===g && s.english==='X').length:'—'}</td></tr>`; });
+  el.innerHTML = html + `</tbody></table></div></div>`;
 }
 
 function renderStat2(){
   const el = document.getElementById('stat2-content');
   const full = buildFullExamList();
-  let html = `<div class="card"><div class="card-hd">📊 總考試人數統計 (+5%後)</div><div class="tw"><table><thead><tr><th>年級</th><th>國語</th><th>數學</th><th>英語</th><th>總計</th></tr></thead><tbody>`;
-  [1,2,3,4,5,6].forEach(g => {
-    const c = full.filter(s=>s.grade===g && s.c).length;
-    const m = full.filter(s=>s.grade===g && s.m).length;
-    const e = full.filter(s=>s.grade===g && s.e).length;
-    html += `<tr><td>${g}年級</td><td>${c}</td><td>${m}</td><td>${e}</td><td>${full.filter(s=>s.grade===g).length}</td></tr>`;
-  });
-  html += `</tbody></table></div></div>`;
-  el.innerHTML = html;
+  let html = `<div class="card"><div class="card-hd">📊 總考試人數統計</div><div class="tw"><table><thead><tr><th>年級</th><th>國語</th><th>數學</th><th>英語</th><th>總計</th></tr></thead><tbody>`;
+  [1,2,3,4,5,6].forEach(g => { html += `<tr><td>${g}年級</td><td>${full.filter(s=>s.grade===g && s.c).length}</td><td>${full.filter(s=>s.grade===g && s.m).length}</td><td>${full.filter(s=>s.grade===g && s.e).length}</td><td>${full.filter(s=>s.grade===g).length}</td></tr>`; });
+  el.innerHTML = html + `</tbody></table></div></div>`;
 }
 
 function renderGradeSummary(){
-  const el = document.getElementById('gradesum-content');
-  el.innerHTML = `<div class="al al-info">年級總表模組已就緒。詳細數據請參閱上述各統計分頁。</div>`;
+  document.getElementById('gradesum-content').innerHTML = `<div class="al al-info">統計報表已與資料庫同步。請點擊各分頁查看詳細數據。</div>`;
 }
 
-// ─── 核心邏輯處理 ───
-
+// ─── 核心處理邏輯 ───
 function buildFullExamList(){
   const map = new Map();
-  REQ.forEach(s => {
-    map.set(s.name+s.grade, { name:s.name, grade:s.grade, classNum:s.classNum, seat:s.seat, c:s.chinese==='X', m:s.math==='X', e:s.english==='X', source:'必考' });
-  });
+  REQ.forEach(s => { map.set(s.name+s.grade, { name:s.name, grade:s.grade, classNum:s.classNum, seat:s.seat, c:s.chinese==='X', m:s.math==='X', e:s.english==='X', source:'必考' }); });
   B35.forEach(s => {
     if(s.selChinese || s.selMath || s.selEnglish){
       const key = s.name+s.grade;
       if(map.has(key)){
-        const exist = map.get(key);
-        if(s.selChinese) exist.c = true;
-        if(s.selMath) exist.m = true;
-        if(s.selEnglish) exist.e = true;
-        exist.source = '必考+新增';
-      } else {
-        map.set(key, { name:s.name, grade:s.grade, classNum:s.classNum, seat:s.seat, c:!!s.selChinese, m:!!s.selMath, e:!!s.selEnglish, source:'5%新增' });
-      }
+        const exist = map.get(key); if(s.selChinese) exist.c = true; if(s.selMath) exist.m = true; if(s.selEnglish) exist.e = true; exist.source = '必考+新增';
+      } else { map.set(key, { name:s.name, grade:s.grade, classNum:s.classNum, seat:s.seat, c:!!s.selChinese, m:!!s.selMath, e:!!s.selEnglish, source:'5%新增' }); }
     }
   });
   return Array.from(map.values()).sort((a,b)=>a.grade-b.grade || a.classNum-b.classNum || a.seat-b.seat);
@@ -483,14 +420,7 @@ async function toggleB35Select(id, subj, checked){
   const s = B35.find(x => x.id === id); if(!s) return;
   const field = 'sel' + subj[0].toUpperCase() + subj.slice(1);
   s[field] = checked;
-  try {
-    await fbBatchWrite('bottom35', B35);
-    updateDBStatus();
-  } catch(e) { 
-    toast('儲存失敗，權限不足', 'err'); 
-    s[field] = !checked; 
-    renderB35(); 
-  }
+  try { await fbBatchWrite('bottom35', B35); updateDBStatus(); } catch(e) { toast('寫入失敗', 'err'); s[field] = !checked; renderB35(); }
 }
 
 function updateB35FloatPanel(){
@@ -498,18 +428,18 @@ function updateB35FloatPanel(){
   const onB35 = document.querySelector('.ntab.on')?.dataset?.tab === 'b35';
   if(!onB35 || !B35.length){ panel.style.display = 'none'; return; }
   panel.style.display = 'block';
-  let html = '<div class="b35fp-hd">5% 進度</div>';
+  let html = '<div class="b35fp-hd">5% 提報進度</div>';
   [1,2,3,4,5,6].forEach(g => {
     const tgt = Math.ceil(GRADE_TOTALS[g] * 0.05);
     const sel = B35.filter(b => b.grade === g && (b.selChinese || b.selMath || b.selEnglish)).length;
     const pct = Math.min(100, (sel/tgt) * 100);
-    html += `<div class="b35fp-row"><span class="fs11">${g}年</span><span class="b35fp-val ${sel >= tgt ? 'done' : 'need'}">${sel}/${tgt}</span></div>
+    html += `<div class="b35fp-row"><span class="fs11">${g}年級</span><span class="b35fp-val ${sel >= tgt ? 'done' : 'need'}">${sel}/${tgt}</span></div>
              <div class="b35fp-bar"><div class="b35fp-fill" style="width:${pct}%"></div></div>`;
   });
   document.getElementById('b35-float-inner').innerHTML = html;
 }
 
-// ─── Excel 解析 ───
+// ─── EXCEL 解析 ───
 function parseExcel(file, type){
   return new Promise((res) => {
     const rd = new FileReader();
@@ -517,11 +447,9 @@ function parseExcel(file, type){
       const wb = XLSX.read(e.target.result, {type:'binary'});
       const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
       const students = data.map((r, i) => ({
-        id: type + Date.now() + i,
-        name: r['姓名'], 
+        id: type + Date.now() + i, name: r['姓名'],
         grade: parseInt(r['年級'] || r['目前年級'] || Math.floor(r['班級']/100)),
-        classNum: parseInt(r['班級']) % 100 || r['班級'], 
-        seat: r['座號'],
+        classNum: parseInt(r['班級']) % 100 || r['班級'], seat: r['座號'],
         chinese: r['國語'] || r['國文分數'] || r['國語文測驗'],
         math: r['數學'] || r['數學分數'] || r['數學測驗'],
         english: r['英語'] || r['英語分數'] || r['英語測驗'],
@@ -535,94 +463,44 @@ function parseExcel(file, type){
 
 document.getElementById('file-req').onchange = async (e) => {
   const f = e.target.files[0]; if(!f) return;
-  const { students } = await parseExcel(f, 'req');
-  pendingReq = students;
+  const { students } = await parseExcel(f, 'req'); pendingReq = students;
   document.getElementById('btn-save-req').disabled = false;
-  document.getElementById('req-preview').innerHTML = `<div class="al al-ok">成功解析 ${students.length} 筆，請點擊儲存。</div>`;
+  document.getElementById('req-preview').innerHTML = `<div class="al al-ok">解析成功：${students.length} 筆</div>`;
 };
 
 document.getElementById('file-b35').onchange = async (e) => {
   const f = e.target.files[0]; if(!f) return;
-  const { students } = await parseExcel(f, 'b35');
-  pendingB35 = students;
+  const { students } = await parseExcel(f, 'b35'); pendingB35 = students;
   document.getElementById('btn-save-b35').disabled = false;
-  document.getElementById('b35-preview').innerHTML = `<div class="al al-ok">成功解析 ${students.length} 筆，請點擊儲存。</div>`;
+  document.getElementById('b35-preview').innerHTML = `<div class="al al-ok">解析成功：${students.length} 筆</div>`;
 };
 
-async function saveRequiredList(){
-  if(!window._firebaseAuth?.currentUser){ toast('❌ 請先登入 Google 管理員', 'err'); return; }
-  try { await fbBatchWrite('requiredExam', pendingReq); loadAll(); } catch(e){ toast('儲存失敗', 'err'); }
-}
-async function saveBottom35List(){
-  if(!window._firebaseAuth?.currentUser){ toast('❌ 請先登入 Google 管理員', 'err'); return; }
-  try { await fbBatchWrite('bottom35', pendingB35); loadAll(); } catch(e){ toast('儲存失敗', 'err'); }
-}
+async function saveRequiredList(){ try { await fbBatchWrite('requiredExam', pendingReq); loadAll(); } catch(e){ toast('儲存失敗', 'err'); } }
+async function saveBottom35List(){ try { await fbBatchWrite('bottom35', pendingB35); loadAll(); } catch(e){ toast('儲存失敗', 'err'); } }
+async function clearRequiredList(){ if(confirm('確定清除？')){ await fbBatchWrite('requiredExam', []); loadAll(); } }
+async function clearBottom35List(){ if(confirm('確定清除？')){ await fbBatchWrite('bottom35', []); loadAll(); } }
 
-// ─── 工具與導覽 ───
+// ─── AUTH 與 UI 控制 ───
 function doLogin(){
   const pw = document.getElementById('login-pw').value;
-  if(pw === '073411373' || pw === 'admin'){
-    document.getElementById('login-overlay').classList.add('hide');
-    if(pw === 'admin') activateEditMode();
-  } else { 
-    document.getElementById('login-err').textContent = '密碼錯誤'; 
-  }
+  if(pw === '073411373' || pw === 'admin'){ document.getElementById('login-overlay').classList.add('hide'); if(pw === 'admin') activateEditMode(); } 
+  else { document.getElementById('login-err').textContent = '密碼錯誤'; }
 }
 
 function toggleEditMode(){
-  if(isEditMode){ 
-    isEditMode = false; document.body.classList.add('view-only'); 
-    updateEditBtn(); toast('已切換回瀏覽模式', 'info'); return; 
-  }
-  if(!window._firebaseAuth?.currentUser){ toast('❌ 請先至控制中心登入 Google 管理員！', 'err'); return; }
+  if(isEditMode){ isEditMode = false; document.body.classList.add('view-only'); updateEditBtn(); return; }
+  if(!window._firebaseAuth?.currentUser){ toast('❌ 請先至控制中心登入管理員帳號！', 'err'); return; }
   if(prompt('管理員密碼') === 'admin') activateEditMode();
 }
 
-function activateEditMode(){ 
-  isEditMode = true; document.body.classList.remove('view-only'); 
-  updateEditBtn(); toast('編輯模式已啟動', 'ok');
-}
-
-function updateEditBtn(){
-  const btn = document.getElementById('edit-btn');
-  btn.textContent = isEditMode ? '✏️ 編輯模式' : '🔒 瀏覽模式';
-  btn.classList.toggle('on', isEditMode);
-}
-
-function setFilterSubj(s, btn){
-  filterSubj = s; 
-  document.querySelectorAll('#tab-filter .stab').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on'); renderFilter();
-}
-function setB35Subj(s, btn){
-  b35Subj = s; 
-  document.querySelectorAll('#tab-b35 .stab').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on'); renderB35();
-}
-
-function populateExamGradeSelect(){
-  const sel = document.getElementById('exam-grade'); if(!sel || sel.options.length > 1) return;
-  [1,2,3,4,5,6].forEach(g => sel.add(new Option(g + '年級', g)));
-}
-function populateExamClassSelect(){
-  const g = parseInt(document.getElementById('exam-grade').value);
-  const sel = document.getElementById('exam-class'); sel.innerHTML = '<option value="0">全部班級</option>';
-  const classes = [...new Set(REQ.filter(s => !g || s.grade === g).map(s => s.classNum))].sort((a,b) => a-b);
-  classes.forEach(c => sel.add(new Option(c + '班', c)));
-}
-
-function toast(m, t){
-  const e = document.createElement('div'); e.className = `toast ${t}`; e.textContent = m;
-  document.getElementById('tst').appendChild(e); setTimeout(() => e.remove(), 3000);
-}
-
-function exportExamList(){
-  const list = buildFullExamList();
-  const ws = XLSX.utils.json_to_sheet(list);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "考試名單");
-  XLSX.writeFile(wb, "新莊國小篩選測驗名單.xlsx");
-}
+function activateEditMode(){ isEditMode = true; document.body.classList.remove('view-only'); updateEditBtn(); toast('編輯模式啟動', 'ok'); }
+function updateEditBtn(){ const btn = document.getElementById('edit-btn'); btn.textContent = isEditMode ? '✏️ 編輯模式' : '🔒 瀏覽模式'; btn.classList.toggle('on', isEditMode); }
+function setFilterSubj(s, btn){ filterSubj = s; document.querySelectorAll('#tab-filter .stab').forEach(b => b.classList.remove('on')); btn.classList.add('on'); renderFilter(); }
+function setB35Subj(s, btn){ b35Subj = s; document.querySelectorAll('#tab-b35 .stab').forEach(b => b.classList.remove('on')); btn.classList.add('on'); renderB35(); }
+function populateExamGradeSelect(){ const sel = document.getElementById('exam-grade'); if(!sel || sel.options.length > 1) return; [1,2,3,4,5,6].forEach(g => sel.add(new Option(g + '年級', g))); }
+function populateExamClassSelect(){ const g = parseInt(document.getElementById('exam-grade').value); const sel = document.getElementById('exam-class'); sel.innerHTML = '<option value="0">全部班級</option>'; const classes = [...new Set(REQ.filter(s => !g || s.grade === g).map(s => s.classNum))].sort((a,b) => a-b); classes.forEach(c => sel.add(new Option(c + '班', c))); }
+function toast(m, t){ const e = document.createElement('div'); e.className = `toast ${t}`; e.textContent = m; document.getElementById('tst').appendChild(e); setTimeout(() => e.remove(), 3000); }
+function exportExamList(){ const list = buildFullExamList(); const ws = XLSX.utils.json_to_sheet(list); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "名單"); XLSX.writeFile(wb, "篩選測驗名單.xlsx"); }
 
 document.querySelectorAll('.ntab').forEach(btn => {
   btn.onclick = () => {
@@ -633,11 +511,7 @@ document.querySelectorAll('.ntab').forEach(btn => {
   };
 });
 
-window.addEventListener('scroll', () => {
-  document.getElementById('scroll-top').classList.toggle('vis', window.scrollY > 300);
-}, {passive: true});
-
-// 啟動
+window.addEventListener('scroll', () => { document.getElementById('scroll-top').classList.toggle('vis', window.scrollY > 300); }, {passive: true});
 document.addEventListener('fbReady', loadAll);
 </script>
 </body>

@@ -9,6 +9,8 @@
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <!-- 【改動1】加入 Auth SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
     <style>
         /* --- 全域設定 --- */
@@ -73,6 +75,22 @@
         .btn-import { background-color: #2980b9 !important; color: white !important; }
         .btn-import:hover { background-color: #3498db !important; }
         .btn-import.active { background-color: #f39c12 !important; }
+
+        /* 【改動2】編輯模式按鈕樣式 */
+        #editModeBtn {
+            background-color: #c0392b !important;
+            color: white !important;
+            font-size: 13px !important;
+            padding: 5px 12px !important;
+            border-radius: 5px !important;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        #editModeBtn.unlocked {
+            background-color: #27ae60 !important;
+        }
 
         .container { max-width: 1100px; margin: 20px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .settings-box { border: 2px solid #e0e0e0; padding: 20px; margin-bottom: 20px; background-color: #fff; border-radius: 8px; }
@@ -277,6 +295,8 @@
         <div class="nav-left">
             <h2 style="margin:0;">測驗系統 v53.0</h2>
             <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
+            <!-- 【改動3】加入編輯模式按鈕 -->
+            <button id="editModeBtn" onclick="tryUnlock()">🔒 瀏覽模式</button>
         </div>
         
         <div class="nav-right">
@@ -512,7 +532,84 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    // 【改動4】初始化 Auth
+    const auth = firebase.auth();
     // --------------------------------
+
+    // 【改動4】編輯模式狀態
+    let isAdminMode = false;
+
+    // 【改動4】點擊🔒按鈕的入口：先問密碼，再檢查 Firebase 登入狀態
+    async function tryUnlock() {
+        if (isAdminMode) {
+            // 已在編輯模式 → 點擊即鎖定
+            isAdminMode = false;
+            auth.signOut();
+            document.getElementById('editModeBtn').textContent = '🔒 瀏覽模式';
+            document.getElementById('editModeBtn').classList.remove('unlocked');
+            setInputsDisabled(true);
+            return;
+        }
+
+        // 第一層：密碼驗證
+        const pw = prompt('請輸入密碼：');
+        if (pw !== 'admin') return; // 錯誤或取消 → 靜默結束
+
+        // 第二層：檢查 Firebase 是否已有登入狀態 (不跳任何彈窗)
+        const user = auth.currentUser;
+        if (!user) {
+            // 沒有登入狀態 → 靜默結束，不給提示
+            return;
+        }
+
+        // 第三層：查 Firestore users 集合確認角色
+        try {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            const isRoot = user.email === 'issac@sjps.kh.edu.tw';
+            const isAdmin = userDoc.exists && userDoc.data().role === 'admin';
+
+            if (isRoot || isAdmin) {
+                isAdminMode = true;
+                document.getElementById('editModeBtn').textContent = '🔓 編輯模式';
+                document.getElementById('editModeBtn').classList.add('unlocked');
+                setInputsDisabled(false);
+            }
+            // 不是 admin → 靜默結束，不給任何提示
+        } catch (e) {
+            // 讀取失敗 → 靜默結束
+            console.error('權限驗證失敗', e);
+        }
+    }
+
+    // 【改動4】控制所有設定欄位的啟用/停用
+    function setInputsDisabled(disabled) {
+        const ids = [
+            'slip-title',
+            'pn-type', 'pn-title', 'pn-greeting', 'pn-intro',
+            'pn-reason', 'pn-footer', 'pn-reply-title', 'pn-reply-deadline',
+            's-year', 's-semester', 's-date', 's-time',
+            's-loc', 's-note', 's-deadline', 's-footer', 's-reasons',
+            'survey-period-select'
+        ];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.disabled = disabled;
+                el.style.opacity = disabled ? '0.6' : '1';
+                el.style.cursor = disabled ? 'not-allowed' : '';
+            }
+        });
+        // grade-settings-area 裡的動態欄位
+        document.querySelectorAll('#grade-settings-area input').forEach(el => {
+            el.disabled = disabled;
+            el.style.opacity = disabled ? '0.6' : '1';
+            el.style.cursor = disabled ? 'not-allowed' : '';
+        });
+    }
+
+    // ================================
+    // 以下全部原本功能，完全不動
+    // ================================
 
     let globalStudents = [];
     
@@ -574,6 +671,8 @@
     function init() {
         renderGradeSettings();
         loadConfig();
+        // 【改動4】預設鎖定所有輸入欄位，等 renderGradeSettings 建立 DOM 後再鎖
+        setTimeout(() => setInputsDisabled(true), 100);
     }
 
     function showCloudStatus() {
@@ -690,6 +789,9 @@
     }
 
     function saveConfig() {
+        // 【改動4】沒有管理員權限，禁止儲存
+        if (!isAdminMode) return;
+
         const config = {
             slipTitle: document.getElementById('slip-title').value,
             grades: {},

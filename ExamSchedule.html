@@ -335,12 +335,12 @@ tr.teacher-row.visible{display:table-row}
 </div>
 
 <script type="module">
-// 統一使用 CDN 絕對路徑引入 Firebase 模組
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// 【無痕植入】：引入 Auth 模組，用於背景驗證
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
 
-// 替換為全新專案 (sjps-learningassistance) 的設定檔
 const firebaseConfig = {
   apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
   authDomain: "sjps-learningassistance.firebaseapp.com",
@@ -351,12 +351,12 @@ const firebaseConfig = {
   measurementId: "G-EGQ7BLK57Y"
 };
 
-// 依序初始化 App、Analytics 與 Firestore
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db  = getFirestore(app);
+// 【無痕植入】：啟動 Auth。這行程式碼會自動去瀏覽器 IndexedDB 尋找管理員鑰匙，並附加在未來的資料庫請求中
+const auth = getAuth(app);
 
-// 定義資料庫路徑：指向新專案下的 'schedule' 集合，'main' 文件
 const DOC_REF = doc(db, 'schedule', 'main');
 
 // ─────────────────────────────────────────────────────────
@@ -410,7 +410,8 @@ function saveST(){
       await setDoc(DOC_REF, ST);
       setStatus('#10B981','已同步至雲端');
     }catch(e){
-      console.error(e);
+      console.error("無權限或網路錯誤：", e);
+      // 如果沒有鑰匙的駭客觸發存檔，就會直接被捕獲到這裡，資料庫毫髮無傷
       setStatus('#EF4444','同步失敗');
     }
   },600);
@@ -421,7 +422,6 @@ async function loadST(){
     const snap = await getDoc(DOC_REF);
     if(snap.exists()){
       const data = snap.data();
-      // merge to ensure all keys exist
       ST.testType  = data.testType  ?? ST.testType;
       ST.startDate = data.startDate ?? ST.startDate;
       ST.counts    = Object.assign({...ST.counts},  data.counts    ?? {});
@@ -487,7 +487,6 @@ function findInSched(id){
 function weekDates(wi){
   if(!ST.startDate) return Array(5).fill(null);
   const base=new Date(ST.startDate+'T00:00:00');
-  // Go to Monday of the week containing base (week starts Mon)
   const dow=base.getDay(); // 0=Sun,1=Mon...6=Sat
   const toMon=dow===0?-6:1-dow; // how many days to Monday
   base.setDate(base.getDate()+toMon);

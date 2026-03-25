@@ -558,7 +558,7 @@
         // 第二層：檢查 Firebase 是否已有登入狀態 (不跳任何彈窗)
         const user = auth.currentUser;
         if (!user) {
-            // 沒有登入狀態 → 靜默結束，不給提示
+            alert('沒有權限，請登入');
             return;
         }
 
@@ -974,7 +974,8 @@
         document.getElementById('tab-'+id).classList.add('active');
         
         const btns = document.querySelectorAll('.navbar button');
-        const map = { 'data':0, 'slips':1, 'idlist':2, 'stats':3, 'teachers':4, 'parent-notice-set':5, 'parent-notice-print':6, 'surveys-set':7, 'surveys-print':8 };
+        // 索引0=資料匯入, 1=🔒按鈕, 2=考試通知單, 3=考試簽到表...
+        const map = { 'data':0, 'slips':2, 'idlist':3, 'stats':4, 'teachers':5, 'parent-notice-set':6, 'parent-notice-print':7, 'surveys-set':8, 'surveys-print':9 };
         if(map[id] !== undefined) btns[map[id]].classList.add('active');
     }
 

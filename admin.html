@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>系統權限控制中心</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --border: #CBD5E1;
+    --text: #0F172A; /* 強制黑字，確保高對比度清晰可見 */
+    --text-muted: #475569;
+    --primary: #2563EB;
+    --danger: #DC2626;
+    --success: #16A34A;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
+  
+  .container { width: 100%; max-width: 800px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; }
+  .header { background: #0F172A; color: #FFFFFF; padding: 20px; text-align: center; }
+  .header h1 { font-size: 20px; font-weight: 900; letter-spacing: 1px; }
+  .content { padding: 30px; }
+  
+  /* 登入區塊 */
+  #loginSection { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+  .btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; color: #FFFFFF; font-family: inherit; }
+  .btn-google { background: var(--primary); display: flex; align-items: center; gap: 8px; }
+  .btn-google:hover { background: #1D4ED8; }
+  .btn-danger { background: var(--danger); }
+  .btn-danger:hover { background: #B91C1C; }
+  
+  /* 管理員面板 */
+  #adminSection { display: none; }
+  .user-info { display: flex; justify-content: space-between; align-items: center; background: #F1F5F9; padding: 15px; border-radius: 8px; margin-bottom: 25px; border: 1px solid var(--border); }
+  .user-info div { font-size: 14px; font-weight: 700; color: var(--text); }
+  .user-info span { color: var(--primary); }
+  
+  /* 使用者列表表格 */
+  .section-title { font-size: 16px; font-weight: 900; margin-bottom: 15px; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 5px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text); }
+  th { background: #F8FAFC; font-weight: 700; color: var(--text-muted); }
+  tr:hover { background: #F1F5F9; }
+  .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .badge.admin { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+  .badge.viewer { background: #F1F5F9; color: #475569; border: 1px solid #E2E8F0; }
+  .action-btn { padding: 6px 12px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text); transition: all 0.2s; }
+  .action-btn:hover { background: #E2E8F0; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>系統權限控制中心</h1>
+  </div>
+  
+  <div class="content">
+    <div id="loginSection">
+      <p style="font-weight: 700; color: var(--text-muted);">請使用 Google 帳號登入以驗證身分</p>
+      <button class="btn btn-google" onclick="signIn()">登入 Google 帳號</button>
+    </div>
+
+    <div id="adminSection">
+      <div class="user-info">
+        <div>目前登入：<span id="currentUserEmail"></span></div>
+        <button class="btn btn-danger" onclick="logOut()">登出系統</button>
+      </div>
+
+      <div class="section-title">系統權限名冊 (RBAC)</div>
+      <table id="userTable">
+        <thead>
+          <tr>
+            <th>信箱 (Email)</th>
+            <th>系統角色</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          </tbody>
+      </table>
+      <p id="errorMsg" style="color: var(--danger); margin-top: 15px; font-weight: 700; font-size: 14px; display: none;">權限不足：您並非系統管理員，無法檢視名冊。</p>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
+  authDomain: "sjps-learningassistance.firebaseapp.com",
+  projectId: "sjps-learningassistance",
+  storageBucket: "sjps-learningassistance.firebasestorage.app",
+  messagingSenderId: "108951710153",
+  appId: "1:108951710153:web:434de73a24160fe3e2e018"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+// 綁定給 HTML 按鈕使用的全域函式
+window.signIn = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    console.error("登入失敗", error);
+    alert("登入失敗，請檢查網路連線。");
+  }
+};
+
+window.logOut = () => {
+  signOut(auth);
+};
+
+// 狀態監聽器：一旦登入狀態改變，自動執行
+onAuthStateChanged(auth, async (user) => {
+  const loginSec = document.getElementById('loginSection');
+  const adminSec = document.getElementById('adminSection');
+  const errorMsg = document.getElementById('errorMsg');
+  
+  if (user) {
+    // 登入成功
+    loginSec.style.display = 'none';
+    adminSec.style.display = 'block';
+    document.getElementById('currentUserEmail').textContent = user.email;
+    
+    // 1. 將首次登入的使用者基本資料寫入 Firestore (使用 merge:true 確保不覆蓋已存在的權限)
+    const userRef = doc(db, 'users', user.uid);
+    await setDoc(userRef, {
+      email: user.email,
+      uid: user.uid,
+      // 如果原本沒有 role，預設給 viewer；如果有，merge:true 會保留原本的
+      role: 'viewer' 
+    }, { merge: true });
+
+    // 2. 嘗試拉取全部使用者名單 (伺服器會依照 Rules 檢查此人是否為 Admin)
+    try {
+      errorMsg.style.display = 'none';
+      await loadUsers();
+    } catch (e) {
+      console.error(e);
+      // 被 Rules 擋下來，代表是一般老師，只顯示權限不足
+      errorMsg.style.display = 'block';
+      document.getElementById('userTableBody').innerHTML = '';
+    }
+  } else {
+    // 未登入
+    loginSec.style.display = 'flex';
+    adminSec.style.display = 'none';
+  }
+});
+
+// 載入使用者名單
+async function loadUsers() {
+  const querySnapshot = await getDocs(collection(db, "users"));
+  const tbody = document.getElementById('userTableBody');
+  tbody.innerHTML = '';
+  
+  querySnapshot.forEach((documentSnapshot) => {
+    const data = documentSnapshot.data();
+    // 根目錄管理員視覺強制標示
+    const isRoot = data.email === 'issac@sjps.kh.edu.tw';
+    const roleText = isRoot ? '根目錄管理員' : (data.role === 'admin' ? '管理員' : '一般觀看者');
+    const badgeClass = (isRoot || data.role === 'admin') ? 'admin' : 'viewer';
+    
+    // 操作按鈕邏輯
+    let actionHtml = '';
+    if (isRoot) {
+      actionHtml = '<span style="color:var(--text-muted); font-size:12px; font-weight:700;">系統擁有者不可更改</span>';
+    } else {
+      if (data.role === 'admin') {
+        actionHtml = `<button class="action-btn" onclick="changeRole('${data.uid}', 'viewer')">降級為觀看者</button>`;
+      } else {
+        actionHtml = `<button class="action-btn" style="color:var(--primary); border-color:var(--primary);" onclick="changeRole('${data.uid}', 'admin')">升級為管理員</button>`;
+      }
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:700;">${data.email}</td>
+      <td><span class="badge ${badgeClass}">${roleText}</span></td>
+      <td>${actionHtml}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// 更改權限全域函式
+window.changeRole = async (uid, newRole) => {
+  if (!confirm(`確定要將該使用者的權限更改為 ${newRole} 嗎？`)) return;
+  try {
+    await updateDoc(doc(db, 'users', uid), { role: newRole });
+    alert('權限更新成功');
+    loadUsers(); // 重新整理表格
+  } catch (error) {
+    console.error("更新失敗", error);
+    alert('權限更新失敗，請確認您具備管理員權限。');
+  }
+};
+</script>
+</body>
+</html>

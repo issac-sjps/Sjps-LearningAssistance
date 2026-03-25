@@ -328,7 +328,6 @@ body.view-only input[type=checkbox]{pointer-events:none}
 <body>
 <div id="tst"></div>
 
-<!-- LOGIN OVERLAY -->
 <div id="login-overlay">
   <div class="login-box">
     <div class="logo">🏫</div>
@@ -367,7 +366,6 @@ body.view-only input[type=checkbox]{pointer-events:none}
 
 <div class="main">
 
-<!-- ═══════════════════ TAB: UPLOAD ═══════════════════ -->
 <div class="tab on" id="tab-upload">
   <div class="edit-lock-msg">🔒 目前為瀏覽模式，請點擊右上角「編輯模式」並輸入管理員密碼以上傳或修改資料。</div>
   <div class="cols2">
@@ -413,7 +411,6 @@ body.view-only input[type=checkbox]{pointer-events:none}
   <div id="dup-warnings"></div>
 </div>
 
-<!-- ═══════════════════ TAB: FILTER ═══════════════════ -->
 <div class="tab" id="tab-filter">
   <div class="no-print" style="margin-bottom:10px">
     <div class="stabs" id="filter-stabs" style="margin-bottom:8px">
@@ -431,7 +428,6 @@ body.view-only input[type=checkbox]{pointer-events:none}
   <div id="filter-content"></div>
 </div>
 
-<!-- ═══════════════════ TAB: RATE ═══════════════════ -->
 <div class="tab" id="tab-rate">
   <div class="card">
     <div class="card-hd">📈 各年級提報率與5%新增人數</div>
@@ -440,7 +436,6 @@ body.view-only input[type=checkbox]{pointer-events:none}
   </div>
 </div>
 
-<!-- ═══════════════════ TAB: B35 ═══════════════════ -->
 <div class="tab" id="tab-b35">
   <div class="no-print" style="margin-bottom:10px">
     <div class="stabs" id="b35-stabs" style="margin-bottom:8px">
@@ -458,7 +453,6 @@ body.view-only input[type=checkbox]{pointer-events:none}
   <div id="b35-content"></div>
 </div>
 
-<!-- ═══════════════════ TAB: EXAM LIST ═══════════════════ -->
 <div class="tab" id="tab-examlist">
   <div class="no-print" style="margin-bottom:10px">
     <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
@@ -481,7 +475,6 @@ body.view-only input[type=checkbox]{pointer-events:none}
   <div id="examlist-content"></div>
 </div>
 
-<!-- ═══════════════════ TAB: STAT1 ═══════════════════ -->
 <div class="tab" id="tab-stat1">
   <div class="card">
     <div class="card-hd">📉 各班未通過人數統計（+5%前，僅必考名單）</div>
@@ -489,7 +482,6 @@ body.view-only input[type=checkbox]{pointer-events:none}
   </div>
 </div>
 
-<!-- ═══════════════════ TAB: STAT2 ═══════════════════ -->
 <div class="tab" id="tab-stat2">
   <div class="card">
     <div class="card-hd">📊 各班需參加考試人數統計（+5%後，完整考試名單）</div>
@@ -497,7 +489,6 @@ body.view-only input[type=checkbox]{pointer-events:none}
   </div>
 </div>
 
-<!-- ═══════════════════ TAB: GRADE SUMMARY ═══════════════════ -->
 <div class="tab" id="tab-gradesum">
   <div class="card">
     <div class="card-hd">📋 各年級考試人數總表（含必考＋5%新增）</div>
@@ -505,38 +496,39 @@ body.view-only input[type=checkbox]{pointer-events:none}
   </div>
 </div>
 
-</div><!-- /main -->
-
-<!-- ═══════════════════ B35 FLOATING PROGRESS PANEL ═══════════════════ -->
-<div id="b35-float" style="display:none">
+</div><div id="b35-float" style="display:none">
   <div id="b35-float-inner"></div>
 </div>
 
-<!-- ═══════════════════ SCROLL TO TOP ═══════════════════ -->
 <button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到最上方">▲</button>
 
-<!-- ═══════════════════ FIREBASE MODULE ═══════════════════ -->
 <script type="module">
+// 【修正 1】：載入穩定的 10.12.0 版
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getFirestore,collection,getDocs,setDoc,doc,deleteDoc,writeBatch,updateDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// 【無痕植入】：載入 Auth 模組
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+// 【修正 2】：統一指向 sjps-learningassistance 專案
 const cfg={
-  apiKey:"AIzaSyDG3DQsPgDY7u5Rp0nO6SslUflh_bwrVZU",
-  authDomain:"sjps-examlist.firebaseapp.com",
-  projectId:"sjps-examlist",
-  storageBucket:"sjps-examlist.firebasestorage.app",
-  messagingSenderId:"665134765999",
-  appId:"1:665134765999:web:4ea3bd7be227a86342015a",
-  measurementId:"G-E1YVKZYPXM"
+  apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
+  authDomain: "sjps-learningassistance.firebaseapp.com",
+  projectId: "sjps-learningassistance",
+  storageBucket: "sjps-learningassistance.firebasestorage.app",
+  messagingSenderId: "108951710153",
+  appId: "1:108951710153:web:434de73a24160fe3e2e018"
 };
 const app=initializeApp(cfg);
 const db=getFirestore(app);
+const auth = getAuth(app); // 啟動 Auth，它會在背景抓取你登入的神級鑰匙
+
 window._db=db;
 window._fs={collection,getDocs,setDoc,doc,deleteDoc,writeBatch,updateDoc};
+window._firebaseAuth = auth; // 匯出供前端全域驗證使用
 window._fbReady=true;
 document.dispatchEvent(new Event('fbReady'));
 </script>
 
-<!-- ═══════════════════ MAIN SCRIPT ═══════════════════ -->
 <script>
 // ─── CONSTANTS ───
 const GRADE_TOTALS={1:161,2:156,3:198,4:220,5:218,6:220};
@@ -552,45 +544,41 @@ let pendingReq=null;
 let pendingB35=null;
 
 // ─── FIREBASE HELPERS ───
-async function fbBatchWrite(colName,docs){
-  const{collection:col,doc:docRef,writeBatch:wb,deleteDoc}=window._fs;
+// 【修正 3】：將資料庫路徑統一改為寫入 'exam_list' 集合底下的不同文件
+async function fbBatchWrite(docName,docs){
+  const{collection:col,doc:docRef,setDoc:setd}=window._fs;
   const db=window._db;
-  const {getDocs}=window._fs;
-  const snap=await getDocs(col(db,colName));
-  const batchDel=wb(db);
-  snap.forEach(d=>batchDel.delete(d.ref));
-  await batchDel.commit();
-  const chunks=[];
-  for(let i=0;i<docs.length;i+=400)chunks.push(docs.slice(i,i+400));
-  for(const chunk of chunks){
-    const b=wb(db);
-    chunk.forEach(d=>{
-      const ref=docRef(col(db,colName),d.id);
-      b.set(ref,d);
-    });
-    await b.commit();
-  }
+  
+  // 原本的寫法是寫入一整個 Collection 的多個 Documents
+  // 為了節省你的免費額度 (寫入次數)，我們改為「將整個陣列包成一個物件存入單一文件」
+  const payload = { data: docs, timestamp: Date.now() };
+  await setd(docRef(col(db, 'exam_list'), docName), payload);
 }
 
-async function fbUpdateDoc(colName,id,data){
-  const{collection:col,doc:docRef,updateDoc:upd}=window._fs;
-  await upd(docRef(col(window._db,colName),id),data);
+// 這個函式在這個新架構下不需要了，因為我們改用單一文件儲存
+async function fbUpdateDoc(docName,id,data){
+  // 為了相容你的 ToggleB35 邏輯，我們改寫成：更新本地陣列後，重新將整個陣列覆蓋回去
+  // 這樣只算一次寫入，極大地節省了免費額度
+  await fbBatchWrite('bottom35', B35);
 }
 
 async function fbLoadAll(){
-  const{collection:col,getDocs}=window._fs;
+  const{collection:col,doc:docRef,getDoc}=window._fs;
   const db=window._db;
+  // 從 exam_list 集合中，讀取 requiredExam 和 bottom35 兩個文件
   const [rs,bs]=await Promise.all([
-    getDocs(col(db,'requiredExam')),
-    getDocs(col(db,'bottom35'))
+    getDoc(docRef(col(db,'exam_list'), 'requiredExam')),
+    getDoc(docRef(col(db,'exam_list'), 'bottom35'))
   ]);
-  REQ=rs.docs.map(d=>d.data());
-  B35=bs.docs.map(d=>{
-    const data=d.data();
-    if(!('selChinese' in data)){data.selChinese=false;}
-    if(!('selMath' in data)){data.selMath=false;}
-    if(!('selEnglish' in data)){data.selEnglish=false;}
-    return data;
+  
+  REQ = rs.exists() ? rs.data().data : [];
+  const rawB35 = bs.exists() ? bs.data().data : [];
+  
+  B35=rawB35.map(d=>{
+    if(!('selChinese' in d)){d.selChinese=false;}
+    if(!('selMath' in d)){d.selMath=false;}
+    if(!('selEnglish' in d)){d.selEnglish=false;}
+    return d;
   });
 }
 
@@ -626,9 +614,6 @@ function reqStudentSubj(r,subj){
 
 // ─────────────────────────────────────────────────────────────────
 // Build full exam list
-// ✅ BUG FIX: 當同一學生同時出現在必考名單與後35%已勾選時，
-//    原本直接 skip 導致後35%新增的科目遺漏。
-//    修正為：key 已存在時改用 merge，補上後35%新增的科目。
 // ─────────────────────────────────────────────────────────────────
 function buildExamList(){
   const map=new Map();
@@ -658,8 +643,6 @@ function buildExamList(){
     const isGr1=b.grade===1&&GRADE1_FIRST_EXAM;
     const key=`${b.grade}|${b.classNum}|${b.seat}|${b.name}`;
 
-    // 計算「在後35%勾選後，實際需要新增」的科目
-    // （已被必考名單 X 涵蓋的科目不需再額外列，但首測年級沒有必考名單）
     const chInReq=!isGr1&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r.chinese||'').trim().toUpperCase()==='X');
     const mthInReq=!isGr1&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r.math||'').trim().toUpperCase()==='X');
     const enInReq=!isGr1&&REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r.english||'').trim().toUpperCase()==='X');
@@ -671,7 +654,6 @@ function buildExamList(){
     if(!needCh&&!needMth&&!needEn)return; // 所有科目已被必考名單涵蓋
 
     if(!map.has(key)){
-      // 學生尚未在必考名單 → 全新加入
       map.set(key,{
         id:b.id,name:b.name,grade:b.grade,classNum:b.classNum,seat:b.seat,
         identity:b.note||'',
@@ -684,13 +666,10 @@ function buildExamList(){
         prevEnglish:b.english??null,
       });
     } else {
-      // ✅ 修正關鍵：學生已在必考名單 → merge 補上後35%新增的科目
-      // 例如：必考名單只有數學X，後35%又勾選了國語 → 國語也要列入
       const existing=map.get(key);
       if(needCh)  existing.needChinese=true;
       if(needMth) existing.needMath=true;
       if(needEn)  existing.needEnglish=true;
-      // source 標記為 both，表示同時來自必考與5%新增
       if(existing.source==='required'){existing.source='required_and_5pct';}
     }
   });
@@ -835,7 +814,7 @@ async function saveRequiredList(){
     document.getElementById('btn-save-req').disabled=true;
     updateDBStatus();renderAll();
     toast(`必考名單已儲存 (${REQ.length} 筆)`,'ok');
-  }catch(e){toast('儲存失敗: '+e.message,'err');}
+  }catch(e){toast('儲存失敗: 無權限存取，請確保您有管理員資格','err');}
 }
 async function saveBottom35List(){
   if(!isEditMode){toast('請先進入編輯模式','warn');return;}
@@ -853,7 +832,7 @@ async function saveBottom35List(){
     document.getElementById('btn-save-b35').disabled=true;
     updateDBStatus();renderAll();
     toast(`後35%名單已儲存 (${B35.length} 筆)`,'ok');
-  }catch(e){toast('儲存失敗: '+e.message,'err');}
+  }catch(e){toast('儲存失敗: 無權限存取，請確保您有管理員資格','err');}
 }
 async function clearRequiredList(){
   if(!isEditMode){toast('請先進入編輯模式','warn');return;}
@@ -866,7 +845,7 @@ async function clearRequiredList(){
     document.getElementById('req-count').textContent='0 筆';
     updateDBStatus();renderAll();
     toast('必考名單已清除','ok');
-  }catch(e){toast('清除失敗: '+e.message,'err');}
+  }catch(e){toast('清除失敗: 無權限存取','err');}
 }
 async function clearBottom35List(){
   if(!isEditMode){toast('請先進入編輯模式','warn');return;}
@@ -879,7 +858,7 @@ async function clearBottom35List(){
     document.getElementById('b35-count').textContent='0 筆';
     updateDBStatus();renderAll();
     toast('後35%名單已清除','ok');
-  }catch(e){toast('清除失敗: '+e.message,'err');}
+  }catch(e){toast('清除失敗: 無權限存取','err');}
 }
 
 // ─── LOAD FROM FIREBASE ───
@@ -895,7 +874,7 @@ async function loadAll(){
   }catch(e){
     document.getElementById('fb-dot').className='fb-dot err';
     document.getElementById('fb-status').textContent='連線失敗';
-    toast('Firebase 載入失敗: '+e.message,'err');
+    toast('Firebase 載入失敗，請確認安全規則已開放 read 權限','err');
   }
 }
 
@@ -1312,17 +1291,20 @@ function selCountForSubj_global(g,subj){
 }
 
 async function toggleB35Select(id,subj,checked){
-  if(!isEditMode){toast('請先進入編輯模式才能修改','warn');
-    renderB35();return;}
+  if(!isEditMode){
+    toast('【系統拒絕】請先解鎖右上角的編輯模式！','err');
+    renderB35();return;
+  }
   const s=B35.find(b=>b.id===id);
   if(!s)return;
   const sf=selField(subj);
   s[sf]=checked;
   try{
-    await fbUpdateDoc('bottom35',id,{[sf]:checked});
+    // 利用新的架構：陣列異動後，將整個 bottom35 陣列打包存入單一文件
+    await fbBatchWrite('bottom35', B35);
   }catch(e){
-    toast('更新失敗: '+e.message,'err');
-    s[sf]=!checked;
+    toast('儲存失敗，請確保您具有管理員權限','err');
+    s[sf]=!checked; // rollback
   }
   renderB35();
   updateDBStatus();
@@ -1404,7 +1386,6 @@ function renderExamList(){
           <th>身分類別</th><th>來源</th>
         </tr></thead><tbody>`;
     ss.forEach(s=>{
-      // ✅ 來源標籤：新增 required_and_5pct 的顯示
       let sourceBadge='';
       if(s.source==='required'){
         sourceBadge='<span class="b b-req">必考</span>';
@@ -1608,7 +1589,7 @@ function emptyState(ico,msg){
   return `<div class="empty"><div class="ico">${ico}</div><p>${msg}</p></div>`;
 }
 
-// ─── AUTH ───
+// ─── AUTH & DOUBLE LOCK ───
 const VIEW_PW  = '073411373';
 const ADMIN_PW = 'admin';
 let isEditMode = false;
@@ -1643,6 +1624,13 @@ function toggleEditMode(){
     toast('已切換為瀏覽模式','info');
     return;
   }
+  
+  // 【無痕植入】：雙重鎖。在彈出密碼框之前，先檢查背景憑證
+  if (!window._firebaseAuth || !window._firebaseAuth.currentUser) {
+      toast('❌ 系統拒絕：未偵測到後台管理員憑證。請先至控制中心登入！', 'err');
+      return; // 直接踢走
+  }
+
   const pw=prompt('請輸入管理員密碼：');
   if(pw===null)return;
   if(pw===ADMIN_PW){
@@ -1654,6 +1642,11 @@ function toggleEditMode(){
 }
 
 function activateEditMode(){
+  // 雙重保險：即使直接呼叫此函式，也會被擋下來
+  if (!window._firebaseAuth || !window._firebaseAuth.currentUser) {
+      toast('❌ 系統拒絕：未偵測到後台管理員憑證。請先至控制中心登入！', 'err');
+      return; 
+  }
   isEditMode=true;
   document.body.classList.remove('view-only');
   updateEditBtn();

@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>學習扶助測驗系統 v53.0 (Firebase 雲端整合版)</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        /* --- 全域設定 --- */
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
+        body { font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif; margin: 0; background-color: #f4f4f4; padding-bottom: 50px; }
+        
+        /* --- 顏色定義 --- */
+        .stat-chi { color: #cc0000; font-weight: bold; }
+        .stat-math { color: #00008B; font-weight: bold; }
+        .stat-eng { color: #006400; font-weight: bold; }
+        .stat-total-row { background-color: #f0f0f0; font-weight: bold; border-top: 2px solid #666; }
+        .stat-student-count { font-weight: bold; color: #333; background-color: #e8f0fe; }
+
+        /* --- 介面樣式 --- */
+        .navbar { 
+            background-color: #2c3e50; 
+            color: white; 
+            padding: 10px 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap; 
+            gap: 15px;
+        }
+        
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .nav-right { display: flex; flex-wrap: wrap; gap: 15px; }
+
+        .nav-group {
+            display: flex;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 5px 10px;
+            border-radius: 6px;
+            gap: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .group-label {
+            font-size: 13px;
+            color: #f1c40f; 
+            font-weight: bold;
+            margin-right: 5px;
+            border-right: 1px solid #7f8c8d;
+            padding-right: 8px;
+            white-space: nowrap;
+        }
+
+        .navbar button { 
+            padding: 6px 10px; 
+            cursor: pointer; 
+            border: none; 
+            background: #555; 
+            color: #ccc; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            font-size: 14px;
+        }
+        .navbar button.active { background: #f39c12; color: #fff; }
+        .navbar button:hover:not(.active) { background: #777; }
+        
+        .btn-import { background-color: #2980b9 !important; color: white !important; }
+        .btn-import:hover { background-color: #3498db !important; }
+        .btn-import.active { background-color: #f39c12 !important; }
+
+        .container { max-width: 1100px; margin: 20px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .settings-box { border: 2px solid #e0e0e0; padding: 20px; margin-bottom: 20px; background-color: #fff; border-radius: 8px; }
+        .config-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; border-bottom: 1px dashed #eee; padding-bottom: 5px; flex-wrap: wrap; }
+        .config-row label { font-weight: bold; width: 60px; flex-shrink: 0; }
+        input[type="text"], textarea, select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 100%; }
+        textarea { resize: vertical; line-height: 1.5; font-family: inherit; }
+
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; transition: 0.2s; font-size: 14px; margin-right: 5px; }
+        .btn-blue { background-color: #3498db; } .btn-blue:hover { background-color: #2980b9; }
+        .btn-green { background-color: #27ae60; } .btn-green:hover { background-color: #219150; }
+        .btn-gray { background-color: #95a5a6; }
+        .btn-red { background-color: #e74c3c; } .btn-red:hover { background-color: #c0392b; }
+        
+        .btn.active { background-color: #f39c12; border: 2px solid #e67e22; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* 預覽區 */
+        #preview-container {
+            background-color: #525659; padding: 40px; min-height: 500px;
+            display: none; text-align: center;
+        }
+        .preview-page-wrapper {
+            display: inline-block; box-shadow: 0 0 10px rgba(0,0,0,0.5); margin-bottom: 20px;
+            background: white; text-align: left;
+        }
+
+        /* --- 列印專用樣式 --- */
+        @media print {
+            @page { margin: 5mm; size: A4 portrait; }
+            
+            .navbar, .container, #preview-header-controls { display: none !important; }
+            
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background-color: white !important;
+                height: 100%;
+                width: 100%;
+                overflow: visible !important;
+            }
+            
+            #preview-container {
+                display: block !important;
+                background-color: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+                width: 100%;
+                font-size: 0; 
+            }
+            
+            .preview-page-wrapper {
+                display: block !important;
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                page-break-after: always !important;
+                width: 100%;
+                font-size: 14pt;
+            }
+            
+            .preview-page-wrapper:last-child {
+                page-break-after: auto !important;
+                margin-bottom: 0 !important;
+                padding-bottom: 0 !important;
+            }
+            
+            body.print-teachers-compact .preview-page-wrapper { page-break-after: auto; margin-bottom: 0; }
+            body.print-teachers-compact .page-break { page-break-after: auto; border-bottom: 2px dashed #999; margin: 25px 0; height: 1px; position: relative; display: block; }
+            body.print-teachers-compact .page-break::after { content: "✂️ 裁切線"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: white; padding: 0 10px; font-size: 10pt; color: #666; }
+
+            .survey-page { font-size: 14pt !important; line-height: 1.3 !important; }
+            .survey-title { font-size: 18pt !important; margin-bottom: 5px !important; }
+            .reply-slip-title { font-size: 16pt !important; }
+            .survey-body p { margin: 3px 0 !important; }
+            
+            table.survey-table { font-size: 13pt !important; }
+            table.survey-table td, table.survey-table th { padding: 3px !important; }
+            
+            .split-cell { padding: 0 !important; }
+        }
+
+        /* 報表通用 */
+        .sheet-page { width: 195mm; min-height: 270mm; background: white; padding: 5mm; margin: 0 auto; box-sizing: border-box; }
+        table.std-table { width: 100%; border-collapse: collapse; border: 2px solid #000; font-size: 12pt; text-align: center; font-family: "標楷體"; }
+        table.std-table th, table.std-table td { border: 1px solid #000; padding: 4px; vertical-align: middle; }
+        table.std-table th { background-color: #f0f0f0; font-weight: bold; }
+
+        /* 通知單 (聯絡簿小條) */
+        .slip-container { width: 100%; border-bottom: 1px dashed #bbb; padding-bottom: 10px; margin-bottom: 10px; }
+        .slip-header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .text-red { color: red !important; font-weight: bold; }
+        .square { display: inline-block; width: 14px; height: 14px; margin-right: 3px; vertical-align: middle; border: 1px solid #000; line-height: 12px; text-align: center; font-size: 12px; }
+
+        /* 導師名單 */
+        .teacher-header { background:#333; color:white; padding:5px 10px; font-weight:bold; display:flex; justify-content:space-between; font-size:14pt; -webkit-print-color-adjust: exact; }
+        .teacher-table { font-size: 10pt; }
+        .info-cell { font-size: 9pt; color: #444; }
+        .teacher-break-line { border-bottom: 2px dashed #999; margin: 20px 0; position: relative; height: 1px; }
+        .teacher-break-line::after { content: "✂️ 裁切線"; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: white; padding: 0 5px; font-size: 12px; color: #666; }
+
+        /* 調查表 & 正式通知書共用樣式 */
+        .survey-sheet { 
+            width: 195mm; 
+            height: 275mm; 
+            background: white; 
+            padding: 5mm 8mm; 
+            margin: 0 auto; 
+            box-sizing: border-box; 
+            font-family: "標楷體", "KaiTi", serif; 
+            font-size: 14pt; 
+            line-height: 1.4;
+            color: #000; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+        }
+        
+        .survey-title { text-align: center; font-size: 18pt; font-weight: bold; margin-bottom: 10px; color: #000; }
+        .survey-body p { margin: 4px 0; text-align: justify; }
+        .survey-indent { margin-left: 0; text-indent: 0; }
+        
+        .notice-content-compact { font-size: 11.5pt; line-height: 1.25; }
+        .notice-content-compact p, .notice-content-compact div { margin-bottom: 2px; }
+        
+        .cut-line { border-top: 2px dashed #000; margin: 5px 0; text-align: center; position: relative; height: 15px; }
+        .cut-line span { background: white; padding: 0 10px; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); font-size: 12px; white-space: nowrap; }
+        .reply-title { text-align: center; font-weight: bold; font-size: 16pt; margin-bottom: 5px; } 
+        .checkbox-cell { text-align: left; padding-left: 10px !important; }
+        .checkbox-row { margin-bottom: 3px; }
+
+        /* 調查表專用表格 */
+        table.survey-table { font-size: 13pt; width: 100%; border-collapse: collapse; border: 2px solid #000; text-align: center; }
+        table.survey-table th, table.survey-table td { border: 1px solid #000; padding: 4px; vertical-align: middle; }
+        table.survey-table th { background-color: #f0f0f0; }
+        
+        .split-cell { padding: 0 !important; vertical-align: top !important; }
+        .split-top { border-bottom: 1px solid #000; padding: 3px 0; background-color: #fcfcfc; font-weight: bold; }
+        .split-bottom { padding: 8px 0; font-weight: bold; font-size: 16pt; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+
+        /* 調查表設定 */
+        .survey-config-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+        .survey-config-item { display: flex; flex-direction: column; }
+        
+        .mode-selector-box {
+            background-color: #dcedc8;
+            border: 2px solid #8bc34a;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .mode-selector-box select { font-size: 16px; font-weight: bold; padding: 8px; width: 250px; border: 2px solid #558b2f; color: #33691e; }
+        
+        /* 導師選單 */
+        .class-selector-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 15px; }
+        .grade-group-card { border: 1px solid #ccc; border-radius: 5px; padding: 10px; background-color: #f9f9f9; }
+        .grade-group-header { font-weight: bold; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .class-checkbox-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+
+        /* 家長通知書時間表樣式 (白底) */
+        table.schedule-table { width: 100%; border-collapse: collapse; border: 2px solid #000; margin: 3px 0; font-size: 10.5pt; background: white; }
+        table.schedule-table th, table.schedule-table td { border: 1px solid #000; padding: 3px; text-align: center; color: #000; }
+        table.schedule-table th { background-color: #f0f0f0; font-weight: bold; }
+        table.schedule-table td { vertical-align: top; }
+        .sch-time { font-weight: bold; display: block; margin-bottom: 1px; }
+        .sch-loc { font-size: 0.9em; color: #444; }
+
+        /* 個別學生考試科目表樣式 */
+        table.student-status-table { width: 100%; border-collapse: collapse; border: 2px solid #000; margin: 5px 0; text-align: center; font-size: 11pt; }
+        table.student-status-table td { border: 1px solid #000; padding: 4px; }
+        .status-header { font-weight: bold; background-color: #f9f9f9; }
+        
+        #data-preview-area table th { position: sticky; top: 0; background-color: #eee; z-index: 1; }
+        
+        /* 雲端存檔狀態提示 */
+        #cloud-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #34495e;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="cloud-status">☁️ 資料已同步至雲端</div>
+
+    <div class="navbar">
+        <div class="nav-left">
+            <h2 style="margin:0;">測驗系統 v53.0</h2>
+            <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
+        </div>
+        
+        <div class="nav-right">
+            <div class="nav-group">
+                <span class="group-label">考試用</span>
+                <button onclick="switchTab('slips')">考試通知單</button>
+                <button onclick="switchTab('idlist')">考試簽到表</button>
+                <button onclick="switchTab('stats')">考試統計報表</button>
+                <button onclick="switchTab('teachers')">考試給導師名單</button>
+                <button onclick="switchTab('parent-notice-set')" style="background:#8e44ad; color:white;">給家長通知書設定</button>
+                <button onclick="switchTab('parent-notice-print')" style="background:#8e44ad; color:white;">給家長通知書列印</button>
+            </div>
+            
+            <div class="nav-group">
+                <span class="group-label">意願調查表</span>
+                <button onclick="switchTab('surveys-set')">上課意願調查表設定</button>
+                <button onclick="switchTab('surveys-print')">上課意願調查表列印</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="config-panel">
+        
+        <div id="tab-data" class="tab-content active">
+            <div class="settings-box">
+                <h3>步驟一：匯入 Excel</h3>
+                <input type="file" id="uploadFile" accept=".csv, .xlsx, .xls" />
+                <p class="hint-text" style="color:#666; margin-top:10px;">需包含：目前年級、班級、座號、姓名、國語文測驗、數學測驗、英語測驗 (打X為參加)</p>
+                <div id="data-status" style="margin-top:10px; font-weight:bold; color:red;">尚未匯入資料</div>
+                
+                <div id="data-preview-area" style="margin-top:20px; border-top:2px dashed #ddd; padding-top:10px;"></div>
+            </div>
+        </div>
+
+        <div id="tab-slips" class="tab-content">
+            <div class="settings-box">
+                <h3>考試通知單參數 (聯絡簿小條)</h3>
+                <div class="config-row" style="background:#e8f4fd; padding:10px;">
+                    <label style="width:80px;">標題</label>
+                    <input type="text" id="slip-title" onchange="saveConfig()" value="教育部-新莊國小-學習扶助-成長測驗 (請協助貼施測當週聯絡簿)">
+                </div>
+                <div id="grade-settings-area"></div>
+                <div style="margin-top:20px; text-align:center;">
+                    <b>列印科目：</b>
+                    <label><input type="checkbox" id="p-chi" checked> 國語</label>
+                    <label><input type="checkbox" id="p-math"> 數學</label>
+                    <label><input type="checkbox" id="p-eng"> 英語</label>
+                    <br><br>
+                    <button class="btn btn-green" onclick="renderSlips()">產生並預覽通知單</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-parent-notice-set" class="tab-content">
+            <div class="settings-box">
+                <h3>給家長通知書設定 (正式公文)</h3>
+                
+                <div class="mode-selector-box" style="background:#e1bee7; border-color:#8e44ad;">
+                    <div style="margin-bottom:5px; color:#4a148c; font-weight:bold;">▼ 請選擇測驗類型 (切換後會載入預設文字) ▼</div>
+                    <select id="pn-type" onchange="applyNoticeTemplate()" style="border-color:#4a148c; color:#4a148c;">
+                        <option value="growth">📈 成長測驗 (預設)</option>
+                        <option value="screening">🔍 篩選測驗</option>
+                    </select>
+                </div>
+
+                <div class="survey-config-grid">
+                    <div class="survey-config-item" style="grid-column: span 2;">
+                        <label>通知書標題</label>
+                        <input type="text" id="pn-title" onchange="saveParentNoticeConfig()">
+                    </div>
+                    
+                    <div class="survey-config-item" style="grid-column: span 2;">
+                        <label>開頭問候首句</label>
+                        <input type="text" id="pn-greeting" onchange="saveParentNoticeConfig()">
+                    </div>
+
+                    <div class="survey-config-item" style="grid-column: span 2;">
+                        <label>開頭問候內容</label>
+                        <textarea id="pn-intro" rows="6" onchange="saveParentNoticeConfig()"></textarea>
+                    </div>
+                    
+                    <div class="survey-config-item" style="grid-column: span 2;">
+                         <label>目的與原因 (說明文字)</label>
+                         <textarea id="pn-reason" rows="7" onchange="saveParentNoticeConfig()"></textarea>
+                    </div>
+
+                    <div class="survey-config-item" style="grid-column: span 2;">
+                        <label>頁尾署名</label>
+                        <input type="text" id="pn-footer" onchange="saveParentNoticeConfig()">
+                    </div>
+
+                    <div class="survey-config-item" style="grid-column: span 2;">
+                        <label>回條標題</label>
+                        <input type="text" id="pn-reply-title" onchange="saveParentNoticeConfig()">
+                    </div>
+                    <div class="survey-config-item" style="grid-column: span 2;">
+                        <label>回條繳交期限</label>
+                        <input type="text" id="pn-reply-deadline" onchange="saveParentNoticeConfig()">
+                    </div>
+                </div>
+                <div style="margin-top:15px; text-align:center;">
+                    <button class="btn btn-blue" onclick="switchTab('parent-notice-print')">設定完成，前往列印 👉</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-parent-notice-print" class="tab-content">
+             <div class="settings-box">
+                <h3>給家長通知書列印</h3>
+                <div style="text-align: center; padding: 20px;">
+                    <button class="btn btn-green" onclick="renderParentNotices()">🔄 產生家長通知書</button>
+                    <button class="btn btn-green" onclick="safePrint()">🖨️ 確認列印</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-idlist" class="tab-content">
+            <div class="settings-box">
+                <h3>考試簽到表 (分科列印)</h3>
+                <div style="text-align:center; margin-bottom:15px;">
+                    <p style="color:#666;">(勾選多項時，會自動依序產生分開的簽到表)</p>
+                    <label style="margin-right:15px;"><input type="checkbox" id="sign-chi" checked> 國語專用表</label>
+                    <label style="margin-right:15px;"><input type="checkbox" id="sign-math"> 數學專用表</label>
+                    <label><input type="checkbox" id="sign-eng"> 英語專用表</label>
+                </div>
+                <div style="text-align:center;"><button class="btn btn-green" onclick="renderCheckList()">產生並預覽</button></div>
+            </div>
+        </div>
+
+        <div id="tab-stats" class="tab-content">
+            <div class="settings-box">
+                <h3>考試統計報表</h3>
+                <div style="text-align:center;"><button class="btn btn-green" onclick="renderStats()">產生並預覽</button></div>
+            </div>
+        </div>
+
+        <div id="tab-teachers" class="tab-content">
+            <div class="settings-box">
+                <h3>考試給導師名單</h3>
+                <p>請勾選班級：<button class="btn btn-gray" style="font-size:12px;" onclick="toggleAllGrades(true)">全選</button> <button class="btn btn-gray" style="font-size:12px;" onclick="toggleAllGrades(false)">全消</button></p>
+                <div id="class-checkboxes" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:15px;"></div>
+                <div style="text-align:center;">
+                    <button class="btn btn-green" onclick="renderTeachers(true)">🖨️ 列印 (分頁)</button>
+                    <button class="btn btn-blue" onclick="renderTeachers(false)">✂️ 列印 (不分頁)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-surveys-set" class="tab-content">
+            <div class="settings-box">
+                <h3>上課意願調查表設定</h3>
+                
+                <div class="mode-selector-box">
+                    <div style="margin-bottom:5px; color:#33691e; font-weight:bold;">▼ 請先選擇要編輯或列印的調查表版本 ▼</div>
+                    <select id="survey-period-select" onchange="switchSurveyPeriod()">
+                        <option value="summer">☀️ 暑假 學習扶助</option>
+                        <option value="semester1" selected>🍂 上學期 學習扶助</option>
+                        <option value="winter">☃️ 寒假 學習扶助</option>
+                        <option value="semester2">🌱 下學期 學習扶助</option>
+                    </select>
+                </div>
+
+                <div class="survey-config-grid">
+                    <div class="survey-config-item"><label>學年度</label><input type="text" id="s-year" onchange="saveCurrentPeriod()"></div>
+                    <div class="survey-config-item"><label>學期/假期</label><input type="text" id="s-semester" onchange="saveCurrentPeriod()"></div>
+                    <div class="survey-config-item"><label>上課日期</label><input type="text" id="s-date" onchange="saveCurrentPeriod()"></div>
+                    <div class="survey-config-item"><label>上課時間</label><input type="text" id="s-time" onchange="saveCurrentPeriod()"></div>
+                    
+                    <div class="survey-config-item">
+                        <label>上課地點</label>
+                        <input type="text" id="s-loc" onchange="saveCurrentPeriod()" placeholder="例：暫定至善樓二樓教室">
+                    </div>
+                    <div class="survey-config-item">
+                        <label>地點備註 (如：另發通知)</label>
+                        <input type="text" id="s-note" onchange="saveCurrentPeriod()" placeholder="例：，若確定開班，另發通知單。">
+                    </div>
+                    
+                    <div class="survey-config-item"><label>繳交期限</label><input type="text" id="s-deadline" onchange="saveCurrentPeriod()"></div>
+                    
+                    <div class="survey-config-item" style="grid-column: span 2;">
+                        <label>頁尾署名</label>
+                        <input type="text" id="s-footer" onchange="saveCurrentPeriod()">
+                    </div>
+                </div>
+                
+                <div style="background:#fff9e6; padding:15px; border-radius:5px; margin-top:15px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <label style="color:#d35400;">目的與原因 (說明文字)：</label>
+                        <button class="btn btn-gray" style="font-size:12px; padding:3px 8px;" onclick="loadDefaultTemplate()">🔄 載入預設範本</button>
+                    </div>
+                    <textarea id="s-reasons" rows="6" onchange="saveCurrentPeriod()"></textarea>
+                </div>
+                <div style="margin-top:15px; text-align:center;">
+                    <button class="btn btn-blue" onclick="switchTab('surveys-print')">設定完成，前往列印 👉</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-surveys-print" class="tab-content">
+            <div class="settings-box">
+                <h3>上課意願調查表列印 (預覽與列印)</h3>
+                <div style="text-align: center; padding: 20px;">
+                    <p style="color:#666; margin-bottom:15px;">目前選擇版本：<b id="print-current-version" style="color:#33691e;">上學期</b></p>
+                    <button class="btn btn-green" onclick="renderSurveys()">🔄 產生調查表</button>
+                    <button class="btn btn-green" onclick="safePrint()">🖨️ 確認列印</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="preview-container">
+        <div style="background:#333; color:white; padding:10px; position:sticky; top:0; z-index:999; display:flex; justify-content:space-between; align-items:center;" id="preview-header-controls">
+            <span style="font-size:18px;">📄 列印預覽</span>
+            <div>
+                <button class="btn btn-green" onclick="safePrint()">🖨️ 列印</button>
+                <button class="btn btn-red" onclick="closePreview()">❌ 返回修改</button>
+            </div>
+        </div>
+        <div id="preview-content"></div>
+    </div>
+
+<script>
+    // --- Firebase 初始化設定 ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
+      authDomain: "sjps-learningassistance.firebaseapp.com",
+      projectId: "sjps-learningassistance",
+      storageBucket: "sjps-learningassistance.firebasestorage.app",
+      messagingSenderId: "108951710153",
+      appId: "1:108951710153:web:434de73a24160fe3e2e018",
+      measurementId: "G-EGQ7BLK57Y"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    // --------------------------------
+
+    let globalStudents = [];
+    
+    const periodDefaults = {
+        summer: {
+            year: "113", semester: "暑假", date: "114年7月1日~7月20日", time: "週一至週五 8:40~11:50",
+            loc: "暫定至善樓二樓教室", note: "，若確定開班，另發通知單。", deadline: "114.6.20（五）",
+            footer: "新莊國小教務處 3411373 主任#111 註冊組#112 敬啟",
+            reasons: `(1)發放對象為篩選測驗未通過或可以參加扶助之名單。\n(2)有意願參與暑假課程的同學，歡迎參加。\n(3)由教育部提供學校相關經費，給與未通過教育部檢核的同學上該課程。`
+        },
+        semester1: {
+            year: "114", semester: "上學期", date: "114年9月22日~114年12月29日", time: "週一、四，下午16:00~17:30",
+            loc: "暫定至善樓二樓教室", note: "，若確定開班，另發通知單。", deadline: "114.9.9（星期二）9:00",
+            footer: "新莊國小教務處 3411373 主任#111 註冊組#112 敬啟",
+            reasons: `(1)發放對象為篩選測驗未通過或需要扶助之名單。\n(2)期中後會請這些學生進行成長測驗，檢核扶助學習上課成效。\n(3)測驗的目的為了提醒學扶任課老師檢核自己的教學成效與學生的學習狀況。\n(4)由教育部提供學校相關經費，給與未通過教育部檢核的同學上該課程。`
+        },
+        winter: {
+            year: "114", semester: "寒假", 
+            date: "115年1月26日(一)~1月30日(五)", 
+            time: "週一至週五 8:00~12:00",       
+            loc: "暫定至善樓二樓教室", note: "，若確定開班，另發通知單。", 
+            deadline: "114.12.19(五)",            
+            footer: "新莊國小教務處 3411373 主任#111 註冊組#112 敬啟",
+            reasons: `(1)發放對象為篩選測驗未通過或可以參加扶助之名單。\n(2)有意願參與寒假課程的同學，歡迎參加。\n(3)由教育部提供學校相關經費，給與未通過教育部檢核的同學上該課程。`
+        },
+        semester2: {
+            year: "114", semester: "下學期", date: "115年3月1日~6月30日", time: "週一、四，下午16:00~17:30",
+            loc: "暫定至善樓二樓教室", note: "，若確定開班，另發通知單。", deadline: "115.2.20（五）",
+            footer: "新莊國小教務處 3411373 主任#111 註冊組#112 敬啟",
+            reasons: `(1)發放對象為篩選測驗未通過或可以參加扶助之名單。\n(2)期中後會請這些學生進行篩選測驗，檢核本學年度上課學習上課成效。\n(3)測驗的目的為了提醒現任任課老師檢核自己的教學成效與學生的學習狀況。\n(4)由教育部提供學校相關經費，給與未通過教育部檢核的同學上該課程。`
+        }
+    };
+
+    let surveyData = JSON.parse(JSON.stringify(periodDefaults));
+    
+    const noticeTemplates = {
+        growth: {
+            title: "114學年度上學期教育部學習扶助實施方案-成長測驗通知單",
+            greeting: "您好！114學年度上學期本校成長測驗規劃如下：",
+            intro: `(一)日期：【114年11月24日~114年12月12日】共三週。\n(二)時間：【早自修 07:50~08:30】或【午休 12:40~13:20】。\n(三)地點：詳見下方時間表。\n(四)考試科目：國語、數學、英語。\n(五)本通知單回條請於【114年11月21日(星期五) 16:00】前交予導師轉交至教務處。`,
+            reason: `(一)發放對象為篩選測驗未通過或需要扶助之名單。\n(二)測驗的目的為了提醒學扶任課老師檢核自己的教學成效與學生的學習狀況。\n(三)考試內容為本學年度的教學內容。`,
+            footer: "新莊國小教務處 3411373 主任#111 註冊組#112 敬啟",
+            replyTitle: "114學年度上學期「學習扶助-成長測驗」通知書",
+            replyDeadline: "請於 114.11.21 (星期五) 16:00 前交予導師協助繳交至教務處留存"
+        },
+        screening: {
+            title: "114學年度下學期教育部學習扶助實施方案-篩選測驗通知單",
+            greeting: "您好！114學年度下學期本校篩選測驗規劃如下：",
+            intro: `(一)日期：【115年5月18日~6月5日】共三週。\n(二)時間：【早自修 07:50~08:30】或【午休 12:40~13:20】。\n(三)地點：預計於5/12發放考前地點通知單。\n(四)考試科目：國語、數學、英語。\n(五)本通知單回條請於【115年4月7日(星期二) 16:00】前交予導師轉交至教務處。`,
+            reason: `(一)必考名單：113學年度篩選測驗未通過者，本年度需重測。\n(二)5%名單：114上學期國數英後35%扣除必考者之末5%需測驗。\n(三)測驗目的：確認學習是否達教育部基礎標準，並檢核教學成效。\n(四)考試範圍：114學年度（上下學期）全學年之教學內容。\n(五)提早測驗：因需安排暑期學習扶助調查，無法延至期末考後。\n(六)考前準備：導師已備妥相關考古題，供同學提前練習。\n(七)後續免測：通過即免考12月成長測驗，但明年成績落後仍可能受測。`,
+            footer: "新莊國小教務處 3411373 主任#111 註冊組#112 敬啟",
+            replyTitle: "114學年度下學期「學習扶助-篩選測驗」通知書",
+            replyDeadline: "請於 115.4.7 (星期二) 16:00 前交予導師協助繳交至教務處留存"
+        }
+    };
+
+    let parentNoticeConfig = JSON.parse(JSON.stringify(noticeTemplates.growth));
+
+    function init() {
+        renderGradeSettings();
+        loadConfig();
+    }
+
+    function showCloudStatus() {
+        const el = document.getElementById('cloud-status');
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 2000);
+    }
+
+    function renderGradeSettings() {
+        const container = document.getElementById('grade-settings-area');
+        let html = '';
+        for(let i=1; i<=6; i++) {
+            let defaultLoc = `${i}F-E 化教室`;
+            let defaultTime = "12/1(一) 早自修 7:50~8:30";
+            if(i==2) defaultTime = "12/2(二) 早自修 7:50~8:30";
+            if(i==3) defaultTime = "12/3(三) 早自修 7:50~8:30";
+            if(i==4) defaultTime = "12/4(四) 早自修 7:50~8:30";
+            if(i==5) defaultTime = "12/5(五) 早自修 7:50~8:30";
+            if(i==6) defaultTime = "12/6(六) 早自修 7:50~8:30";
+
+            html += `
+            <div class="config-row">
+                <label>${i} 年級</label>
+                <div style="flex:1; display:flex; gap:10px; flex-wrap:wrap;">
+                    <div style="border-left:3px solid #cc0000; padding-left:5px;">
+                        <span style="color:#cc0000; font-size:12px;">國語</span><br>
+                        <input type="text" id="d-c-${i}" placeholder="時間" style="width:260px; margin-bottom:2px;" value="${defaultTime}" onchange="saveConfig()">
+                        <input type="text" id="l-c-${i}" placeholder="地點" style="width:150px;" value="${defaultLoc}" onchange="saveConfig()">
+                    </div>
+                    <div style="border-left:3px solid #00008B; padding-left:5px;">
+                        <span style="color:#00008B; font-size:12px;">數學</span><br>
+                        <input type="text" id="d-m-${i}" placeholder="時間" style="width:260px; margin-bottom:2px;" value="${defaultTime}" onchange="saveConfig()">
+                        <input type="text" id="l-m-${i}" placeholder="地點" style="width:150px;" value="${defaultLoc}" onchange="saveConfig()">
+                    </div>
+                    <div style="border-left:3px solid #006400; padding-left:5px;">
+                        <span style="color:#006400; font-size:12px;">英語</span><br>
+                        <input type="text" id="d-e-${i}" placeholder="時間" style="width:260px; margin-bottom:2px;" value="${defaultTime}" onchange="saveConfig()">
+                        <input type="text" id="l-e-${i}" placeholder="地點" style="width:150px;" value="${defaultLoc}" onchange="saveConfig()">
+                    </div>
+                </div>
+            </div>`;
+        }
+        container.innerHTML = html;
+    }
+
+    function switchSurveyPeriod() {
+        const p = document.getElementById('survey-period-select').value;
+        const data = surveyData[p];
+        
+        document.getElementById('s-year').value = data.year;
+        document.getElementById('s-semester').value = data.semester;
+        document.getElementById('s-date').value = data.date;
+        document.getElementById('s-time').value = data.time;
+        document.getElementById('s-loc').value = data.loc;
+        document.getElementById('s-note').value = data.note || ''; 
+        document.getElementById('s-deadline').value = data.deadline;
+        document.getElementById('s-reasons').value = data.reasons;
+        document.getElementById('s-footer').value = data.footer;
+
+        const map = { 'summer':'☀️ 暑假', 'semester1':'🍂 上學期', 'winter':'☃️ 寒假', 'semester2':'🌱 下學期' };
+        document.getElementById('print-current-version').innerText = map[p];
+    }
+
+    function saveCurrentPeriod() {
+        const p = document.getElementById('survey-period-select').value;
+        surveyData[p] = {
+            year: document.getElementById('s-year').value,
+            semester: document.getElementById('s-semester').value,
+            date: document.getElementById('s-date').value,
+            time: document.getElementById('s-time').value,
+            loc: document.getElementById('s-loc').value,
+            note: document.getElementById('s-note').value,
+            deadline: document.getElementById('s-deadline').value,
+            reasons: document.getElementById('s-reasons').value,
+            footer: document.getElementById('s-footer').value
+        };
+        saveConfig();
+    }
+
+    function applyNoticeTemplate() {
+        const type = document.getElementById('pn-type').value;
+        const tmpl = noticeTemplates[type];
+        
+        document.getElementById('pn-title').value = tmpl.title;
+        document.getElementById('pn-greeting').value = tmpl.greeting;
+        document.getElementById('pn-intro').value = tmpl.intro;
+        document.getElementById('pn-reason').value = tmpl.reason;
+        document.getElementById('pn-footer').value = tmpl.footer;
+        document.getElementById('pn-reply-title').value = tmpl.replyTitle;
+        document.getElementById('pn-reply-deadline').value = tmpl.replyDeadline;
+        
+        saveParentNoticeConfig();
+    }
+
+    function saveParentNoticeConfig() {
+        parentNoticeConfig = {
+            title: document.getElementById('pn-title').value,
+            greeting: document.getElementById('pn-greeting').value,
+            intro: document.getElementById('pn-intro').value,
+            reason: document.getElementById('pn-reason').value,
+            footer: document.getElementById('pn-footer').value,
+            replyTitle: document.getElementById('pn-reply-title').value,
+            replyDeadline: document.getElementById('pn-reply-deadline').value
+        };
+        saveConfig();
+    }
+
+    function loadDefaultTemplate() {
+        const p = document.getElementById('survey-period-select').value;
+        if(confirm(`確定要將【${p}】的說明文字還原成預設值嗎？`)) {
+            document.getElementById('s-reasons').value = periodDefaults[p].reasons;
+            saveCurrentPeriod();
+        }
+    }
+
+    function saveConfig() {
+        const config = {
+            slipTitle: document.getElementById('slip-title').value,
+            grades: {},
+            surveyPeriods: surveyData,
+            parentNotice: parentNoticeConfig
+        };
+        for(let i=1; i<=6; i++) {
+            config.grades[i] = {
+                dC: document.getElementById(`d-c-${i}`).value, lC: document.getElementById(`l-c-${i}`).value,
+                dM: document.getElementById(`d-m-${i}`).value, lM: document.getElementById(`l-m-${i}`).value,
+                dE: document.getElementById(`d-e-${i}`).value, lE: document.getElementById(`l-e-${i}`).value,
+            };
+        }
+        
+        // --- Firebase 雲端寫入 ---
+        db.collection('exam_system_settings').doc('global_config').set(config)
+            .then(() => {
+                console.log("資料已成功同步至 Firebase 雲端！");
+                showCloudStatus();
+            })
+            .catch((error) => {
+                console.error("雲端存檔失敗:", error);
+            });
+    }
+
+    function loadConfig() {
+        // --- Firebase 雲端讀取 ---
+        db.collection('exam_system_settings').doc('global_config').get().then((doc) => {
+            if(doc.exists) {
+                const c = doc.data();
+                if(c.slipTitle) document.getElementById('slip-title').value = c.slipTitle;
+                if(c.surveyPeriods) {
+                    surveyData = c.surveyPeriods;
+                    ['summer','semester1','winter','semester2'].forEach(k => {
+                        if(!surveyData[k]) surveyData[k] = periodDefaults[k];
+                        if(!surveyData[k].footer) surveyData[k].footer = periodDefaults[k].footer; 
+                    });
+                }
+                if(c.parentNotice) {
+                    parentNoticeConfig = c.parentNotice;
+                    if(!parentNoticeConfig.greeting) {
+                         const prefix = parentNoticeConfig.title ? parentNoticeConfig.title.substring(0,9) : '114學年度上學期';
+                         parentNoticeConfig.greeting = `您好！${prefix}本校成長測驗規劃如下：`;
+                    }
+                    document.getElementById('pn-title').value = parentNoticeConfig.title;
+                    document.getElementById('pn-greeting').value = parentNoticeConfig.greeting;
+                    document.getElementById('pn-intro').value = parentNoticeConfig.intro;
+                    document.getElementById('pn-reason').value = parentNoticeConfig.reason;
+                    document.getElementById('pn-footer').value = parentNoticeConfig.footer;
+                    document.getElementById('pn-reply-title').value = parentNoticeConfig.replyTitle;
+                    document.getElementById('pn-reply-deadline').value = parentNoticeConfig.replyDeadline;
+                }
+                if(c.grades) {
+                    for(let i=1; i<=6; i++) {
+                        if(c.grades[i]) {
+                            if(c.grades[i].dC) document.getElementById(`d-c-${i}`).value = c.grades[i].dC;
+                            if(c.grades[i].lC) document.getElementById(`l-c-${i}`).value = c.grades[i].lC;
+                            if(c.grades[i].dM) document.getElementById(`d-m-${i}`).value = c.grades[i].dM;
+                            if(c.grades[i].lM) document.getElementById(`l-m-${i}`).value = c.grades[i].lM;
+                            if(c.grades[i].dE) document.getElementById(`d-e-${i}`).value = c.grades[i].dE;
+                            if(c.grades[i].lE) document.getElementById(`l-e-${i}`).value = c.grades[i].lE;
+                        }
+                    }
+                }
+            } else {
+                console.log("雲端無資料，使用預設值");
+            }
+            
+            document.getElementById('survey-period-select').value = 'semester1';
+            switchSurveyPeriod();
+            
+            document.getElementById('pn-title').value = parentNoticeConfig.title || noticeTemplates.growth.title;
+            document.getElementById('pn-greeting').value = parentNoticeConfig.greeting || noticeTemplates.growth.greeting;
+            document.getElementById('pn-intro').value = parentNoticeConfig.intro || noticeTemplates.growth.intro;
+            document.getElementById('pn-reason').value = parentNoticeConfig.reason || noticeTemplates.growth.reason;
+            document.getElementById('pn-footer').value = parentNoticeConfig.footer || noticeTemplates.growth.footer;
+            document.getElementById('pn-reply-title').value = parentNoticeConfig.replyTitle || noticeTemplates.growth.replyTitle;
+            document.getElementById('pn-reply-deadline').value = parentNoticeConfig.replyDeadline || noticeTemplates.growth.replyDeadline;
+            
+        }).catch((error) => {
+            console.error("讀取 Firebase 失敗，使用本機預設值:", error);
+            document.getElementById('survey-period-select').value = 'semester1';
+            switchSurveyPeriod();
+        });
+    }
+
+    document.getElementById('uploadFile').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rawData = XLSX.utils.sheet_to_json(worksheet);
+            
+            globalStudents = rawData.map((row, index) => {
+                const getStatus = (v) => {
+                    if(!v) return '';
+                    const s = v.toString().toUpperCase();
+                    if(s.includes('X') || s.includes('Ｘ')) return 'X';
+                    if(s.includes('O') || s.includes('0') || s.includes('Ｏ')) return 'O';
+                    return '';
+                };
+                
+                const rC = row['國語文測驗']||row['國語'];
+                const rM = row['數學測驗']||row['數學'];
+                const rE = row['英語測驗']||row['英語'];
+                const studentName = (row['姓名']||'').toString().trim();
+                
+                const checkAny = (v) => v !== undefined && v !== null && v.toString().trim().length > 0;
+                const needToPrint = checkAny(rC) || checkAny(rM) || checkAny(rE);
+                
+                return {
+                    id: index,
+                    grade: (row['目前年級']||row['年級']||'').toString().trim(),
+                    cls: (row['班級']||'').toString().trim(),
+                    seat: (row['座號']||'').toString().trim(),
+                    name: studentName,
+                    idNo: (row['身分證統一編號']||row['身分證']||'').toString().trim(),
+                    chi: checkAny(rC) && getStatus(rC) === 'X', 
+                    math: checkAny(rM) && getStatus(rM) === 'X', 
+                    eng: checkAny(rE) && getStatus(rE) === 'X',
+                    statusC: getStatus(rC), statusM: getStatus(rM), statusE: getStatus(rE),
+                    isCase: needToPrint
+                };
+            }).filter(s => s.name.length > 0); 
+            
+            globalStudents.sort((a,b) => {
+                if(a.grade!=b.grade) return parseInt(a.grade)-parseInt(b.grade);
+                if(a.cls!=b.cls) return parseInt(a.cls)-parseInt(b.cls);
+                return parseInt(a.seat)-parseInt(b.seat);
+            });
+            document.getElementById('data-status').innerText = `✅ 已讀取 ${globalStudents.length} 筆資料`;
+            document.getElementById('data-status').style.color = 'green';
+            
+            renderDataPreview();
+            initTeacherSelector(); 
+        };
+        reader.readAsArrayBuffer(file);
+    });
+    
+    function renderDataPreview() {
+        const container = document.getElementById('data-preview-area');
+        if (globalStudents.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        
+        let html = '<h4 style="margin:5px 0;">📋 資料匯入檢視</h4>';
+        html += '<div style="max-height:400px; overflow-y:auto; border:1px solid #ccc;">';
+        html += '<table class="std-table" style="width:100%; font-size:14px;">';
+        html += '<thead style="position:sticky; top:0; background:#eee; z-index:1;"><tr><th>年級</th><th>班級</th><th>座號</th><th>姓名</th><th>國語</th><th>數學</th><th>英語</th><th>列印狀態</th></tr></thead><tbody>';
+
+        let printCount = 0;
+        globalStudents.forEach(s => {
+            if(s.isCase) printCount++;
+            const printStatusHtml = s.isCase 
+                ? '<span style="color:green; font-weight:bold;">✅ 列印</span>' 
+                : '<span style="color:red; font-weight:bold;">❌ 不列印 (無考科)</span>';
+                
+            html += `<tr style="${!s.isCase ? 'background-color:#ffebee;' : ''}">
+                <td>${s.grade}</td>
+                <td>${s.cls}</td>
+                <td>${s.seat}</td>
+                <td>${s.name}</td>
+                <td style="${s.chi?'color:red;font-weight:bold;':''}">${s.statusC}</td>
+                <td style="${s.math?'color:blue;font-weight:bold;':''}">${s.statusM}</td>
+                <td style="${s.eng?'color:green;font-weight:bold;':''}">${s.statusE}</td>
+                <td style="font-size:12px;">${printStatusHtml}</td>
+            </tr>`;
+        });
+        html += '</tbody></table></div>';
+        html += `<p style="text-align:right; font-size:13px; color:#333; margin-top:5px; font-weight:bold;">總資料數：${globalStudents.length} 筆 │ 實際列印：<span style="color:green;">${printCount}</span> 筆 │ 不列印：<span style="color:red;">${globalStudents.length - printCount}</span> 筆</p>`;
+        container.innerHTML = html;
+    }
+
+    function switchTab(id) {
+        document.querySelectorAll('.tab-content').forEach(d => d.classList.remove('active'));
+        document.querySelectorAll('.navbar button').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-'+id).classList.add('active');
+        
+        const btns = document.querySelectorAll('.navbar button');
+        const map = { 'data':0, 'slips':1, 'idlist':2, 'stats':3, 'teachers':4, 'parent-notice-set':5, 'parent-notice-print':6, 'surveys-set':7, 'surveys-print':8 };
+        if(map[id] !== undefined) btns[map[id]].classList.add('active');
+    }
+
+    function showPreview(htmlContent, className) {
+        document.getElementById('config-panel').style.display = 'none';
+        document.getElementById('preview-container').style.display = 'block';
+        document.getElementById('preview-content').innerHTML = htmlContent;
+        if(className) document.body.className = className;
+        window.scrollTo(0,0);
+    }
+
+    function closePreview() {
+        document.getElementById('config-panel').style.display = 'block';
+        document.getElementById('preview-container').style.display = 'none';
+        document.getElementById('preview-content').innerHTML = '';
+        document.body.className = '';
+    }
+
+    function safePrint() {
+        if(globalStudents.length === 0) {
+            alert("⚠️ 尚未匯入學生資料，無法列印。\n請先至「資料匯入」分頁上傳 Excel 檔案。");
+            switchTab('data');
+            return;
+        }
+        window.print();
+    }
+
+    function generateScheduleTable() {
+        let rows = '';
+        for(let i=1; i<=6; i++) {
+            const dC = document.getElementById(`d-c-${i}`).value.trim();
+            const lC = document.getElementById(`l-c-${i}`).value.trim();
+            const dM = document.getElementById(`d-m-${i}`).value.trim();
+            const lM = document.getElementById(`l-m-${i}`).value.trim();
+            const dE = document.getElementById(`d-e-${i}`).value.trim();
+            const lE = document.getElementById(`l-e-${i}`).value.trim();
+            
+            const contentC = (dC ? `<span class="sch-time">${dC}</span>` : '') + 
+                             (lC ? `<span class="sch-loc">地點：${lC}</span>` : '');
+                             
+            const contentM = (dM ? `<span class="sch-time">${dM}</span>` : '') + 
+                             (lM ? `<span class="sch-loc">地點：${lM}</span>` : '');
+                             
+            const contentE = (dE ? `<span class="sch-time">${dE}</span>` : '') + 
+                             (lE ? `<span class="sch-loc">地點：${lE}</span>` : '');
+
+            rows += `
+            <tr>
+                <td style="font-weight:bold;">${i}年級</td>
+                <td>${contentC}</td>
+                <td>${contentM}</td>
+                <td>${contentE}</td>
+            </tr>`;
+        }
+        return `
+        <div style="background-color:white; color:black; padding:5px 0; margin:5px 0; border-top:1px solid #ccc; border-bottom:1px solid #ccc;">
+            <div style="text-align:center; font-weight:bold; margin-bottom:5px; color:#333;">▼ 全校各年級測驗時間與地點一覽表 ▼</div>
+            <table class="schedule-table">
+                <tr>
+                    <th style="width:10%">年級</th>
+                    <th style="width:30%">國語</th>
+                    <th style="width:30%">數學</th>
+                    <th style="width:30%">英語</th>
+                </tr>
+                ${rows}
+            </table>
+        </div>`;
+    }
+
+    function renderParentNotices() {
+        if(globalStudents.length===0) return alert('無資料');
+        
+        const title = document.getElementById('pn-title').value;
+        const greeting = document.getElementById('pn-greeting').value;
+        const intro = document.getElementById('pn-intro').value.replace(/\r\n|\r|\n/g, '<br>');
+        const reason = document.getElementById('pn-reason').value.replace(/\r\n|\r|\n/g, '<br>');
+        
+        const footer = document.getElementById('pn-footer').value;
+        const replyTitle = document.getElementById('pn-reply-title').value;
+        const replyDeadline = document.getElementById('pn-reply-deadline').value;
+        
+        const pnType = document.getElementById('pn-type').value;
+        const legendText = pnType === 'screening' ? 'X: 本次要考' : 'O: 免考 / X: 本次要考 / 空白: 未測驗免考';
+
+        const scheduleTable = generateScheduleTable();
+
+        const targets = globalStudents.filter(s => s.isCase);
+        if(targets.length===0) return alert('無符合條件學生');
+
+        let html = '';
+        targets.forEach(s => {
+            const studentTable = `
+            <div style="margin-top: 10px; font-weight: bold; text-align: center;">本次通知測驗考試科目為：</div>
+            <table class="student-status-table">
+                <tr>
+                    <td class="status-header">年級</td>
+                    <td class="status-header">班級</td>
+                    <td class="status-header">姓名</td>
+                    <td colspan="3" class="status-header" style="font-size: 11pt;">${legendText}</td>
+                </tr>
+                <tr>
+                    <td>${s.grade}</td>
+                    <td>${s.cls}</td>
+                    <td>${s.name}</td>
+                    <td>國</td>
+                    <td>數</td>
+                    <td>英</td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="text-align: left; padding-left: 10px; font-size: 11pt;">考試時間：請對照上表，當週會有個別通知單。</td>
+                    <td style="font-weight:bold;">${s.statusC}</td>
+                    <td style="font-weight:bold;">${s.statusM}</td>
+                    <td style="font-weight:bold;">${s.statusE}</td>
+                </tr>
+            </table>
+            `;
+
+            html += `
+            <div class="preview-page-wrapper">
+                <div class="survey-sheet">
+                    <div class="notice-content-compact">
+                        <div class="survey-title" style="color:blue;">${title}</div>
+                        <div style="margin-bottom:5px; font-weight:bold;">敬愛的家長：</div>
+                        <div style="margin-bottom:5px;">
+                            <div style="text-indent:2em; margin-bottom:2px;">${greeting}</div>
+                            <div>${intro}</div>
+                        </div>
+                        
+                        <div style="margin-top:5px;">
+                            <div style="font-weight:bold; margin-bottom:2px;">目的與原因：</div>
+                            <div>${reason}</div>
+                        </div>
+
+                        ${scheduleTable}
+                        
+                        ${studentTable}
+
+                        <div style="text-align:right; margin-top:5px; font-size:12pt;">
+                            ${footer}
+                        </div>
+                    </div>
+
+                    <div class="cut-line"><span>請 沿 虛 線 撕 下 繳 交 --- 上 方 資 料 家 長 自 行 留 存</span></div>
+
+                    <div style="text-align:center;">
+                        <div style="font-size:14pt; margin-bottom:5px;">${s.grade}年${s.cls}班 &nbsp;&nbsp; 學生：${s.name}</div>
+                        <div class="reply-title">${replyTitle}</div>
+                        <div style="font-weight:bold; margin:10px 0; font-size:14pt;">${replyDeadline}</div>
+                        <div style="font-size:16pt; margin-top:20px;">
+                            家長簽名：【 __________________ 】 ______月______日簽
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+        showPreview(html, 'print-surveys');
+    }
+
+    function renderSurveys() {
+        if(globalStudents.length===0) return alert('無資料');
+        const config = {
+            year: document.getElementById('s-year').value,
+            semester: document.getElementById('s-semester').value,
+            date: document.getElementById('s-date').value,
+            time: document.getElementById('s-time').value,
+            loc: document.getElementById('s-loc').value,
+            note: document.getElementById('s-note').value,
+            deadline: document.getElementById('s-deadline').value,
+            reasons: document.getElementById('s-reasons').value.split('\n').filter(l=>l.trim()).map(l=>`<p class="survey-indent">${l}</p>`).join(''),
+            footer: document.getElementById('s-footer').value
+        };
+        const targets = globalStudents.filter(s => s.isCase);
+        if(targets.length===0) return alert('無符合條件學生');
+
+        let html = '';
+        targets.forEach(s => {
+            html += `
+            <div class="preview-page-wrapper">
+                <div class="survey-sheet">
+                    <div class="survey-top">
+                        <div class="survey-title">${config.year}學年度${config.semester}學習扶助實施方案調查表(國/數/英)</div>
+                        <div class="survey-body">
+                            <p><b>◉ 敬愛的家長：</b></p>
+                            <p style="text-indent:2em;">您好！${config.year}學年度${config.semester}學習扶助開班課程規劃如下：</p>
+                            <p class="survey-indent">(一)日期：【${config.date}】</p>
+                            <p class="survey-indent">(二)時間：【${config.time}】</p>
+                            <p class="survey-indent">(三)地點：${config.loc}${config.note}</p>
+                            <p class="survey-indent">(四)輔導科目：國、數、英語(每班11人以下)。</p>
+                            <p class="survey-indent">(五)本調查表請於【${config.deadline}】前交予導師</p>
+                            <p class="survey-indent">(六)本課程由教育部專款補助，完全免費。</p>
+                            <p class="survey-indent">(七)為安全起見，請家長親自到校接送孩子放學。</p>
+                            <p class="survey-indent">(八)【請確認有無相關社團或補習衝堂】，以免影響學生與授課老師準備課程等相關權益。</p>
+                            <p style="margin-top:5px;"><b>◉ 目的與原因：</b></p>
+                            ${config.reasons}
+                            <p style="text-align:right; margin-top:5px;">${config.footer}</p>
+                        </div>
+                    </div>
+                    <div class="cut-line"><span>請 沿 虛 線 撕 下 繳 交 --- 上 方 資 料 家 長 自 行 留 存</span></div>
+                    <div class="survey-bottom">
+                        <div class="reply-title">${config.year}學年度${config.semester}「學習扶助－實施方案」學習輔導意願同意書</div>
+                        <table class="std-table survey-table">
+                            <colgroup><col style="width:10%"><col style="width:10%"><col style="width:15%"><col style="width:65%"></colgroup>
+                            <tr><th>年級</th><th>班級</th><th>姓名</th><th>請選擇參加班級 (可多選，照意願優先分配)</th></tr>
+                            <tr>
+                                <td>${s.grade}</td><td>${s.cls}</td><td>${s.name}</td>
+                                <td rowspan="3" class="checkbox-cell">
+                                    <div class="checkbox-row">□ 參加「國語班」，能親自接送孩子放學</div>
+                                    <div class="checkbox-row">□ 參加「數學班」，能親自接送孩子放學</div>
+                                    <div class="checkbox-row">□ 參加「英語班」，能親自接送孩子放學</div>
+                                    <div style="font-size:12px; color:#666;">(※國數可能會因為人數不夠合班)</div>
+                                    <div style="margin-top:5px;">□ 不參加，原因：_________________</div>
+                                </td>
+                            </tr>
+                            <tr><td colspan="3" style="font-size:12px; background:#eee;">O：通過 &nbsp; X：未通過 &nbsp; 空白：未考</td></tr>
+                            <tr>
+                                <td class="split-cell">
+                                    <div class="split-top">國</div>
+                                    <div class="split-bottom">${s.statusC}</div>
+                                </td>
+                                <td class="split-cell">
+                                    <div class="split-top">數</div>
+                                    <div class="split-bottom">${s.statusM}</div>
+                                </td>
+                                <td class="split-cell">
+                                    <div class="split-top">英</div>
+                                    <div class="split-bottom">${s.statusE}</div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" style="text-align:left; padding:10px;">
+                                    <div style="margin-bottom:10px;">家長連絡電話 (緊急聯絡用)：<span style="font-size:12pt;">(若不參加免填電話後下方簽名繳回)</span></div>
+                                    <div style="display:flex; justify-content:space-around;">
+                                        <div style="display:flex; flex-direction:column; gap:5px;">
+                                            <div>手機1：________________________</div>
+                                            <div>稱謂：________________________</div>
+                                        </div>
+                                        <div style="display:flex; flex-direction:column; gap:5px;">
+                                            <div>手機2：________________________</div>
+                                            <div>稱謂：________________________</div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" style="text-align:left; padding:15px; font-weight:bold;">
+                                    <div>請於 ${config.deadline} 前交予導師協助繳交至教務處</div>
+                                    <div style="text-align:right; margin-top:10px;">家長簽名：【 __________________ 】 ____月____日簽</div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        });
+        showPreview(html, 'print-surveys');
+    }
+
+    function renderSlips() {
+        if(globalStudents.length===0) return alert('無資料');
+        const title = document.getElementById('slip-title').value;
+        const subList = [];
+        if(document.getElementById('p-chi').checked) subList.push('chi');
+        if(document.getElementById('p-math').checked) subList.push('math');
+        if(document.getElementById('p-eng').checked) subList.push('eng');
+        let html = '';
+        subList.forEach(sub => {
+            globalStudents.forEach(s => {
+                if(!s.isCase) return; 
+                if(!s[sub]) return;
+                const i = s.grade;
+                const t = document.getElementById(sub=='chi'?`d-c-${i}`:sub=='math'?`d-m-${i}`:`d-e-${i}`).value;
+                const l = document.getElementById(sub=='chi'?`l-c-${i}`:sub=='math'?`l-m-${i}`:`l-e-${i}`).value;
+                const check = (k) => k==sub?'■':'□';
+                html += `
+                <div class="preview-page-wrapper">
+                    <div class="sheet-page" style="min-height:auto; height:auto; padding:10px;">
+                        <div class="slip-container">
+                            <div class="slip-header">${title}</div>
+                            <table class="std-table">
+                                <colgroup><col style="width:6%"><col style="width:6%"><col style="width:10%"><col style="width:18%"><col style="width:18%"><col style="width:12%"><col style="width:30%"></colgroup>
+                                <tr><th>年級</th><th>班級</th><th>姓名</th><th>地點</th><th>時間</th><th>科目</th><th>物品</th></tr>
+                                <tr>
+                                    <td>${s.grade}</td><td>${s.cls}</td><td>${s.name}</td>
+                                    <td class="text-red">${l}</td><td class="text-red">${t.replace(' ','<br>')}</td>
+                                    <td style="text-align:left; padding-left:10px;">
+                                        <div><span class="square">${check('chi')}</span>國語</div>
+                                        <div><span class="square">${check('math')}</span>數學</div>
+                                        <div><span class="square">${check('eng')}</span>英語</div>
+                                    </td>
+                                    <td style="text-align:center;">
+                                        <div><span class="square">■</span>鉛筆盒</div>
+                                        <div><span class="square">${sub=='eng'?'■':'□'}</span>耳機</div>
+                                        <span style="font-size:12px;">(如果有,比較衛生)</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        });
+        showPreview(html, 'print-slips');
+    }
+
+    function renderStats() {
+        if(globalStudents.length===0) return alert('無資料');
+        const grades = {};
+        let total = { stu:0, c:0, m:0, e:0 };
+        globalStudents.forEach(s => {
+            if(!s.isCase) return; 
+            
+            if(!grades[s.grade]) grades[s.grade] = { stu:0, c:0, m:0, e:0, classes:{} };
+            const g = grades[s.grade];
+            g.stu++; total.stu++; 
+            
+            if(s.chi) { g.c++; total.c++; }
+            if(s.math) { g.m++; total.m++; }
+            if(s.eng) { g.e++; total.e++; }
+            if(!g.classes[s.cls]) g.classes[s.cls] = { c:0, m:0, e:0 };
+            if(s.chi) g.classes[s.cls].c++;
+            if(s.math) g.classes[s.cls].m++;
+            if(s.eng) g.classes[s.cls].e++;
+        });
+
+        let html = `
+        <div class="preview-page-wrapper" style="width:210mm; background:white; padding:20mm;">
+            <div style="border: 2px solid #d9534f; background-color: #f9d6d5; color: #a94442; padding: 10px; margin-bottom: 20px; font-weight: bold; text-align: center; font-size: 13pt;">
+                備註：這裡統計沒有算篩選測驗通過並且未結案的同學，如有需要請自行額外進去系統勾選選考科目。
+            </div>
+            <h3 style="text-align:center;">(1) 全校統計總表</h3>
+            <table class="std-table">
+                <tr><th>年級</th><th>個案數</th><th>國語</th><th>數學</th><th>英語</th></tr>
+                ${Object.keys(grades).sort().map(g=>`<tr><td>${g}</td><td class="stat-student-count">${grades[g].stu}</td><td class="stat-chi">${grades[g].c}</td><td class="stat-math">${grades[g].m}</td><td class="stat-eng">${grades[g].e}</td></tr>`).join('')}
+                <tr class="stat-total-row"><td>總計</td><td>${total.stu}</td><td>${total.c}</td><td>${total.m}</td><td>${total.e}</td></tr>
+            </table><br><br><h3 style="text-align:center;">(2) 各班級細項統計</h3>`;
+
+        Object.keys(grades).sort().forEach(g => {
+            html += `<h4>【${g} 年級】</h4><table class="std-table"><tr><th>班級</th><th>國</th><th>數</th><th>英</th></tr>`;
+            const clsData = grades[g].classes;
+            let subT = { c:0, m:0, e:0 };
+            Object.keys(clsData).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(c => {
+                const d = clsData[c];
+                if(d.c+d.m+d.e > 0) {
+                    subT.c+=d.c; subT.m+=d.m; subT.e+=d.e;
+                    html += `<tr><td>${c} 班</td><td class="stat-chi">${d.c}</td><td class="stat-math">${d.m}</td><td class="stat-eng">${d.e}</td></tr>`;
+                }
+            });
+            html += `<tr class="stat-total-row"><td>${g}年級總計</td><td class="stat-chi">${subT.c}</td><td class="stat-math">${subT.m}</td><td class="stat-eng">${subT.e}</td></tr></table><br>`;
+        });
+        html += `</div>`;
+        showPreview(html, 'print-stats');
+    }
+
+    function initTeacherSelector() {
+        const div = document.getElementById('class-checkboxes');
+        div.innerHTML = '';
+        const map = new Set();
+        globalStudents.forEach(s => {
+            if(s.isCase) map.add(`${s.grade}-${s.cls}`);
+        });
+        Array.from(map).sort((a,b) => parseInt(a.split('-')[0])-parseInt(b.split('-')[0]) || parseInt(a.split('-')[1])-parseInt(b.split('-')[1])).forEach(item => {
+            div.innerHTML += `<label style="margin-right:10px;"><input type="checkbox" class="cls-cb" value="${item}"> ${item.replace('-','年')}班</label>`;
+        });
+    }
+    function toggleAllGrades(v) { document.querySelectorAll('.cls-cb').forEach(c=>c.checked=v); }
+
+    function renderTeachers(pageBreak) {
+        if(globalStudents.length===0) return alert('無資料');
+        const cbs = document.querySelectorAll('.cls-cb:checked');
+        if(cbs.length===0) return alert('請先勾選班級');
+        let html = pageBreak ? '' : '<div class="teacher-compact-container">';
+        cbs.forEach(cb => {
+            const [g, c] = cb.value.split('-');
+            const stus = globalStudents.filter(s => s.isCase && s.grade==g && s.cls==c && (s.chi||s.math||s.eng));
+            if(stus.length>0) {
+                let cnt = {c:0, m:0, e:0};
+                stus.forEach(s => { if(s.chi) cnt.c++; if(s.math) cnt.m++; if(s.eng) cnt.e++; });
+                const i = g;
+                const dC=document.getElementById(`d-c-${i}`).value, lC=document.getElementById(`l-c-${i}`).value;
+                const dM=document.getElementById(`d-m-${i}`).value, lM=document.getElementById(`l-m-${i}`).value;
+                const dE=document.getElementById(`d-e-${i}`).value, lE=document.getElementById(`l-e-${i}`).value;
+                const wrapperStart = pageBreak ? '<div class="preview-page-wrapper">' : '';
+                const wrapperEnd = pageBreak ? '</div>' : '';
+                const style = pageBreak ? 'page-break-after:always; padding:10mm; background:white; width:210mm; min-height:297mm;' : 'margin-bottom:20px;';
+                html += `${wrapperStart}<div style="${style}"><div class="teacher-header" style="background:#333; color:white; padding:5px; font-weight:bold; display:flex; justify-content:space-between;"><span>${g}年${c}班 (導師留存)</span><span style="font-size:12pt;">國:${cnt.c} 數:${cnt.m} 英:${cnt.e}</span></div><table class="std-table teacher-table" style="font-size:10pt;"><tr><th style="width:5%">座號</th><th style="width:10%">姓名</th><th style="width:5%">國</th><th style="width:5%">數</th><th style="width:5%">英</th><th style="width:23%">國考資訊</th><th style="width:23%">數考資訊</th><th style="width:23%">英考資訊</th></tr>${stus.map(s=>`<tr><td>${s.seat}</td><td>${s.name}</td><td>${s.chi?'●':''}</td><td>${s.math?'●':''}</td><td>${s.eng?'●':''}</td><td class="info-cell">${s.chi?dC+'<br>'+lC:''}</td><td class="info-cell">${s.math?dM+'<br>'+lM:''}</td><td class="info-cell">${s.eng?dE+'<br>'+lE:''}</td></tr>`).join('')}</table>${!pageBreak?'<div class="teacher-break-line"></div>':''}</div>${wrapperEnd}`;
+            }
+        });
+        if(!pageBreak) html += '</div>';
+        showPreview(html, pageBreak?'print-teachers':'print-teachers-compact');
+    }
+
+    function renderCheckList() {
+        if(globalStudents.length===0) return alert('無資料');
+        const showChi = document.getElementById('sign-chi').checked;
+        const showMath = document.getElementById('sign-math').checked;
+        const showEng = document.getElementById('sign-eng').checked;
+        if(!showChi && !showMath && !showEng) return alert('請至少勾選一個科目');
+        let html = '';
+        const create = (code, name) => {
+            const targets = globalStudents.filter(s => s.isCase && s[code]);
+            if(targets.length === 0) return '';
+            return `<div class="preview-page-wrapper"><div class="sheet-page"><h2 style="text-align:center;">測驗簽到表 (${name}專用)</h2><table class="std-table"><tr><th style="width:5%">序號</th><th style="width:10%">年級</th><th style="width:10%">班級</th><th style="width:10%">座號</th><th style="width:15%">姓名</th><th style="width:20%">身分證</th><th style="width:15%">${name}</th><th style="width:15%">報到打勾</th></tr>${targets.map((s, idx)=>`<tr><td>${idx+1}</td><td>${s.grade}</td><td>${s.cls}</td><td>${s.seat}</td><td>${s.name}</td><td style="font-family:monospace;">${s.idNo}</td><td>●</td><td><span style="font-size:20px;">□</span></td></tr>`).join('')}</table></div></div>`;
+        };
+        if(showChi) html += create('chi', '國語');
+        if(showMath) html += create('math', '數學');
+        if(showEng) html += create('eng', '英語');
+        if(html === '') return alert('選定的科目沒有學生需要考試');
+        showPreview(html, 'print-list');
+    }
+
+    init();
+</script>
+
+</body>
+</html>

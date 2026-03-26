@@ -518,26 +518,20 @@ body.view-only input[type=checkbox]{pointer-events:none}
 <!-- ═══════════════════ FIREBASE MODULE ═══════════════════ -->
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,collection,getDocs,getDoc,setDoc,doc,deleteDoc,writeBatch,updateDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import{getAuth}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-// ✅ 統一指向 sjps-learningassistance 專案
+import{getFirestore,collection,getDocs,setDoc,doc,deleteDoc,writeBatch,updateDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const cfg={
-  apiKey:"AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
-  authDomain:"sjps-learningassistance.firebaseapp.com",
-  projectId:"sjps-learningassistance",
-  storageBucket:"sjps-learningassistance.firebasestorage.app",
-  messagingSenderId:"108951710153",
-  appId:"1:108951710153:web:434de73a24160fe3e2e018",
-  measurementId:"G-EGQ7BLK57Y"
+  apiKey:"AIzaSyDG3DQsPgDY7u5Rp0nO6SslUflh_bwrVZU",
+  authDomain:"sjps-examlist.firebaseapp.com",
+  projectId:"sjps-examlist",
+  storageBucket:"sjps-examlist.firebasestorage.app",
+  messagingSenderId:"665134765999",
+  appId:"1:665134765999:web:4ea3bd7be227a86342015a",
+  measurementId:"G-E1YVKZYPXM"
 };
 const app=initializeApp(cfg);
 const db=getFirestore(app);
-const auth=getAuth(app); // 啟動 Auth，背景偵測 admin.html 發出的登入憑證
-
 window._db=db;
-window._fs={collection,getDocs,getDoc,setDoc,doc,deleteDoc,writeBatch,updateDoc};
-window._firebaseAuth=auth; // 供雙重鎖驗證使用
+window._fs={collection,getDocs,setDoc,doc,deleteDoc,writeBatch,updateDoc};
 window._fbReady=true;
 document.dispatchEvent(new Event('fbReady'));
 </script>
@@ -558,34 +552,45 @@ let pendingReq=null;
 let pendingB35=null;
 
 // ─── FIREBASE HELPERS ───
-// ✅ 新架構：整個陣列打包成單一文件存入 exam_list/{docName}
-//    原本每位學生算一次寫入 → 現在整批只算一次，大幅節省免費額度
-async function fbBatchWrite(docName,docs){
-  const{collection:col,doc:docRef,setDoc:setd}=window._fs;
+async function fbBatchWrite(colName,docs){
+  const{collection:col,doc:docRef,writeBatch:wb,deleteDoc}=window._fs;
   const db=window._db;
-  const payload={data:docs,timestamp:Date.now()};
-  await setd(docRef(col(db,'exam_list'),docName),payload);
+  const {getDocs}=window._fs;
+  const snap=await getDocs(col(db,colName));
+  const batchDel=wb(db);
+  snap.forEach(d=>batchDel.delete(d.ref));
+  await batchDel.commit();
+  const chunks=[];
+  for(let i=0;i<docs.length;i+=400)chunks.push(docs.slice(i,i+400));
+  for(const chunk of chunks){
+    const b=wb(db);
+    chunk.forEach(d=>{
+      const ref=docRef(col(db,colName),d.id);
+      b.set(ref,d);
+    });
+    await b.commit();
+  }
 }
 
-// ✅ 勾選後35%時，將整個 B35 陣列重新寫入（一次寫入，節省額度）
-async function fbUpdateDoc(docName,id,data){
-  await fbBatchWrite('bottom35',B35);
+async function fbUpdateDoc(colName,id,data){
+  const{collection:col,doc:docRef,updateDoc:upd}=window._fs;
+  await upd(docRef(col(window._db,colName),id),data);
 }
 
 async function fbLoadAll(){
-  const{collection:col,doc:docRef,getDoc:getd}=window._fs;
+  const{collection:col,getDocs}=window._fs;
   const db=window._db;
   const [rs,bs]=await Promise.all([
-    getd(docRef(col(db,'exam_list'),'requiredExam')),
-    getd(docRef(col(db,'exam_list'),'bottom35'))
+    getDocs(col(db,'requiredExam')),
+    getDocs(col(db,'bottom35'))
   ]);
-  REQ=rs.exists()?rs.data().data:[];
-  const rawB35=bs.exists()?bs.data().data:[];
-  B35=rawB35.map(d=>{
-    if(!('selChinese' in d)){d.selChinese=false;}
-    if(!('selMath' in d)){d.selMath=false;}
-    if(!('selEnglish' in d)){d.selEnglish=false;}
-    return d;
+  REQ=rs.docs.map(d=>d.data());
+  B35=bs.docs.map(d=>{
+    const data=d.data();
+    if(!('selChinese' in data)){data.selChinese=false;}
+    if(!('selMath' in data)){data.selMath=false;}
+    if(!('selEnglish' in data)){data.selEnglish=false;}
+    return data;
   });
 }
 
@@ -1306,46 +1311,22 @@ function selCountForSubj_global(g,subj){
   }).length;
 }
 
-// ─── DEBOUNCED SAVE：防止連續勾選爆掉 Firebase 寫入佇列 ───
-// 原理：每次勾選只更新本地狀態 + 畫面，並重置計時器。
-// 停止勾選 1.2 秒後才真正寫入 Firebase，無論連續勾幾個都只算一次寫入。
-let _b35SaveTimer=null;
-let _b35SavePending=false;
-
-function scheduleB35Save(){
-  _b35SavePending=true;
-  document.getElementById('fb-status').textContent='✏️ 有變更待存…';
-  clearTimeout(_b35SaveTimer);
-  _b35SaveTimer=setTimeout(async()=>{
-    try{
-      await fbBatchWrite('bottom35',B35);
-      _b35SavePending=false;
-      document.getElementById('fb-dot').className='fb-dot ok';
-      document.getElementById('fb-status').textContent='已儲存';
-      setTimeout(()=>{
-        if(!_b35SavePending)document.getElementById('fb-status').textContent='已連線';
-      },2000);
-    }catch(e){
-      document.getElementById('fb-dot').className='fb-dot err';
-      document.getElementById('fb-status').textContent='儲存失敗';
-      toast('儲存失敗，請確保您具有管理員權限','err');
-    }
-  },1200);
-}
-
-function toggleB35Select(id,subj,checked){
+async function toggleB35Select(id,subj,checked){
   if(!isEditMode){toast('請先進入編輯模式才能修改','warn');
     renderB35();return;}
   const s=B35.find(b=>b.id===id);
   if(!s)return;
   const sf=selField(subj);
   s[sf]=checked;
-  // 立即更新畫面（不等 Firebase）
+  try{
+    await fbUpdateDoc('bottom35',id,{[sf]:checked});
+  }catch(e){
+    toast('更新失敗: '+e.message,'err');
+    s[sf]=!checked;
+  }
   renderB35();
   updateDBStatus();
   updateB35FloatPanel();
-  // 延遲寫入（防抖 1.2 秒）
-  scheduleB35Save();
 }
 
 // ─── RENDER: EXAM LIST TAB ───
@@ -1662,12 +1643,6 @@ function toggleEditMode(){
     toast('已切換為瀏覽模式','info');
     return;
   }
-  // ✅ 雙重鎖第一關：檢查是否有 admin.html 發出的 Google 登入憑證
-  if(!window._firebaseAuth||!window._firebaseAuth.currentUser){
-    toast('❌ 系統拒絕：未偵測到管理員憑證，請先至控制中心登入！','err');
-    return;
-  }
-  // 第二關：密碼驗證
   const pw=prompt('請輸入管理員密碼：');
   if(pw===null)return;
   if(pw===ADMIN_PW){
@@ -1679,11 +1654,6 @@ function toggleEditMode(){
 }
 
 function activateEditMode(){
-  // ✅ 雙重保險：即使直接呼叫此函式也會被擋下
-  if(!window._firebaseAuth||!window._firebaseAuth.currentUser){
-    toast('❌ 系統拒絕：未偵測到管理員憑證，請先至控制中心登入！','err');
-    return;
-  }
   isEditMode=true;
   document.body.classList.remove('view-only');
   updateEditBtn();

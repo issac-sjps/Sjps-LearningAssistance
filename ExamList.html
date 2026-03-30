@@ -1390,7 +1390,7 @@ function renderB35(){
             if(!ties.length)return '';
             const tieNames=ties.map(t=>`${t.grade}年${t.classNum}班${t.seat}號`).join('、');
             const anyTieSel=ties.some(t=>!!t[selField(subj)]);
-            return `<div style="margin-top:3px;font-size:10px;color:${anyTieSel?'var(--teal)':\'var(--amber)'};line-height:1.4">
+            return `<div style="margin-top:3px;font-size:10px;color:${anyTieSel?'var(--teal)':'var(--amber)'};line-height:1.4">
               ⚠ 同分：${tieNames}${isSel&&!anyTieSel?' — 建議一起勾選':''}
             </div>`;
           })()}
@@ -1469,10 +1469,8 @@ async function toggleB35Select(id,subj,checked){
         !REQ.some(r=>r.name===b.name&&r.grade===b.grade&&String(r[subj]||'').trim().toUpperCase()==='X')
       );
       if(ties.length){
-        const names=ties.map(t=>`${t.grade}年${t.classNum}班 ${t.seat}號 ${t.name}`).join('
-');
-        toast(`⚠ 有 ${ties.length} 位同分同學建議一起選取：
-${names}`,'warn');
+        const names=ties.map(t=>`${t.grade}年${t.classNum}班 ${t.seat}號 ${t.name}`).join('\n');
+        toast(`⚠ 有 ${ties.length} 位同分同學建議一起選取：\n${names}`,'warn');
       }
     }
   }

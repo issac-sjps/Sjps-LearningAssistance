@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學習扶助測驗系統 v55.1 (Firebase + 管理員防呆鎖)</title>
+    <title>學習扶助測驗系統 v55.2 (Firebase 匿名登入授權版)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script> <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
         /* --- 全域設定 --- */
@@ -275,7 +275,7 @@
 
     <div class="navbar">
         <div class="nav-left">
-            <h2 style="margin:0;">測驗系統 v55.1</h2>
+            <h2 style="margin:0;">測驗系統 v55.2</h2>
             <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
         </div>
         
@@ -524,9 +524,9 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth(); // v55.2 新增 Auth
     // --------------------------------
 
-    // v55.1 全域管理員鎖定狀態與密碼更新
     let isAdminUnlocked = false;
     const ADMIN_PWD = "admin"; 
 
@@ -589,7 +589,18 @@
 
     function init() {
         renderGradeSettings();
-        loadConfig();
+        
+        // v55.2 核心修復：執行匿名登入，解決 Missing permissions 錯誤
+        auth.signInAnonymously()
+            .then(() => {
+                console.log("✅ Firebase 匿名登入成功！已取得資料庫讀寫權限。");
+                loadConfig();
+            })
+            .catch((error) => {
+                console.error("❌ Firebase 匿名登入失敗:", error);
+                // 登入失敗也去跑一次 loadConfig，讓程式能夠載入預設值維持運作
+                loadConfig();
+            });
     }
 
     function toggleAdminLock() {
@@ -772,7 +783,7 @@
             })
             .catch((error) => {
                 console.error("雲端存檔失敗:", error);
-                alert("雲端存檔失敗！請確認 Firebase 規則是否已開放。");
+                alert("雲端存檔失敗！可能是權限不足或網路斷線。");
             });
     }
 

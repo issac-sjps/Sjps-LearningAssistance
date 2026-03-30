@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學習扶助測驗系統 v54.0 (單筆補印功能與雲端整合)</title>
+    <title>學習扶助測驗系統 v55.1 (Firebase + 管理員防呆鎖)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
@@ -275,7 +275,7 @@
 
     <div class="navbar">
         <div class="nav-left">
-            <h2 style="margin:0;">測驗系統 v54.0</h2>
+            <h2 style="margin:0;">測驗系統 v55.1</h2>
             <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
         </div>
         
@@ -295,6 +295,8 @@
                 <button onclick="switchTab('surveys-set')">上課意願調查表設定</button>
                 <button onclick="switchTab('surveys-print')">上課意願調查表列印</button>
             </div>
+            
+            <button id="admin-lock-btn" onclick="toggleAdminLock()" style="background:#c0392b; color:white; margin-left: 10px; border: 2px solid white;">🔒 管理員模式 (未解鎖)</button>
         </div>
     </div>
 
@@ -316,7 +318,7 @@
                 <h3>考試通知單參數 (聯絡簿小條)</h3>
                 <div class="config-row" style="background:#e8f4fd; padding:10px;">
                     <label style="width:80px;">標題</label>
-                    <input type="text" id="slip-title" onchange="saveConfig()" value="教育部-新莊國小-學習扶助-成長測驗 (請協助貼施測當週聯絡簿)">
+                    <input type="text" id="slip-title" class="admin-locked-input" onchange="saveConfig()" value="教育部-新莊國小-學習扶助-成長測驗 (請協助貼施測當週聯絡簿)">
                 </div>
                 <div id="grade-settings-area"></div>
                 <div style="margin-top:20px; text-align:center;">
@@ -345,36 +347,36 @@
                 <div class="survey-config-grid">
                     <div class="survey-config-item" style="grid-column: span 2;">
                         <label>通知書標題</label>
-                        <input type="text" id="pn-title" onchange="saveParentNoticeConfig()">
+                        <input type="text" id="pn-title" class="admin-locked-input" onchange="saveParentNoticeConfig()">
                     </div>
                     
                     <div class="survey-config-item" style="grid-column: span 2;">
                         <label>開頭問候首句</label>
-                        <input type="text" id="pn-greeting" onchange="saveParentNoticeConfig()">
+                        <input type="text" id="pn-greeting" class="admin-locked-input" onchange="saveParentNoticeConfig()">
                     </div>
 
                     <div class="survey-config-item" style="grid-column: span 2;">
                         <label>開頭問候內容</label>
-                        <textarea id="pn-intro" rows="6" onchange="saveParentNoticeConfig()"></textarea>
+                        <textarea id="pn-intro" class="admin-locked-input" rows="6" onchange="saveParentNoticeConfig()"></textarea>
                     </div>
                     
                     <div class="survey-config-item" style="grid-column: span 2;">
                          <label>目的與原因 (說明文字)</label>
-                         <textarea id="pn-reason" rows="7" onchange="saveParentNoticeConfig()"></textarea>
+                         <textarea id="pn-reason" class="admin-locked-input" rows="7" onchange="saveParentNoticeConfig()"></textarea>
                     </div>
 
                     <div class="survey-config-item" style="grid-column: span 2;">
                         <label>頁尾署名</label>
-                        <input type="text" id="pn-footer" onchange="saveParentNoticeConfig()">
+                        <input type="text" id="pn-footer" class="admin-locked-input" onchange="saveParentNoticeConfig()">
                     </div>
 
                     <div class="survey-config-item" style="grid-column: span 2;">
                         <label>回條標題</label>
-                        <input type="text" id="pn-reply-title" onchange="saveParentNoticeConfig()">
+                        <input type="text" id="pn-reply-title" class="admin-locked-input" onchange="saveParentNoticeConfig()">
                     </div>
                     <div class="survey-config-item" style="grid-column: span 2;">
                         <label>回條繳交期限</label>
-                        <input type="text" id="pn-reply-deadline" onchange="saveParentNoticeConfig()">
+                        <input type="text" id="pn-reply-deadline" class="admin-locked-input" onchange="saveParentNoticeConfig()">
                     </div>
                 </div>
                 <div style="margin-top:15px; text-align:center;">
@@ -445,25 +447,25 @@
                 </div>
 
                 <div class="survey-config-grid">
-                    <div class="survey-config-item"><label>學年度</label><input type="text" id="s-year" onchange="saveCurrentPeriod()"></div>
-                    <div class="survey-config-item"><label>學期/假期</label><input type="text" id="s-semester" onchange="saveCurrentPeriod()"></div>
-                    <div class="survey-config-item"><label>上課日期</label><input type="text" id="s-date" onchange="saveCurrentPeriod()"></div>
-                    <div class="survey-config-item"><label>上課時間</label><input type="text" id="s-time" onchange="saveCurrentPeriod()"></div>
+                    <div class="survey-config-item"><label>學年度</label><input type="text" id="s-year" class="admin-locked-input" onchange="saveCurrentPeriod()"></div>
+                    <div class="survey-config-item"><label>學期/假期</label><input type="text" id="s-semester" class="admin-locked-input" onchange="saveCurrentPeriod()"></div>
+                    <div class="survey-config-item"><label>上課日期</label><input type="text" id="s-date" class="admin-locked-input" onchange="saveCurrentPeriod()"></div>
+                    <div class="survey-config-item"><label>上課時間</label><input type="text" id="s-time" class="admin-locked-input" onchange="saveCurrentPeriod()"></div>
                     
                     <div class="survey-config-item">
                         <label>上課地點</label>
-                        <input type="text" id="s-loc" onchange="saveCurrentPeriod()" placeholder="例：暫定至善樓二樓教室">
+                        <input type="text" id="s-loc" class="admin-locked-input" onchange="saveCurrentPeriod()" placeholder="例：暫定至善樓二樓教室">
                     </div>
                     <div class="survey-config-item">
                         <label>地點備註 (如：另發通知)</label>
-                        <input type="text" id="s-note" onchange="saveCurrentPeriod()" placeholder="例：，若確定開班，另發通知單。">
+                        <input type="text" id="s-note" class="admin-locked-input" onchange="saveCurrentPeriod()" placeholder="例：，若確定開班，另發通知單。">
                     </div>
                     
-                    <div class="survey-config-item"><label>繳交期限</label><input type="text" id="s-deadline" onchange="saveCurrentPeriod()"></div>
+                    <div class="survey-config-item"><label>繳交期限</label><input type="text" id="s-deadline" class="admin-locked-input" onchange="saveCurrentPeriod()"></div>
                     
                     <div class="survey-config-item" style="grid-column: span 2;">
                         <label>頁尾署名</label>
-                        <input type="text" id="s-footer" onchange="saveCurrentPeriod()">
+                        <input type="text" id="s-footer" class="admin-locked-input" onchange="saveCurrentPeriod()">
                     </div>
                 </div>
                 
@@ -472,7 +474,7 @@
                         <label style="color:#d35400;">目的與原因 (說明文字)：</label>
                         <button class="btn btn-gray" style="font-size:12px; padding:3px 8px;" onclick="loadDefaultTemplate()">🔄 載入預設範本</button>
                     </div>
-                    <textarea id="s-reasons" rows="6" onchange="saveCurrentPeriod()"></textarea>
+                    <textarea id="s-reasons" class="admin-locked-input" rows="6" onchange="saveCurrentPeriod()"></textarea>
                 </div>
                 <div style="margin-top:15px; text-align:center;">
                     <button class="btn btn-blue" onclick="switchTab('surveys-print')">設定完成，前往列印 👉</button>
@@ -523,6 +525,10 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     // --------------------------------
+
+    // v55.1 全域管理員鎖定狀態與密碼更新
+    let isAdminUnlocked = false;
+    const ADMIN_PWD = "admin"; 
 
     let globalStudents = [];
     
@@ -584,6 +590,36 @@
     function init() {
         renderGradeSettings();
         loadConfig();
+    }
+
+    function toggleAdminLock() {
+        const btn = document.getElementById('admin-lock-btn');
+        if (isAdminUnlocked) {
+            isAdminUnlocked = false;
+            btn.innerText = "🔒 管理員模式 (未解鎖)";
+            btn.style.background = "#c0392b";
+            alert("已鎖定！現在無法修改並同步雲端設定。");
+        } else {
+            const pwd = prompt("請輸入管理員密碼以解鎖雲端修改權限：");
+            if (pwd === ADMIN_PWD) {
+                isAdminUnlocked = true;
+                btn.innerText = "🔓 管理員模式 (已解鎖)";
+                btn.style.background = "#27ae60";
+                alert("解鎖成功！您現在可以修改並同步設定至雲端了。");
+            } else if (pwd !== null) {
+                alert("密碼錯誤！無法解鎖。");
+            }
+        }
+        applyAdminLockUI(); 
+    }
+
+    function applyAdminLockUI() {
+        const lockedInputs = document.querySelectorAll('.admin-locked-input, #grade-settings-area input');
+        lockedInputs.forEach(el => {
+            el.disabled = !isAdminUnlocked;
+            el.style.backgroundColor = !isAdminUnlocked ? "#eeeeee" : "#ffffff";
+            el.style.cursor = !isAdminUnlocked ? "not-allowed" : "text";
+        });
     }
 
     function showCloudStatus() {
@@ -664,6 +700,12 @@
     }
 
     function applyNoticeTemplate() {
+        if (!isAdminUnlocked) {
+            alert("🔒 未解鎖管理員模式，無法套用並覆寫設定！");
+            document.getElementById('pn-type').value = parentNoticeConfig.title.includes("篩選測驗") ? "screening" : "growth";
+            return;
+        }
+
         const type = document.getElementById('pn-type').value;
         const tmpl = noticeTemplates[type];
         
@@ -692,6 +734,10 @@
     }
 
     function loadDefaultTemplate() {
+        if (!isAdminUnlocked) {
+            alert("🔒 未解鎖管理員模式，無法覆寫設定！");
+            return;
+        }
         const p = document.getElementById('survey-period-select').value;
         if(confirm(`確定要將【${p}】的說明文字還原成預設值嗎？`)) {
             document.getElementById('s-reasons').value = periodDefaults[p].reasons;
@@ -700,6 +746,11 @@
     }
 
     function saveConfig() {
+        if (!isAdminUnlocked) {
+            console.log("🔒 管理員未解鎖，雲端寫入已阻斷。");
+            return; 
+        }
+
         const config = {
             slipTitle: document.getElementById('slip-title').value,
             grades: {},
@@ -714,7 +765,6 @@
             };
         }
         
-        // --- Firebase 雲端寫入 ---
         db.collection('exam_system_settings').doc('global_config').set(config)
             .then(() => {
                 console.log("資料已成功同步至 Firebase 雲端！");
@@ -722,11 +772,11 @@
             })
             .catch((error) => {
                 console.error("雲端存檔失敗:", error);
+                alert("雲端存檔失敗！請確認 Firebase 規則是否已開放。");
             });
     }
 
     function loadConfig() {
-        // --- Firebase 雲端讀取 ---
         db.collection('exam_system_settings').doc('global_config').get().then((doc) => {
             if(doc.exists) {
                 const c = doc.data();
@@ -751,6 +801,8 @@
                     document.getElementById('pn-footer').value = parentNoticeConfig.footer;
                     document.getElementById('pn-reply-title').value = parentNoticeConfig.replyTitle;
                     document.getElementById('pn-reply-deadline').value = parentNoticeConfig.replyDeadline;
+                    
+                    document.getElementById('pn-type').value = parentNoticeConfig.title.includes("篩選測驗") ? "screening" : "growth";
                 }
                 if(c.grades) {
                     for(let i=1; i<=6; i++) {
@@ -779,10 +831,13 @@
             document.getElementById('pn-reply-title').value = parentNoticeConfig.replyTitle || noticeTemplates.growth.replyTitle;
             document.getElementById('pn-reply-deadline').value = parentNoticeConfig.replyDeadline || noticeTemplates.growth.replyDeadline;
             
+            applyAdminLockUI();
+
         }).catch((error) => {
             console.error("讀取 Firebase 失敗，使用本機預設值:", error);
             document.getElementById('survey-period-select').value = 'semester1';
             switchSurveyPeriod();
+            applyAdminLockUI(); 
         });
     }
 
@@ -881,7 +936,7 @@
         document.querySelectorAll('.navbar button').forEach(b => b.classList.remove('active'));
         document.getElementById('tab-'+id).classList.add('active');
         
-        const btns = document.querySelectorAll('.navbar button');
+        const btns = document.querySelectorAll('.navbar button:not(#admin-lock-btn)');
         const map = { 'data':0, 'slips':1, 'idlist':2, 'stats':3, 'teachers':4, 'parent-notice-set':5, 'parent-notice-print':6, 'surveys-set':7, 'surveys-print':8 };
         if(map[id] !== undefined) btns[map[id]].classList.add('active');
     }
@@ -952,7 +1007,6 @@
         </div>`;
     }
 
-    // v54.0 新增: 處理搜尋邏輯的共用函數
     function getPrintTargets(searchQuery) {
         if(globalStudents.length === 0) {
             alert('⚠️ 尚未匯入資料，請先至第一步匯入 Excel。');
@@ -964,11 +1018,8 @@
         if (searchQuery && searchQuery.trim() !== '') {
             const query = searchQuery.trim();
             targets = targets.filter(s => {
-                // 將班級、座號補零，以應對如 10404 的搜尋格式 (1年4班4號)
                 const code1 = s.grade + String(s.cls).padStart(2, '0') + String(s.seat).padStart(2, '0');
-                // 未補零的格式，應對 144
                 const code2 = s.grade + String(s.cls) + String(s.seat);
-                
                 return s.name.includes(query) || code1 === query || code2 === query;
             });
             
@@ -977,7 +1028,6 @@
                 return null;
             }
         } else {
-            // 如果是按產生全部按鈕，清空搜尋框
             const el1 = document.getElementById('search-pn');
             if (el1) el1.value = '';
             const el2 = document.getElementById('search-survey');
@@ -992,7 +1042,6 @@
         return targets;
     }
 
-    // v54.0 修改: 支援搜尋參數
     function renderParentNotices(searchQuery = null) {
         const targets = getPrintTargets(searchQuery);
         if(!targets) return;
@@ -1080,7 +1129,6 @@
         showPreview(html, 'print-surveys');
     }
 
-    // v54.0 修改: 支援搜尋參數
     function renderSurveys(searchQuery = null) {
         const targets = getPrintTargets(searchQuery);
         if(!targets) return;

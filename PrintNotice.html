@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學習扶助測驗系統 v55.2 (Firebase 匿名登入授權版)</title>
+    <title>學習扶助測驗系統 v57.0 (隱蔽授權版)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script> <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <style>
         /* --- 全域設定 --- */
@@ -275,7 +276,7 @@
 
     <div class="navbar">
         <div class="nav-left">
-            <h2 style="margin:0;">測驗系統 v55.2</h2>
+            <h2 style="margin:0;">測驗系統 v57.0</h2>
             <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
         </div>
         
@@ -524,11 +525,13 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const auth = firebase.auth(); // v55.2 新增 Auth
+    const auth = firebase.auth(); // 啟用 Firebase Auth
     // --------------------------------
 
+    // v57.0 全域管理員鎖定狀態與密碼
     let isAdminUnlocked = false;
     const ADMIN_PWD = "admin"; 
+    let currentUser = null;
 
     let globalStudents = [];
     
@@ -590,19 +593,15 @@
     function init() {
         renderGradeSettings();
         
-        // v55.2 核心修復：執行匿名登入，解決 Missing permissions 錯誤
-        auth.signInAnonymously()
-            .then(() => {
-                console.log("✅ Firebase 匿名登入成功！已取得資料庫讀寫權限。");
-                loadConfig();
-            })
-            .catch((error) => {
-                console.error("❌ Firebase 匿名登入失敗:", error);
-                // 登入失敗也去跑一次 loadConfig，讓程式能夠載入預設值維持運作
-                loadConfig();
-            });
+        // 監聽 Firebase 登入狀態 (跨頁面自動繼承憑證)
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+        });
+        
+        loadConfig();
     }
 
+    // v57.0 隱蔽授權：防呆密碼 + 後台憑證雙重驗證
     function toggleAdminLock() {
         const btn = document.getElementById('admin-lock-btn');
         if (isAdminUnlocked) {
@@ -611,10 +610,15 @@
             btn.style.background = "#c0392b";
             alert("已鎖定！現在無法修改並同步雲端設定。");
         } else {
-            const pwd = prompt("請輸入管理員密碼以解鎖雲端修改權限：");
+            const pwd = prompt("請輸入密碼以解鎖修改權限：");
             if (pwd === ADMIN_PWD) {
+                // 密碼對了，檢查是否有底層授權
+                if (!currentUser) {
+                    alert("系統偵測您尚未登入，請先至管理員專屬登入頁面完成登入！");
+                    return;
+                }
                 isAdminUnlocked = true;
-                btn.innerText = "🔓 管理員模式 (已解鎖)";
+                btn.innerText = `🔓 已解鎖 (${currentUser.email})`;
                 btn.style.background = "#27ae60";
                 alert("解鎖成功！您現在可以修改並同步設定至雲端了。");
             } else if (pwd !== null) {
@@ -776,6 +780,7 @@
             };
         }
         
+        // --- Firebase 雲端寫入，並攔截權限錯誤 ---
         db.collection('exam_system_settings').doc('global_config').set(config)
             .then(() => {
                 console.log("資料已成功同步至 Firebase 雲端！");
@@ -783,7 +788,11 @@
             })
             .catch((error) => {
                 console.error("雲端存檔失敗:", error);
-                alert("雲端存檔失敗！可能是權限不足或網路斷線。");
+                if (error.code === 'permission-denied') {
+                    alert("你的帳號沒有權限，請洽詢最高管理員。");
+                } else {
+                    alert("雲端存檔失敗！" + error.message);
+                }
             });
     }
 

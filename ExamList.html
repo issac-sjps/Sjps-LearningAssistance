@@ -874,6 +874,14 @@ async function saveRequiredList(){
   if(!pendingReq){toast('沒有待儲存的資料','warn');return;}
   try{
     syncNotes(pendingReq,B35);
+    // Smart merge: preserve identity from existing REQ if new upload doesn't have it
+    pendingReq.forEach(s=>{
+      const existing=REQ.find(r=>r.name===s.name&&r.grade===s.grade);
+      if(existing){
+        // Keep identity if new one is empty
+        if(!s.identity&&existing.identity)s.identity=existing.identity;
+      }
+    });
     await fbBatchWrite('requiredExam',pendingReq);
     REQ=pendingReq;pendingReq=null;
     document.getElementById('btn-save-req').disabled=true;

@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學習扶助測驗系統 v53.0 (Firebase 雲端整合版)</title>
+    <title>學習扶助測驗系統 v54.0 (單筆補印功能與雲端整合)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <!-- 【改動1】加入 Auth SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
     <style>
         /* --- 全域設定 --- */
@@ -75,22 +73,6 @@
         .btn-import { background-color: #2980b9 !important; color: white !important; }
         .btn-import:hover { background-color: #3498db !important; }
         .btn-import.active { background-color: #f39c12 !important; }
-
-        /* 【改動2】編輯模式按鈕樣式 */
-        #editModeBtn {
-            background-color: #c0392b !important;
-            color: white !important;
-            font-size: 13px !important;
-            padding: 5px 12px !important;
-            border-radius: 5px !important;
-            cursor: pointer;
-            border: none;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-        #editModeBtn.unlocked {
-            background-color: #27ae60 !important;
-        }
 
         .container { max-width: 1100px; margin: 20px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .settings-box { border: 2px solid #e0e0e0; padding: 20px; margin-bottom: 20px; background-color: #fff; border-radius: 8px; }
@@ -293,10 +275,8 @@
 
     <div class="navbar">
         <div class="nav-left">
-            <h2 style="margin:0;">測驗系統 v53.0</h2>
+            <h2 style="margin:0;">測驗系統 v54.0</h2>
             <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
-            <!-- 【改動3】加入編輯模式按鈕 -->
-            <button id="editModeBtn" onclick="tryUnlock()">🔒 瀏覽模式</button>
         </div>
         
         <div class="nav-right">
@@ -407,8 +387,13 @@
              <div class="settings-box">
                 <h3>給家長通知書列印</h3>
                 <div style="text-align: center; padding: 20px;">
-                    <button class="btn btn-green" onclick="renderParentNotices()">🔄 產生家長通知書</button>
+                    <button class="btn btn-green" onclick="renderParentNotices()">🔄 產生全部家長通知書</button>
                     <button class="btn btn-green" onclick="safePrint()">🖨️ 確認列印</button>
+                </div>
+                <div style="text-align: center; margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 20px;">
+                    <span style="font-weight: bold; color: #d35400;">🔍 單一學生補印：</span>
+                    <input type="text" id="search-pn" placeholder="輸入姓名(例:王大明) 或 班級座號(例:10404)" style="width: 280px; display: inline-block;">
+                    <button class="btn btn-blue" onclick="renderParentNotices(document.getElementById('search-pn').value)">搜尋並預覽單筆</button>
                 </div>
             </div>
         </div>
@@ -500,8 +485,13 @@
                 <h3>上課意願調查表列印 (預覽與列印)</h3>
                 <div style="text-align: center; padding: 20px;">
                     <p style="color:#666; margin-bottom:15px;">目前選擇版本：<b id="print-current-version" style="color:#33691e;">上學期</b></p>
-                    <button class="btn btn-green" onclick="renderSurveys()">🔄 產生調查表</button>
+                    <button class="btn btn-green" onclick="renderSurveys()">🔄 產生全部調查表</button>
                     <button class="btn btn-green" onclick="safePrint()">🖨️ 確認列印</button>
+                </div>
+                <div style="text-align: center; margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 20px;">
+                    <span style="font-weight: bold; color: #d35400;">🔍 單一學生補印：</span>
+                    <input type="text" id="search-survey" placeholder="輸入姓名(例:王大明) 或 班級座號(例:10404)" style="width: 280px; display: inline-block;">
+                    <button class="btn btn-blue" onclick="renderSurveys(document.getElementById('search-survey').value)">搜尋並預覽單筆</button>
                 </div>
             </div>
         </div>
@@ -532,84 +522,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    // 【改動4】初始化 Auth
-    const auth = firebase.auth();
     // --------------------------------
-
-    // 【改動4】編輯模式狀態
-    let isAdminMode = false;
-
-    // 【改動4】點擊🔒按鈕的入口：先問密碼，再檢查 Firebase 登入狀態
-    async function tryUnlock() {
-        if (isAdminMode) {
-            // 已在編輯模式 → 點擊即鎖定
-            isAdminMode = false;
-            auth.signOut();
-            document.getElementById('editModeBtn').textContent = '🔒 瀏覽模式';
-            document.getElementById('editModeBtn').classList.remove('unlocked');
-            setInputsDisabled(true);
-            return;
-        }
-
-        // 第一層：密碼驗證
-        const pw = prompt('請輸入密碼：');
-        if (pw !== 'admin') return; // 錯誤或取消 → 靜默結束
-
-        // 第二層：檢查 Firebase 是否已有登入狀態 (不跳任何彈窗)
-        const user = auth.currentUser;
-        if (!user) {
-            alert('沒有權限，請登入');
-            return;
-        }
-
-        // 第三層：查 Firestore users 集合確認角色
-        try {
-            const userDoc = await db.collection('users').doc(user.uid).get();
-            const isRoot = user.email === 'issac@sjps.kh.edu.tw';
-            const isAdmin = userDoc.exists && userDoc.data().role === 'admin';
-
-            if (isRoot || isAdmin) {
-                isAdminMode = true;
-                document.getElementById('editModeBtn').textContent = '🔓 編輯模式';
-                document.getElementById('editModeBtn').classList.add('unlocked');
-                setInputsDisabled(false);
-            }
-            // 不是 admin → 靜默結束，不給任何提示
-        } catch (e) {
-            // 讀取失敗 → 靜默結束
-            console.error('權限驗證失敗', e);
-        }
-    }
-
-    // 【改動4】控制所有設定欄位的啟用/停用
-    function setInputsDisabled(disabled) {
-        const ids = [
-            'slip-title',
-            'pn-type', 'pn-title', 'pn-greeting', 'pn-intro',
-            'pn-reason', 'pn-footer', 'pn-reply-title', 'pn-reply-deadline',
-            's-year', 's-semester', 's-date', 's-time',
-            's-loc', 's-note', 's-deadline', 's-footer', 's-reasons',
-            'survey-period-select'
-        ];
-        ids.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.disabled = disabled;
-                el.style.opacity = disabled ? '0.6' : '1';
-                el.style.cursor = disabled ? 'not-allowed' : '';
-            }
-        });
-        // grade-settings-area 裡的動態欄位
-        document.querySelectorAll('#grade-settings-area input').forEach(el => {
-            el.disabled = disabled;
-            el.style.opacity = disabled ? '0.6' : '1';
-            el.style.cursor = disabled ? 'not-allowed' : '';
-        });
-    }
-
-    // ================================
-    // 以下全部原本功能，完全不動
-    // ================================
 
     let globalStudents = [];
     
@@ -671,8 +584,6 @@
     function init() {
         renderGradeSettings();
         loadConfig();
-        // 【改動4】預設鎖定所有輸入欄位，等 renderGradeSettings 建立 DOM 後再鎖
-        setTimeout(() => setInputsDisabled(true), 100);
     }
 
     function showCloudStatus() {
@@ -789,9 +700,6 @@
     }
 
     function saveConfig() {
-        // 【改動4】沒有管理員權限，禁止儲存
-        if (!isAdminMode) return;
-
         const config = {
             slipTitle: document.getElementById('slip-title').value,
             grades: {},
@@ -974,8 +882,7 @@
         document.getElementById('tab-'+id).classList.add('active');
         
         const btns = document.querySelectorAll('.navbar button');
-        // 索引0=資料匯入, 1=🔒按鈕, 2=考試通知單, 3=考試簽到表...
-        const map = { 'data':0, 'slips':2, 'idlist':3, 'stats':4, 'teachers':5, 'parent-notice-set':6, 'parent-notice-print':7, 'surveys-set':8, 'surveys-print':9 };
+        const map = { 'data':0, 'slips':1, 'idlist':2, 'stats':3, 'teachers':4, 'parent-notice-set':5, 'parent-notice-print':6, 'surveys-set':7, 'surveys-print':8 };
         if(map[id] !== undefined) btns[map[id]].classList.add('active');
     }
 
@@ -1045,8 +952,50 @@
         </div>`;
     }
 
-    function renderParentNotices() {
-        if(globalStudents.length===0) return alert('無資料');
+    // v54.0 新增: 處理搜尋邏輯的共用函數
+    function getPrintTargets(searchQuery) {
+        if(globalStudents.length === 0) {
+            alert('⚠️ 尚未匯入資料，請先至第一步匯入 Excel。');
+            return null;
+        }
+        
+        let targets = globalStudents.filter(s => s.isCase);
+        
+        if (searchQuery && searchQuery.trim() !== '') {
+            const query = searchQuery.trim();
+            targets = targets.filter(s => {
+                // 將班級、座號補零，以應對如 10404 的搜尋格式 (1年4班4號)
+                const code1 = s.grade + String(s.cls).padStart(2, '0') + String(s.seat).padStart(2, '0');
+                // 未補零的格式，應對 144
+                const code2 = s.grade + String(s.cls) + String(s.seat);
+                
+                return s.name.includes(query) || code1 === query || code2 === query;
+            });
+            
+            if(targets.length === 0) {
+                alert(`⚠️ 找不到符合「${query}」且「需列印」的學生。\n\n請確認：\n1. 姓名或班級座號(例: 10404)是否正確\n2. 該生是否在「資料匯入檢視」中標記為【✅ 列印】`);
+                return null;
+            }
+        } else {
+            // 如果是按產生全部按鈕，清空搜尋框
+            const el1 = document.getElementById('search-pn');
+            if (el1) el1.value = '';
+            const el2 = document.getElementById('search-survey');
+            if (el2) el2.value = '';
+            
+            if(targets.length === 0) {
+                alert('⚠️ 名單中沒有任何需要列印測驗通知單的學生。');
+                return null;
+            }
+        }
+        
+        return targets;
+    }
+
+    // v54.0 修改: 支援搜尋參數
+    function renderParentNotices(searchQuery = null) {
+        const targets = getPrintTargets(searchQuery);
+        if(!targets) return;
         
         const title = document.getElementById('pn-title').value;
         const greeting = document.getElementById('pn-greeting').value;
@@ -1061,9 +1010,6 @@
         const legendText = pnType === 'screening' ? 'X: 本次要考' : 'O: 免考 / X: 本次要考 / 空白: 未測驗免考';
 
         const scheduleTable = generateScheduleTable();
-
-        const targets = globalStudents.filter(s => s.isCase);
-        if(targets.length===0) return alert('無符合條件學生');
 
         let html = '';
         targets.forEach(s => {
@@ -1134,8 +1080,11 @@
         showPreview(html, 'print-surveys');
     }
 
-    function renderSurveys() {
-        if(globalStudents.length===0) return alert('無資料');
+    // v54.0 修改: 支援搜尋參數
+    function renderSurveys(searchQuery = null) {
+        const targets = getPrintTargets(searchQuery);
+        if(!targets) return;
+        
         const config = {
             year: document.getElementById('s-year').value,
             semester: document.getElementById('s-semester').value,
@@ -1147,8 +1096,6 @@
             reasons: document.getElementById('s-reasons').value.split('\n').filter(l=>l.trim()).map(l=>`<p class="survey-indent">${l}</p>`).join(''),
             footer: document.getElementById('s-footer').value
         };
-        const targets = globalStudents.filter(s => s.isCase);
-        if(targets.length===0) return alert('無符合條件學生');
 
         let html = '';
         targets.forEach(s => {

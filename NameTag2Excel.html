@@ -7,313 +7,68 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
-
   :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #22263a;
-    --border: #2e3250;
-    --accent: #4f7cff;
-    --accent2: #ff6b6b;
-    --accent3: #43e97b;
-    --text: #e8eaf6;
-    --muted: #6b7280;
-    --gold: #ffd166;
+    --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3250;
+    --accent:#4f7cff;--accent3:#43e97b;--text:#e8eaf6;--muted:#6b7280;--gold:#ffd166;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans TC', sans-serif;
-    min-height: 100vh;
-    padding: 2rem 1rem;
-  }
-
-  .container { max-width: 960px; margin: 0 auto; }
-
-  header {
-    text-align: center;
-    margin-bottom: 3rem;
-  }
-  header .badge {
-    display: inline-block;
-    background: var(--accent);
-    color: #fff;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.7rem;
-    padding: 3px 10px;
-    border-radius: 20px;
-    letter-spacing: 2px;
-    margin-bottom: 1rem;
-  }
-  header h1 {
-    font-size: 2.2rem;
-    font-weight: 900;
-    letter-spacing: -1px;
-    background: linear-gradient(135deg, var(--accent), var(--accent3));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 0.5rem;
-  }
-  header p {
-    color: var(--muted);
-    font-size: 0.95rem;
-  }
-
-  /* Drop zone */
-  .drop-zone {
-    border: 2px dashed var(--border);
-    border-radius: 16px;
-    padding: 3rem 2rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    background: var(--surface);
-    position: relative;
-    margin-bottom: 2rem;
-  }
-  .drop-zone:hover, .drop-zone.dragover {
-    border-color: var(--accent);
-    background: rgba(79,124,255,0.06);
-  }
-  .drop-zone input[type=file] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-  }
-  .drop-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    display: block;
-  }
-  .drop-zone h2 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin-bottom: 0.4rem;
-  }
-  .drop-zone p {
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-  .file-name {
-    display: none;
-    margin-top: 1rem;
-    background: var(--surface2);
-    border-radius: 8px;
-    padding: 8px 16px;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.8rem;
-    color: var(--accent3);
-  }
-
-  /* Stats */
-  .stats {
-    display: none;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 2rem;
-  }
-  .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.2rem 1.5rem;
-    text-align: center;
-  }
-  .stat-card .num {
-    font-size: 2rem;
-    font-weight: 900;
-    font-family: 'Space Mono', monospace;
-    color: var(--accent);
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-  .stat-card .label {
-    font-size: 0.8rem;
-    color: var(--muted);
-  }
-
-  /* Toolbar */
-  .toolbar {
-    display: none;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-  }
-  .search-box {
-    flex: 1;
-    min-width: 200px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 14px;
-    color: var(--text);
-    font-family: 'Noto Sans TC', sans-serif;
-    font-size: 0.9rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .search-box:focus { border-color: var(--accent); }
-  .search-box::placeholder { color: var(--muted); }
-
-  .class-filter {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 14px;
-    color: var(--text);
-    font-family: 'Noto Sans TC', sans-serif;
-    font-size: 0.9rem;
-    outline: none;
-    cursor: pointer;
-    min-width: 120px;
-  }
-
-  .btn {
-    padding: 8px 20px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    font-family: 'Noto Sans TC', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 700;
-    transition: all 0.2s;
-    display: inline-flex; align-items: center; gap: 6px;
-  }
-  .btn-primary {
-    background: var(--accent);
-    color: #fff;
-  }
-  .btn-primary:hover { background: #3d6bef; transform: translateY(-1px); }
-  .btn-success {
-    background: var(--accent3);
-    color: #0f1117;
-  }
-  .btn-success:hover { background: #36d96a; transform: translateY(-1px); }
-
-  /* Table */
-  .table-wrap {
-    display: none;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-  }
-  .table-header {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .table-header span {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.8rem;
-    color: var(--muted);
-  }
-  .table-container {
-    max-height: 60vh;
-    overflow-y: auto;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-  }
-  thead th {
-    background: var(--surface2);
-    padding: 12px 20px;
-    text-align: left;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: var(--muted);
-    text-transform: uppercase;
-    position: sticky; top: 0; z-index: 1;
-    cursor: pointer;
-    user-select: none;
-    transition: color 0.2s;
-  }
-  thead th:hover { color: var(--accent); }
-  thead th .sort-icon { margin-left: 4px; opacity: 0.4; }
-  thead th.sorted .sort-icon { opacity: 1; color: var(--accent); }
-
-  tbody tr {
-    border-bottom: 1px solid rgba(46,50,80,0.5);
-    transition: background 0.15s;
-  }
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: rgba(79,124,255,0.06); }
-  tbody td {
-    padding: 11px 20px;
-    font-size: 0.9rem;
-  }
-  .badge-class {
-    display: inline-block;
-    background: rgba(79,124,255,0.15);
-    color: var(--accent);
-    font-family: 'Space Mono', monospace;
-    font-size: 0.78rem;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-weight: 700;
-  }
-  .badge-seat {
-    font-family: 'Space Mono', monospace;
-    font-size: 0.85rem;
-    color: var(--gold);
-  }
-  .highlight { background: rgba(255,209,102,0.25); border-radius: 3px; }
-
-  .empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: var(--muted);
-  }
-  .empty-state .icon { font-size: 2.5rem; margin-bottom: 1rem; }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: var(--surface2); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  /* loading */
-  .loading {
-    display: none;
-    text-align: center;
-    padding: 2rem;
-    color: var(--muted);
-    font-size: 0.9rem;
-  }
-  .spinner {
-    display: inline-block;
-    width: 20px; height: 20px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    margin-right: 8px;
-    vertical-align: middle;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  @media (max-width: 600px) {
-    .stats { grid-template-columns: repeat(3, 1fr); }
-    .stat-card .num { font-size: 1.5rem; }
-    header h1 { font-size: 1.6rem; }
-  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100vh;padding:2rem 1rem}
+  .container{max-width:960px;margin:0 auto}
+  header{text-align:center;margin-bottom:3rem}
+  header .badge{display:inline-block;background:var(--accent);color:#fff;font-family:'Space Mono',monospace;font-size:.7rem;padding:3px 10px;border-radius:20px;letter-spacing:2px;margin-bottom:1rem}
+  header h1{font-size:2.2rem;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.5rem}
+  header p{color:var(--muted);font-size:.95rem}
+  .drop-zone{border:2px dashed var(--border);border-radius:16px;padding:3rem 2rem;text-align:center;cursor:pointer;transition:all .25s;background:var(--surface);position:relative;margin-bottom:2rem}
+  .drop-zone:hover,.drop-zone.dragover{border-color:var(--accent);background:rgba(79,124,255,.06)}
+  .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .drop-icon{font-size:3rem;margin-bottom:1rem;display:block}
+  .drop-zone h2{font-size:1.1rem;font-weight:700;margin-bottom:.4rem}
+  .drop-zone p{color:var(--muted);font-size:.85rem}
+  .file-name{display:none;margin-top:1rem;background:var(--surface2);border-radius:8px;padding:8px 16px;font-family:'Space Mono',monospace;font-size:.8rem;color:var(--accent3)}
+  .stats{display:none;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.2rem 1.5rem;text-align:center}
+  .stat-card .num{font-size:2rem;font-weight:900;font-family:'Space Mono',monospace;color:var(--accent);line-height:1;margin-bottom:4px}
+  .stat-card .label{font-size:.8rem;color:var(--muted)}
+  .toolbar{display:none;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+  .search-box{flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-family:'Noto Sans TC',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s}
+  .search-box:focus{border-color:var(--accent)}
+  .search-box::placeholder{color:var(--muted)}
+  .class-filter{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-family:'Noto Sans TC',sans-serif;font-size:.9rem;outline:none;cursor:pointer;min-width:120px}
+  .btn{padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:.9rem;font-weight:700;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+  .btn-success{background:var(--accent3);color:#0f1117}
+  .btn-success:hover{background:#36d96a;transform:translateY(-1px)}
+  .table-wrap{display:none;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+  .table-header{padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .table-header span{font-family:'Space Mono',monospace;font-size:.8rem;color:var(--muted)}
+  .table-container{max-height:60vh;overflow-y:auto}
+  table{width:100%;border-collapse:collapse}
+  thead th{background:var(--surface2);padding:12px 20px;text-align:left;font-size:.8rem;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;position:sticky;top:0;z-index:1;cursor:pointer;user-select:none;transition:color .2s}
+  thead th:hover{color:var(--accent)}
+  thead th .sort-icon{margin-left:4px;opacity:.4}
+  thead th.sorted .sort-icon{opacity:1;color:var(--accent)}
+  tbody tr{border-bottom:1px solid rgba(46,50,80,.5);transition:background .15s}
+  tbody tr:last-child{border-bottom:none}
+  tbody tr:hover{background:rgba(79,124,255,.06)}
+  tbody td{padding:11px 20px;font-size:.9rem}
+  .badge-class{display:inline-block;background:rgba(79,124,255,.15);color:var(--accent);font-family:'Space Mono',monospace;font-size:.78rem;padding:2px 10px;border-radius:20px;font-weight:700}
+  .badge-seat{font-family:'Space Mono',monospace;font-size:.85rem;color:var(--gold)}
+  .highlight{background:rgba(255,209,102,.25);border-radius:3px}
+  .loading{display:none;text-align:center;padding:2rem;color:var(--muted);font-size:.9rem}
+  .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:var(--surface2)}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <div class="badge">TOOL v1.0</div>
+    <div class="badge">TOOL v2.0</div>
     <h1>班級名單整理工具</h1>
     <p>上傳點名單 XLS / XLSX，自動解析全校班級座號姓名，一鍵匯出 Excel</p>
   </header>
 
-  <!-- Drop Zone -->
   <div class="drop-zone" id="dropZone">
     <input type="file" id="fileInput" accept=".xls,.xlsx">
     <span class="drop-icon">📋</span>
@@ -322,43 +77,27 @@
     <div class="file-name" id="fileName"></div>
   </div>
 
-  <div class="loading" id="loading">
-    <span class="spinner"></span>解析中，請稍候...
-  </div>
+  <div class="loading" id="loading"><span class="spinner"></span>解析中，請稍候...</div>
 
-  <!-- Stats -->
   <div class="stats" id="stats">
-    <div class="stat-card">
-      <div class="num" id="statClasses">0</div>
-      <div class="label">班級數</div>
-    </div>
-    <div class="stat-card">
-      <div class="num" id="statStudents">0</div>
-      <div class="label">學生總數</div>
-    </div>
-    <div class="stat-card">
-      <div class="num" id="statSheets">0</div>
-      <div class="label">工作表數</div>
-    </div>
+    <div class="stat-card"><div class="num" id="statClasses">0</div><div class="label">班級數</div></div>
+    <div class="stat-card"><div class="num" id="statStudents">0</div><div class="label">學生總數</div></div>
+    <div class="stat-card"><div class="num" id="statSheets">0</div><div class="label">工作表數</div></div>
   </div>
 
-  <!-- Toolbar -->
   <div class="toolbar" id="toolbar">
-    <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜尋姓名或座號...">
-    <select class="class-filter" id="classFilter">
-      <option value="">全部班級</option>
-    </select>
+    <input type="text" class="search-box" id="searchBox" placeholder="🔍 搜尋姓名、座號或班級...">
+    <select class="class-filter" id="classFilter"><option value="">全部班級</option></select>
     <button class="btn btn-success" onclick="exportExcel()">⬇ 匯出 Excel</button>
   </div>
 
-  <!-- Table -->
   <div class="table-wrap" id="tableWrap">
     <div class="table-header">
       <span id="resultCount">0 筆資料</span>
       <span id="fileInfo"></span>
     </div>
     <div class="table-container">
-      <table id="dataTable">
+      <table>
         <thead>
           <tr>
             <th onclick="sortTable('class')" id="th-class">班級 <span class="sort-icon">↕</span></th>
@@ -373,212 +112,184 @@
 </div>
 
 <script>
-let allData = [];
-let filteredData = [];
-let sortCol = 'class';
-let sortDir = 1;
+let allData = [], filteredData = [], sortCol = 'class', sortDir = 1;
 
-// Drag and drop
 const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('fileInput');
-
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('dragover');
-  const file = e.dataTransfer.files[0];
-  if (file) processFile(file);
-});
-fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) processFile(fileInput.files[0]);
-});
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); if(e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+document.getElementById('fileInput').addEventListener('change', function(){ if(this.files[0]) processFile(this.files[0]); });
 
 function processFile(file) {
   document.getElementById('fileName').style.display = 'block';
   document.getElementById('fileName').textContent = '📄 ' + file.name;
   document.getElementById('loading').style.display = 'block';
-  document.getElementById('stats').style.display = 'none';
-  document.getElementById('toolbar').style.display = 'none';
-  document.getElementById('tableWrap').style.display = 'none';
+  ['stats','toolbar','tableWrap'].forEach(id => document.getElementById(id).style.display = 'none');
 
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data, { type: 'array', codepage: 950 });
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array', codepage:950 });
       const result = [];
-      let sheetCount = wb.SheetNames.length;
-
-      wb.SheetNames.forEach(sheetName => {
-        const ws = wb.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      wb.SheetNames.forEach(name => {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header:1, defval:'' });
         parseSheet(rows, result);
       });
 
       allData = result;
       document.getElementById('loading').style.display = 'none';
 
-      if (result.length === 0) {
-        alert('⚠️ 無法解析資料，請確認檔案格式是否為高雄市班級名條（A0260R2）');
+      if (!result.length) {
+        alert('⚠️ 無法解析資料，請確認是否為 A0260R2 班級名條格式');
         return;
       }
 
-      // Stats
-      const classes = [...new Set(result.map(r => r.class))].sort();
+      const classes = [...new Set(result.map(r=>r.class))].sort();
       document.getElementById('statClasses').textContent = classes.length;
       document.getElementById('statStudents').textContent = result.length;
-      document.getElementById('statSheets').textContent = sheetCount;
+      document.getElementById('statSheets').textContent = wb.SheetNames.length;
       document.getElementById('stats').style.display = 'grid';
       document.getElementById('fileInfo').textContent = file.name;
 
-      // Class filter
       const sel = document.getElementById('classFilter');
       sel.innerHTML = '<option value="">全部班級</option>';
-      classes.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c; opt.textContent = c + ' 班';
-        sel.appendChild(opt);
-      });
+      classes.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c+'班'; sel.appendChild(o); });
 
       document.getElementById('toolbar').style.display = 'flex';
       document.getElementById('tableWrap').style.display = 'block';
-
       filteredData = [...allData];
       renderTable();
     } catch(err) {
       document.getElementById('loading').style.display = 'none';
       alert('解析失敗：' + err.message);
+      console.error(err);
     }
   };
   reader.readAsArrayBuffer(file);
 }
 
+/**
+ * 解析 A0260R2 班級名條
+ *
+ * 格式規律（已從實際檔案確認）：
+ *   每個班佔 5 欄，最多 3 班並排，col pattern: [empty, 座號, 姓名, empty, 備註]
+ *   班級資訊行: col X = "A0260R2", col X+2 = "班    級：", col X+3 = 班號
+ *   因此：seatCol = X+1, nameCol = X+2（對應資料行）
+ *
+ *   實際確認的 col 位置（0-indexed）：
+ *     第1班: A0260R2@col1, 班號@col4, seat@col1, name@col2
+ *     第2班: A0260R2@col6, 班號@col9, seat@col6, name@col7
+ *     第3班: A0260R2@col11, 班號@col14, seat@col11, name@col12
+ *
+ * 策略：
+ *   1. 掃描全表，找出所有「3位數班號」的位置(row, col)
+ *   2. 根據班號所在 col 推算 seatCol = classNumCol - 3
+ *   3. 找到對應的資料起始行（班號行下方，找到「座號」header 後+1）
+ *   4. 逐行讀取，直到讀完或遇到下一個 header
+ */
 function parseSheet(rows, result) {
-  // Layout: multiple columns of classes side by side (every 5 columns)
-  // Col pattern: [empty, 座號, 姓名, empty, 備註] per class group
-  // Row 2 (idx): class number at col 4, 9, 14...
-  // Row 4 (idx): headers 座號 姓名
-  // Row 5+: data
+  // Step 1: 找出所有班號位置
+  // 班號特徵：3位數字，100-699，且同行的 col-1 含「級」字
+  const blocks = [];
 
-  // Find class row: look for a row containing "班    級：" or similar
-  let classRowIdx = -1;
-  let dataStartIdx = -1;
-
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    const rowStr = row.join('');
-    if (rowStr.includes('班') && rowStr.includes('級') && rowStr.includes('：')) {
-      classRowIdx = i;
-    }
-    // Find header row with 座號
-    if (classRowIdx >= 0 && rowStr.includes('座號') && rowStr.includes('姓')) {
-      dataStartIdx = i + 1;
-      break;
-    }
-  }
-
-  if (classRowIdx < 0 || dataStartIdx < 0) return;
-
-  // Extract class names: they are values after "班    級：" cell
-  // Structure: col 3 = "班    級：", col 4 = class number
-  // Groups at col offsets 0,5,10,...
-  const classRow = rows[classRowIdx];
-  const classes = [];
-
-  for (let col = 0; col < classRow.length; col++) {
-    const cell = String(classRow[col]).trim();
-    if (cell.includes('班') && cell.includes('級')) {
-      // Next cell has the class number
-      const classVal = String(classRow[col + 1] || '').trim();
-      if (classVal && /^\d+$/.test(classVal)) {
-        classes.push({ class: classVal, colOffset: col - 3 }); // -3 to get base
-      }
-    }
-  }
-
-  if (classes.length === 0) {
-    // Try alternative: look for numeric values in classRow that look like class numbers
-    for (let col = 0; col < classRow.length; col++) {
-      const cell = String(classRow[col]).trim();
-      if (/^\d{3}$/.test(cell)) {
-        classes.push({ class: cell, colOffset: col - 4 });
-      }
-    }
-  }
-
-  if (classes.length === 0) return;
-
-  // Parse student data rows
-  for (let r = dataStartIdx; r < rows.length; r++) {
+  for (let r = 0; r < rows.length; r++) {
     const row = rows[r];
-    if (!row || row.every(c => c === '' || c === null || c === undefined)) continue;
-
-    classes.forEach(({ class: cls, colOffset }) => {
-      // seat at colOffset+1, name at colOffset+2
-      const seatCell = String(row[colOffset + 1] || '').trim();
-      const nameCell = String(row[colOffset + 2] || '').trim();
-
-      if (seatCell && nameCell && /^\d+$/.test(seatCell) && nameCell.length >= 2) {
-        result.push({
-          class: cls,
-          seat: seatCell.padStart(2, '0'),
-          name: nameCell
-        });
+    for (let c = 0; c < row.length; c++) {
+      const v = String(row[c]||'').trim();
+      if (/^\d{3}$/.test(v) && parseInt(v) >= 100 && parseInt(v) <= 699) {
+        // 確認前一格含「級」
+        const prev = String(row[c-1]||'').replace(/\s/g,'');
+        if (prev.includes('級') || prev.includes('班')) {
+          blocks.push({ headerRow: r, classNum: v, classNumCol: c });
+        }
       }
-    });
+    }
   }
+
+  if (!blocks.length) return;
+
+  // Step 2 & 3: 對每個 block 找 seatCol, nameCol, dataStart
+  blocks.forEach(block => {
+    // seatCol = classNumCol - 3 (根據實際結構: 班號在 base+3, 座號在 base+1)
+    const seatCol = block.classNumCol - 3;
+    const nameCol = block.classNumCol - 2;
+
+    if (seatCol < 0) return;
+
+    // 找資料起始行：從 headerRow 往下最多找 5 行，找到「座號」header
+    let dataStart = block.headerRow + 3; // default fallback
+    for (let r = block.headerRow; r < Math.min(block.headerRow + 6, rows.length); r++) {
+      const cell = String(rows[r][seatCol]||'').trim();
+      if (cell === '座號') {
+        dataStart = r + 1;
+        break;
+      }
+    }
+
+    // Step 4: 讀取學生資料
+    for (let r = dataStart; r < rows.length; r++) {
+      const row = rows[r];
+      const seat = String(row[seatCol]||'').trim();
+      const name = String(row[nameCol]||'').replace(/[\u3000\s]/g,''); // 移除全形空格
+
+      // 跳過空行
+      if (!seat) continue;
+
+      // 停止：遇到非數字（合計行、下一頁 header）
+      if (!/^\d+$/.test(seat)) {
+        // 如果是「男」「合計」等字，代表這班結束
+        if (seat.includes('男') || seat.includes('合計') || seat.includes('學年')) break;
+        continue;
+      }
+
+      // 姓名要有且長度合理
+      if (!name || name.length < 2 || name.length > 6) continue;
+
+      result.push({
+        class: block.classNum,
+        seat: seat.padStart(2, '0'),
+        name
+      });
+    }
+  });
 }
 
 function renderTable() {
   const search = document.getElementById('searchBox').value.toLowerCase();
-  const classFilter = document.getElementById('classFilter').value;
+  const cf = document.getElementById('classFilter').value;
 
-  filteredData = allData.filter(r => {
-    const matchSearch = !search || r.name.includes(search) || r.seat.includes(search) || r.class.includes(search);
-    const matchClass = !classFilter || r.class === classFilter;
-    return matchSearch && matchClass;
-  });
+  filteredData = allData.filter(r =>
+    (!search || r.name.includes(search) || r.seat.includes(search) || r.class.includes(search)) &&
+    (!cf || r.class === cf)
+  );
 
-  // Sort
-  filteredData.sort((a, b) => {
-    if (sortCol === 'class') {
-      const diff = a.class.localeCompare(b.class);
-      if (diff !== 0) return diff * sortDir;
-      return parseInt(a.seat) - parseInt(b.seat);
+  filteredData.sort((a,b) => {
+    if (sortCol==='class') {
+      const d = a.class.localeCompare(b.class);
+      return d!==0 ? d*sortDir : (parseInt(a.seat)-parseInt(b.seat));
     }
-    if (sortCol === 'seat') return (parseInt(a.seat) - parseInt(b.seat)) * sortDir;
-    if (sortCol === 'name') return a.name.localeCompare(b.name) * sortDir;
-    return 0;
+    if (sortCol==='seat') return (parseInt(a.seat)-parseInt(b.seat))*sortDir;
+    return a.name.localeCompare(b.name)*sortDir;
   });
 
   document.getElementById('resultCount').textContent = filteredData.length + ' 筆資料';
 
-  const highlight = search;
-  const tbody = document.getElementById('tableBody');
-
-  if (filteredData.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="3"><div class="empty-state"><div class="icon">🔍</div>找不到符合條件的資料</div></td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = filteredData.map(r => {
-    const name = highlight ? r.name.replace(new RegExp(highlight, 'gi'), m => `<span class="highlight">${m}</span>`) : r.name;
-    return `<tr>
-      <td><span class="badge-class">${r.class}</span></td>
-      <td><span class="badge-seat">${r.seat}</span></td>
-      <td>${name}</td>
-    </tr>`;
-  }).join('');
+  const hl = search ? search.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') : '';
+  document.getElementById('tableBody').innerHTML = filteredData.length
+    ? filteredData.map(r => {
+        const n = hl ? r.name.replace(new RegExp(hl,'gi'), m=>`<span class="highlight">${m}</span>`) : r.name;
+        return `<tr><td><span class="badge-class">${r.class}</span></td><td><span class="badge-seat">${r.seat}</span></td><td>${n}</td></tr>`;
+      }).join('')
+    : `<tr><td colspan="3" style="text-align:center;padding:3rem;color:var(--muted)">🔍 找不到資料</td></tr>`;
 }
 
 function sortTable(col) {
-  if (sortCol === col) { sortDir *= -1; }
-  else { sortCol = col; sortDir = 1; }
+  sortDir = sortCol===col ? sortDir*-1 : 1;
+  sortCol = col;
   ['class','seat','name'].forEach(c => {
-    const th = document.getElementById('th-' + c);
-    th.classList.toggle('sorted', c === sortCol);
-    th.querySelector('.sort-icon').textContent = c === sortCol ? (sortDir === 1 ? '↑' : '↓') : '↕';
+    const th = document.getElementById('th-'+c);
+    th.classList.toggle('sorted', c===col);
+    th.querySelector('.sort-icon').textContent = c===col ? (sortDir===1?'↑':'↓') : '↕';
   });
   renderTable();
 }
@@ -587,25 +298,15 @@ document.getElementById('searchBox').addEventListener('input', renderTable);
 document.getElementById('classFilter').addEventListener('change', renderTable);
 
 function exportExcel() {
-  if (filteredData.length === 0) { alert('沒有資料可以匯出'); return; }
-
-  const exportData = filteredData.map(r => ({
-    '班級': r.class,
-    '座號': r.seat,
-    '姓名': r.name
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(exportData);
-  // Column widths
-  ws['!cols'] = [{ wch: 10 }, { wch: 8 }, { wch: 14 }];
-
+  if (!filteredData.length) { alert('沒有資料可匯出'); return; }
+  const ws = XLSX.utils.json_to_sheet(filteredData.map(r=>({'班級':r.class,'座號':r.seat,'姓名':r.name})));
+  ws['!cols'] = [{wch:10},{wch:8},{wch:14}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '班級名單');
-
   const now = new Date();
   const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-  const classLabel = document.getElementById('classFilter').value || '全校';
-  XLSX.writeFile(wb, `班級名單_${classLabel}_${ts}.xlsx`);
+  const label = document.getElementById('classFilter').value || '全校';
+  XLSX.writeFile(wb, `班級名單_${label}_${ts}.xlsx`);
 }
 </script>
 </body>

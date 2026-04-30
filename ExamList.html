@@ -581,7 +581,7 @@ body.view-only input[type=checkbox]{pointer-events:none}
 <!-- ═══════════════════ FIREBASE MODULE ═══════════════════ -->
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getFirestore,collection,getDocs,setDoc,doc,deleteDoc,writeBatch,updateDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import{getFirestore,collection,getDocs,getDoc,setDoc,doc,deleteDoc,writeBatch,updateDoc}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const cfg={
   apiKey:"AIzaSyDG3DQsPgDY7u5Rp0nO6SslUflh_bwrVZU",
   authDomain:"sjps-examlist.firebaseapp.com",
@@ -594,7 +594,7 @@ const cfg={
 const app=initializeApp(cfg);
 const db=getFirestore(app);
 window._db=db;
-window._fs={collection,getDocs,setDoc,doc,deleteDoc,writeBatch,updateDoc};
+window._fs={collection,getDocs,getDoc,setDoc,doc,deleteDoc,writeBatch,updateDoc};
 window._fbReady=true;
 document.dispatchEvent(new Event('fbReady'));
 </script>
@@ -967,6 +967,7 @@ async function loadAll(){
   document.getElementById('fb-status').textContent='載入中…';
   try{
     await fbLoadAll();
+    await loadMoeTargets();
     updateDBStatus();
     renderAll();
     document.getElementById('fb-dot').className='fb-dot ok';
@@ -1920,13 +1921,35 @@ function renderSPList(){
 
 
 // ─── RENDER: 教育部對照 ───
-// MOE data stored in memory (persisted to localStorage key for convenience)
-const MOE_KEY='sjps_moe_targets';
-let moeTargets=JSON.parse(localStorage.getItem(MOE_KEY)||'{}');
+// MOE data — stored in Firebase (collection: moeTargets, doc: 'targets')
+// Defaults preloaded from 教育部 data
+const MOE_DEFAULTS={'1_chinese': 18, '2_chinese': 17, '3_chinese': 25, '4_chinese': 37, '5_chinese': 28, '6_chinese': 28, '1_math': 30, '2_math': 29, '3_math': 36, '4_math': 39, '5_math': 66, '6_math': 64, '3_english': 44, '4_english': 46, '5_english': 37, '6_english': 39};
+let moeTargets={...MOE_DEFAULTS};
 // structure: { "1_chinese": 18, "2_math": 30, ... }
-// subjects per grade: gr1-2: chinese,math; gr3-6: chinese,math,english
 
-function saveMoeTargets(){localStorage.setItem(MOE_KEY,JSON.stringify(moeTargets));}
+async function saveMoeTargets(){
+  try{
+    const{collection,doc:docRef,setDoc}=window._fs;
+    await setDoc(docRef(collection(window._db,'moeTargets'),'targets'),moeTargets);
+    toast('教育部對照數字已儲存','ok');
+  }catch(e){toast('儲存失敗: '+e.message,'err');}
+}
+
+async function loadMoeTargets(){
+  try{
+    const{collection,doc:docRef,getDoc}=window._fs;
+    const snap=await getDoc(docRef(collection(window._db,'moeTargets'),'targets'));
+    if(snap.exists()){
+      moeTargets={...MOE_DEFAULTS,...snap.data()};
+    } else {
+      // First time: write defaults to Firebase
+      moeTargets={...MOE_DEFAULTS};
+      const{collection:col,doc:dr,setDoc:sd}=window._fs;
+      await sd(dr(col(window._db,'moeTargets'),'targets'),moeTargets);
+    }
+  }catch(e){console.warn('MOE load failed:',e);}
+}
+
 function moeKey(g,subj){return `${g}_${subj}`;}
 
 function renderMoeCmp(){
@@ -2032,11 +2055,12 @@ function renderMoeCmp(){
 }
 
 function setMoe(grade,subj,val){
+  if(!isEditMode){toast('請先進入編輯模式才能修改','warn');renderMoeCmp();return;}
   const n=parseInt(val);
   if(!isNaN(n)&&n>=0)moeTargets[moeKey(grade,subj)]=n;
   else delete moeTargets[moeKey(grade,subj)];
-  saveMoeTargets();
-  renderMoeCmp(); // re-render to update diff cells
+  saveMoeTargets(); // async, fire-and-forget
+  renderMoeCmp();
 }
 
 function emptyState(ico,msg){

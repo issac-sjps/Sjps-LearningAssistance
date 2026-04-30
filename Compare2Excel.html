@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>學習扶助名單整合工具</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f0ede8;
+    --surface: #ffffff;
+    --surface2: #faf8f5;
+    --border: #d8d2c8;
+    --accent: #2c5f4a;
+    --accent2: #e8a020;
+    --danger: #c0392b;
+    --warn: #e67e22;
+    --text: #1a1a1a;
+    --text-soft: #666;
+    --text-muted: #999;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  header {
+    max-width: 960px;
+    margin: 0 auto 32px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 16px;
+  }
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  header p {
+    font-size: 0.875rem;
+    color: var(--text-soft);
+    margin-top: 4px;
+  }
+
+  .main { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .card-header {
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 20px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-header .badge {
+    background: rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 1px 10px;
+    font-size: 0.78rem;
+    font-family: 'DM Mono', monospace;
+  }
+  .card-body { padding: 20px; }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--accent);
+    background: #f0f7f4;
+  }
+  .upload-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-zone .icon { font-size: 2rem; margin-bottom: 8px; }
+  .upload-zone .label { font-size: 0.9rem; color: var(--text-soft); }
+  .upload-zone .sublabel { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+  .upload-zone.has-file { border-color: var(--accent); border-style: solid; }
+  .upload-zone.has-file .icon-wrap { color: var(--accent); }
+
+  .file-info {
+    display: flex; align-items: center; gap: 10px;
+    background: #f0f7f4; border-radius: 6px; padding: 10px 14px; margin-top: 12px;
+    font-size: 0.85rem;
+  }
+  .file-info .fname { font-weight: 500; color: var(--accent); font-family: 'DM Mono', monospace; }
+  .file-info .fcount { color: var(--text-soft); }
+
+  .alert {
+    border-radius: 8px; padding: 12px 16px; font-size: 0.875rem; margin-bottom: 16px;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .alert-warn { background: #fff8ee; border: 1px solid #f5c97a; color: #7a4f00; }
+  .alert-danger { background: #fdf2f0; border: 1px solid #e8a99a; color: #8b1c0f; }
+  .alert-success { background: #f0f7f4; border: 1px solid #7fbfa6; color: #1a4d38; }
+  .alert-icon { font-size: 1rem; flex-shrink: 0; }
+
+  .dup-list { list-style: none; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .dup-list li {
+    background: #fff; border: 1px solid #e8a99a; color: #c0392b;
+    border-radius: 20px; padding: 2px 12px; font-size: 0.82rem; font-weight: 500;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 22px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 0.9rem; font-family: 'Noto Sans TC', sans-serif; font-weight: 500;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #234d3c; }
+  .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+  .btn-export { background: var(--accent2); color: #fff; }
+  .btn-export:hover { background: #c47c10; }
+  .btn-export:disabled { background: #aaa; cursor: not-allowed; }
+  .btn-sm { padding: 6px 14px; font-size: 0.82rem; }
+  .btn-ghost {
+    background: transparent; border: 1px solid var(--border); color: var(--text-soft);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+
+  /* Preview table */
+  .table-wrap { overflow-x: auto; margin-top: 16px; border-radius: 8px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  thead th {
+    background: var(--accent); color: #fff; padding: 10px 12px;
+    text-align: left; font-weight: 500; white-space: nowrap;
+    position: sticky; top: 0;
+  }
+  tbody tr:nth-child(even) { background: var(--surface2); }
+  tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  .table-empty { padding: 32px; text-align: center; color: var(--text-muted); font-size: 0.88rem; }
+
+  .tag {
+    display: inline-block; padding: 1px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: 500;
+  }
+  .tag-ok { background: #e0f0e9; color: var(--accent); }
+  .tag-miss { background: #fdecea; color: var(--danger); }
+
+  .stat-row {
+    display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .stat {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 18px; flex: 1; min-width: 140px;
+  }
+  .stat-num { font-size: 1.6rem; font-weight: 700; color: var(--accent); font-family: 'DM Mono', monospace; }
+  .stat-label { font-size: 0.78rem; color: var(--text-soft); margin-top: 2px; }
+
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(255,255,255,0.25); font-size: 0.78rem; font-weight: 700; flex-shrink: 0;
+  }
+
+  #manual-dup-section { margin-top: 16px; }
+  .dup-manual-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .dup-manual-item h4 { font-size: 0.9rem; color: var(--danger); margin-bottom: 10px; }
+  .dup-manual-table { width: 100%; font-size: 0.82rem; border-collapse: collapse; }
+  .dup-manual-table td, .dup-manual-table th {
+    padding: 6px 10px; border: 1px solid var(--border); text-align: left;
+  }
+  .dup-manual-table th { background: #f5f5f5; font-weight: 500; }
+  .dup-radio { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 學習扶助名單整合工具</h1>
+  <p>上傳考試名單 + 全校學生資料，自動整合並輸出符合格式的 Excel 檔案</p>
+</header>
+
+<div class="main">
+
+  <!-- Step 1 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-num">1</span>
+      上傳「考試名單」Excel
+      <span class="badge">必填欄位：學生姓名</span>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="zone1">
+        <input type="file" id="file1" accept=".xlsx,.xls">
+        <div class="icon">📄</div>
+        <div class="label">點擊或拖曳上傳考試名單</div>
+        <div class="sublabel">支援 .xlsx / .xls，需包含「學生姓名」欄位</div>
+      </div>
+      <div id="file1-info" class="hidden"></div>
+      <div id="dup-alert" class="hidden"></div>
+      <div id="manual-dup-section" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-num">2</span>
+      上傳「全校學生名單」Excel
+      <span class="badge">需含：班級、座號、身分證、姓名、性別、出生年月日</span>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="zone2">
+        <input type="file" id="file2" accept=".xlsx,.xls">
+        <div class="icon">🏫</div>
+        <div class="label">點擊或拖曳上傳全校學生名單</div>
+        <div class="sublabel">支援 .xlsx / .xls</div>
+      </div>
+      <div id="file2-info" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-num">3</span>
+      整合 &amp; 預覽結果
+    </div>
+    <div class="card-body">
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-merge" disabled>🔄 開始整合</button>
+        <button class="btn btn-export" id="btn-export" disabled>⬇️ 匯出 Excel</button>
+      </div>
+      <div id="merge-alerts" class="hidden" style="margin-top:16px;"></div>
+      <div id="stats-row" class="hidden stat-row" style="margin-top:16px;"></div>
+      <div id="preview-wrap" class="hidden">
+        <div class="table-wrap">
+          <table id="preview-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+let examRows = [];      // raw rows from exam list
+let schoolRows = [];    // raw rows from school list
+let examNames = [];     // deduplicated exam names (after user resolves dups)
+let duplicateNames = [];// names that appear more than once
+let mergedData = [];    // final output rows
+
+// Column name aliases for school file
+const COL_ALIASES = {
+  name:  ['姓名', '學生姓名', '名字'],
+  cls:   ['班級', '目前班級', '班'],
+  seat:  ['座號', '座位', '號碼'],
+  id:    ['身分證', '身分證字號', '身分證統一編號', '證號', '身份證'],
+  gender:['性別'],
+  birth: ['出生年月日', '出生日期', '生日'],
+};
+
+function findCol(headers, aliases) {
+  for (const a of aliases) {
+    const h = headers.find(h => h && String(h).includes(a));
+    if (h !== undefined) return h;
+  }
+  return null;
+}
+
+// ── File Upload ────────────────────────────────────────────────────────
+function setupZone(zoneId, inputId, onLoad) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) { input.files = e.dataTransfer.files; handleFile(input, onLoad); }
+  });
+  input.addEventListener('change', () => handleFile(input, onLoad));
+}
+
+function handleFile(input, cb) {
+  const f = input.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    cb(f.name, rows);
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+// ── Exam List Upload ───────────────────────────────────────────────────
+setupZone('zone1', 'file1', (fname, rows) => {
+  examRows = rows;
+  // find name column
+  const headers = Object.keys(rows[0] || {});
+  const nameCol = headers.find(h => h.includes('姓名') || h.includes('名字')) || headers[0];
+
+  const allNames = rows.map(r => String(r[nameCol] || '').trim()).filter(Boolean);
+  const countMap = {};
+  allNames.forEach(n => countMap[n] = (countMap[n] || 0) + 1);
+  duplicateNames = Object.entries(countMap).filter(([,c]) => c > 1).map(([n]) => n);
+  examNames = [...new Set(allNames.filter(n => !duplicateNames.includes(n)))];
+
+  // Show file info
+  const info = document.getElementById('file1-info');
+  info.className = 'file-info';
+  info.innerHTML = `<span>📄</span><span class="fname">${fname}</span><span class="fcount">共 ${allNames.length} 筆、${Object.keys(countMap).length} 位學生</span>`;
+
+  // Show dup alert
+  const dupEl = document.getElementById('dup-alert');
+  if (duplicateNames.length > 0) {
+    dupEl.className = 'alert alert-danger';
+    dupEl.innerHTML = `<span class="alert-icon">⚠️</span>
+      <div>
+        <strong>發現 ${duplicateNames.length} 個重複姓名，請手動選擇要保留的學生：</strong>
+        <ul class="dup-list">${duplicateNames.map(n => `<li>${n}</li>`).join('')}</ul>
+      </div>`;
+    renderDupManual(rows, nameCol, countMap);
+  } else {
+    dupEl.className = 'hidden';
+    document.getElementById('manual-dup-section').className = 'hidden';
+  }
+
+  checkReady();
+});
+
+function renderDupManual(rows, nameCol, countMap) {
+  const sec = document.getElementById('manual-dup-section');
+  sec.className = '';
+  let html = `<div style="font-size:0.88rem;color:var(--text-soft);margin-bottom:12px;">
+    ⬇️ 以下重複姓名不會自動加入，請針對每個姓名選擇要加入的那一筆（或全部跳過）：
+  </div>`;
+
+  duplicateNames.forEach(name => {
+    const matches = rows.filter(r => String(r[nameCol] || '').trim() === name);
+    html += `<div class="dup-manual-item">
+      <h4>「${name}」— 出現 ${matches.length} 次，請選擇要加入的一筆：</h4>
+      <table class="dup-manual-table">
+        <tr><th>選擇</th>${Object.keys(matches[0]).slice(0,6).map(k=>`<th>${k}</th>`).join('')}</tr>
+        ${matches.map((r,i) => `
+          <tr>
+            <td><input type="radio" class="dup-radio" name="dup_${name}" value="${i}" data-name="${name}" data-idx="${i}"></td>
+            ${Object.values(r).slice(0,6).map(v=>`<td>${v}</td>`).join('')}
+          </tr>`).join('')}
+        <tr>
+          <td><input type="radio" class="dup-radio" name="dup_${name}" value="-1" data-name="${name}" data-idx="-1" checked></td>
+          <td colspan="6" style="color:var(--text-muted);font-style:italic;">不加入（跳過）</td>
+        </tr>
+      </table>
+    </div>`;
+  });
+  sec.innerHTML = html;
+
+  // Store extra rows for resolution
+  sec._rows = rows;
+  sec._nameCol = nameCol;
+}
+
+function getResolvedExtraNames() {
+  const sec = document.getElementById('manual-dup-section');
+  if (!sec._rows) return [];
+  const extras = [];
+  duplicateNames.forEach(name => {
+    const radios = document.querySelectorAll(`input[name="dup_${name}"]`);
+    let chosen = -1;
+    radios.forEach(r => { if (r.checked) chosen = parseInt(r.value); });
+    if (chosen >= 0) {
+      const rows = sec._rows.filter(r => String(r[sec._nameCol] || '').trim() === name);
+      if (rows[chosen]) extras.push(name); // just add the name; we'll lookup from school
+    }
+  });
+  return extras;
+}
+
+// ── School List Upload ────────────────────────────────────────────────
+setupZone('zone2', 'file2', (fname, rows) => {
+  schoolRows = rows;
+  const info = document.getElementById('file2-info');
+  info.className = 'file-info';
+  info.innerHTML = `<span>🏫</span><span class="fname">${fname}</span><span class="fcount">共 ${rows.length} 筆學生資料</span>`;
+  checkReady();
+});
+
+function checkReady() {
+  const ready = examRows.length > 0 && schoolRows.length > 0;
+  document.getElementById('btn-merge').disabled = !ready;
+}
+
+// ── Merge Logic ────────────────────────────────────────────────────────
+document.getElementById('btn-merge').addEventListener('click', doMerge);
+
+function calcEntryYear(cls) {
+  // cls like "101" = grade 1, class 1; "803" = grade 8, class 3
+  // 入學年度(民國) = 目前民國年 - (年級 - 1)
+  const now = new Date().getFullYear() - 1911; // 民國年
+  const s = String(cls).trim();
+  let grade = null;
+  if (s.length === 3) grade = parseInt(s.charAt(0));       // "101" → 1, "803" → 8
+  else if (s.length === 4) grade = parseInt(s.substring(0,2)); // "1001" → 10
+  else grade = parseInt(s);
+  if (!grade || isNaN(grade)) return '';
+  return now - (grade - 1);
+}
+
+function doMerge() {
+  const alerts = document.getElementById('merge-alerts');
+  alerts.className = '';
+
+  const headers = Object.keys(schoolRows[0] || {});
+  const nameCol   = findCol(headers, COL_ALIASES.name);
+  const clsCol    = findCol(headers, COL_ALIASES.cls);
+  const seatCol   = findCol(headers, COL_ALIASES.seat);
+  const idCol     = findCol(headers, COL_ALIASES.id);
+
+  if (!nameCol || !clsCol || !idCol) {
+    alerts.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">❌</span>
+      全校名單缺少必要欄位（需有：姓名、班級、身分證）。<br>偵測到的欄位：${headers.join('、')}</div>`;
+    return;
+  }
+
+  // Build school lookup (name → rows, since names may not be unique in school list)
+  const schoolMap = {};
+  schoolRows.forEach(r => {
+    const n = String(r[nameCol] || '').trim();
+    if (!schoolMap[n]) schoolMap[n] = [];
+    schoolMap[n].push(r);
+  });
+
+  const extras = getResolvedExtraNames();
+  const targetNames = [...examNames, ...extras];
+
+  const found = [], notFound = [], multiMatch = [], emptyId = [];
+  const OUTPUT_COLS = [
+    '學生姓名','身分證統一編號','入學年度','目前班級',
+    '座號(選填)','OpenID(選填)',
+    '身分類別(必填，多重身分請以空白分隔)',
+    '其他學習扶助資源(選填，多重資源請以空白分隔)',
+    '所在位置'
+  ];
+
+  mergedData = [];
+
+  targetNames.forEach(name => {
+    const matches = schoolMap[name];
+    if (!matches || matches.length === 0) {
+      notFound.push(name);
+      return;
+    }
+    if (matches.length > 1) multiMatch.push(name);
+    // Use first match (or all if multiple — add all)
+    matches.forEach(r => {
+      const cls = String(r[clsCol] || '').trim();
+      const entryYear = calcEntryYear(cls);
+      const idVal = String(r[idCol] || '').trim();
+      if (!idVal) emptyId.push(name);
+      const row = {
+        '學生姓名': name,
+        '身分證統一編號': idVal,
+        '入學年度': entryYear,
+        '目前班級': cls,
+        '座號(選填)': seatCol ? String(r[seatCol] || '').trim() : '',
+        'OpenID(選填)': '',
+        '身分類別(必填，多重身分請以空白分隔)': '99',
+        '其他學習扶助資源(選填，多重資源請以空白分隔)': '',
+        '所在位置': '',
+      };
+      mergedData.push(row);
+      found.push(name);
+    });
+  });
+
+  // Build alerts
+  let alertHtml = '';
+  if (emptyId.length > 0) {
+    alertHtml += `<div class="alert alert-warn"><span class="alert-icon">⚠️</span>
+      <div><strong>${emptyId.length} 位學生的身分證欄位在全校名單中是空的，請手動補充：</strong><br>
+      <ul class="dup-list">${[...new Set(emptyId)].map(n=>`<li>${n}</li>`).join('')}</ul></div></div>`;
+  }
+  if (notFound.length > 0) {
+    alertHtml += `<div class="alert alert-warn"><span class="alert-icon">⚠️</span>
+      <div><strong>${notFound.length} 位學生在全校名單中找不到：</strong><br>
+      <ul class="dup-list">${notFound.map(n=>`<li>${n}</li>`).join('')}</ul></div></div>`;
+  }
+  if (multiMatch.length > 0) {
+    alertHtml += `<div class="alert alert-warn"><span class="alert-icon">🔍</span>
+      <div><strong>${multiMatch.length} 位學生在全校名單有多筆，已全部加入：</strong><br>
+      <ul class="dup-list">${multiMatch.map(n=>`<li>${n}</li>`).join('')}</ul></div></div>`;
+  }
+  if (mergedData.length > 0) {
+    alertHtml += `<div class="alert alert-success"><span class="alert-icon">✅</span>
+      <strong>整合完成！共 ${mergedData.length} 筆資料已準備好，請確認下方預覽後匯出。</strong></div>`;
+  }
+  alerts.innerHTML = alertHtml || `<div class="alert alert-success"><span class="alert-icon">✅</span>整合完成。</div>`;
+
+  // Stats
+  const statsEl = document.getElementById('stats-row');
+  statsEl.className = 'stat-row';
+  statsEl.innerHTML = `
+    <div class="stat"><div class="stat-num">${targetNames.length}</div><div class="stat-label">考試名單人數</div></div>
+    <div class="stat"><div class="stat-num">${mergedData.length}</div><div class="stat-label">成功匹配筆數</div></div>
+    <div class="stat"><div class="stat-num" style="color:${notFound.length?'var(--warn)':'var(--accent)'};">${notFound.length}</div><div class="stat-label">找不到的人數</div></div>
+    <div class="stat"><div class="stat-num">${duplicateNames.length}</div><div class="stat-label">重複姓名（考試名單）</div></div>
+  `;
+
+  // Preview
+  renderPreview(mergedData, OUTPUT_COLS);
+  document.getElementById('btn-export').disabled = mergedData.length === 0;
+}
+
+function renderPreview(data, cols) {
+  const wrap = document.getElementById('preview-wrap');
+  wrap.className = '';
+  const table = document.getElementById('preview-table');
+  table.querySelector('thead').innerHTML = `<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+  if (data.length === 0) {
+    table.querySelector('tbody').innerHTML = `<tr><td colspan="${cols.length}" class="table-empty">無資料</td></tr>`;
+    return;
+  }
+  table.querySelector('tbody').innerHTML = data.map(r =>
+    `<tr>${cols.map(c => {
+      const v = r[c] ?? '';
+      if (c === '身分類別(必填，多重身分請以空白分隔)') return `<td><span class="tag tag-ok">${v}</span></td>`;
+      if (c === '身分證統一編號' && !v) return `<td><span class="tag tag-miss">空</span></td>`;
+      return `<td>${v}</td>`;
+    }).join('')}</tr>`
+  ).join('');
+}
+
+// ── Export ─────────────────────────────────────────────────────────────
+document.getElementById('btn-export').addEventListener('click', () => {
+  if (!mergedData.length) return;
+  const cols = [
+    '學生姓名','身分證統一編號','入學年度','目前班級',
+    '座號(選填)','OpenID(選填)',
+    '身分類別(必填，多重身分請以空白分隔)',
+    '其他學習扶助資源(選填，多重資源請以空白分隔)',
+    '所在位置'
+  ];
+  const ws = XLSX.utils.json_to_sheet(mergedData, { header: cols });
+  // Column widths
+  ws['!cols'] = [16,18,10,10,10,14,30,30,10].map(w=>({wch:w}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '學習扶助名單');
+  const now = new Date();
+  const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  XLSX.writeFile(wb, `學習扶助名單_${stamp}.xlsx`);
+});
+
+// ── Drag visual feedback ───────────────────────────────────────────────
+document.querySelectorAll('.upload-zone').forEach(z => {
+  z.addEventListener('dragover', e => { e.preventDefault(); z.classList.add('dragover'); });
+  z.addEventListener('dragleave', () => z.classList.remove('dragover'));
+});
+</script>
+</body>
+</html>

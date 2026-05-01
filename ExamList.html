@@ -414,6 +414,7 @@ body.view-only input[type=checkbox]{pointer-events:none}
   <button class="ntab" data-tab="stat1"><span class="ntab-short">📉</span><span class="ntab-long"> +5%前</span></button>
   <button class="ntab" data-tab="stat2"><span class="ntab-short">➕</span><span class="ntab-long"> +5%後</span></button>
   <button class="ntab" data-tab="gradesum"><span class="ntab-short">📋</span><span class="ntab-long"> 年級統計</span></button>
+  <button class="ntab" data-tab="reqstat"><span class="ntab-short">📌</span><span class="ntab-long"> 必考人數統計</span></button>
   <button class="ntab" data-tab="sp"><span class="ntab-short">🔵</span><span class="ntab-long"> 鑑輔生名單</span></button>
   <button class="ntab" data-tab="moecmp"><span class="ntab-short">🏫</span><span class="ntab-long"> 教育部對照</span></button>
   <button class="ntab" data-tab="settings"><span class="ntab-short">⚙️</span><span class="ntab-long"> 系統設定</span></button>
@@ -562,6 +563,11 @@ body.view-only input[type=checkbox]{pointer-events:none}
 <!-- ═══════════════════ TAB: 鑑輔生名單 ═══════════════════ -->
 <div class="tab" id="tab-sp">
   <div id="sp-content"></div>
+</div>
+
+<!-- ═══════════════════ TAB: 必考人數統計 ═══════════════════ -->
+<div class="tab" id="tab-reqstat">
+  <div id="reqstat-content"></div>
 </div>
 
 <!-- ═══════════════════ TAB: 教育部對照 ═══════════════════ -->
@@ -1090,6 +1096,7 @@ function renderTabContent(tab){
   else if(tab==='stat1')renderStat1();
   else if(tab==='stat2')renderStat2();
   else if(tab==='gradesum')renderGradeSummary();
+  else if(tab==='reqstat')renderReqStat();
   else if(tab==='sp')renderSPList();
   else if(tab==='moecmp')renderMoeCmp();
   else if(tab==='settings')renderSettings();
@@ -2291,6 +2298,104 @@ function resetToMOE(){
   toast('已套用教育部人數','ok');
 }
 
+
+
+// ─── RENDER: 必考人數統計（僅必考名單 REQ，未含5%）───
+function renderReqStat(){
+  const el=document.getElementById('reqstat-content');
+  if(!REQ.length){
+    el.innerHTML=`<div class="card">${emptyState('📌','尚無必考名單資料，請先上傳。')}</div>`;
+    return;
+  }
+  const grades=[1,2,3,4,5,6];
+
+  // Per grade per subject counts (X only)
+  const rows=grades.map(g=>{
+    const gs=REQ.filter(r=>r.grade===g);
+    const ch=gs.filter(r=>String(r.chinese||'').trim().toUpperCase()==='X').length;
+    const mth=gs.filter(r=>String(r.math||'').trim().toUpperCase()==='X').length;
+    const en=g>=3?gs.filter(r=>String(r.english||'').trim().toUpperCase()==='X').length:null;
+    const pop=GRADE_TOTALS[g];
+    const moePop=GRADE_TOTALS_MOE[g]; // 教育部人數（已扣鑑輔）
+    return{g,pop,moePop,ch,mth,en,total:gs.length};
+  });
+
+  const totCh=rows.reduce((a,r)=>a+r.ch,0);
+  const totMth=rows.reduce((a,r)=>a+r.mth,0);
+  const totEn=rows.filter(r=>r.en!==null).reduce((a,r)=>a+r.en,0);
+  const totAll=rows.reduce((a,r)=>a+r.total,0);
+
+  // Summary cards
+  let html=`<div class="card">
+    <div class="card-hd">📌 必考名單各年級各科人數（X=未通過，不含5%新增）</div>
+    <div class="al al-info">ℹ️ 此為上傳的必考名單（個案）統計。提報率 = 個案人數 / 教育部年級人數（已扣鑑輔免測）。</div>
+    <div class="sgrid" style="margin-bottom:16px">
+      <div class="sc red"><div class="lbl">必考名單 國語X</div><div class="val" style="color:var(--red)">${totCh}</div></div>
+      <div class="sc blue"><div class="lbl">必考名單 數學X</div><div class="val" style="color:var(--blue2)">${totMth}</div></div>
+      <div class="sc"><div class="lbl">必考名單 英語X（3↑）</div><div class="val" style="color:var(--green)">${totEn}</div></div>
+      <div class="sc blue"><div class="lbl">必考名單總人數</div><div class="val">${totAll}</div></div>
+    </div>
+
+    <div class="tw"><table>
+      <thead>
+        <tr>
+          <th rowspan="2">年級</th>
+          <th rowspan="2">教育部年級人數</th>
+          <th colspan="3" style="background:#b91c1c;text-align:center">國語文</th>
+          <th colspan="3" style="background:#1d4ed8;text-align:center">數學</th>
+          <th colspan="3" style="background:#065f46;text-align:center">英語</th>
+          <th rowspan="2">必考名單總人數</th>
+        </tr>
+        <tr>
+          <th style="background:#991b1b">個案數(X)</th>
+          <th style="background:#991b1b">個案/人數</th>
+          <th style="background:#991b1b">+5%後提報率</th>
+          <th style="background:#1e3a8a">個案數(X)</th>
+          <th style="background:#1e3a8a">個案/人數</th>
+          <th style="background:#1e3a8a">+5%後提報率</th>
+          <th style="background:#064e3b">個案數(X)</th>
+          <th style="background:#064e3b">個案/人數</th>
+          <th style="background:#064e3b">+5%後提報率</th>
+        </tr>
+      </thead><tbody>`;
+
+  rows.forEach(({g,pop,moePop,ch,mth,en,total})=>{
+    function subjCols(cnt,subj){
+      if(cnt===null)return '<td colspan="3" style="text-align:center;color:var(--muted)">—</td>';
+      const pct=moePop>0?((cnt/moePop)*100).toFixed(1):'—';
+      const rate5=moePop>0?(((cnt/moePop)+0.05)*100).toFixed(1)+'%':'—';
+      const moeRate=MOE_RATES[subj]?.[g];
+      const rateColor=moeRate&&Math.abs(parseFloat(rate5)-moeRate)<1?'var(--green)':'var(--amber)';
+      return `<td class="mono fw6" style="color:var(--red);text-align:center">${cnt}</td>
+        <td class="mono" style="text-align:center">${pct}%</td>
+        <td class="mono fw6" style="color:${rateColor};text-align:center">${rate5}
+          ${moeRate?`<div class="mu" style="font-size:10px">教育部${moeRate}%</div>`:''}
+        </td>`;
+    }
+    html+=`<tr>
+      <td class="fw6">${g}年級</td>
+      <td class="mono" style="color:var(--teal);text-align:center">${moePop}</td>
+      ${subjCols(ch,'chinese')}
+      ${subjCols(mth,'math')}
+      ${subjCols(en,'english')}
+      <td class="mono fw6" style="text-align:center">${total}</td>
+    </tr>`;
+  });
+
+  html+=`</tbody><tfoot><tr>
+    <td class="fw6">合計</td><td></td>
+    <td class="mono fw6" style="color:var(--red);text-align:center">${totCh}</td>
+    <td colspan="2"></td>
+    <td class="mono fw6" style="color:var(--blue2);text-align:center">${totMth}</td>
+    <td colspan="2"></td>
+    <td class="mono fw6" style="color:var(--green);text-align:center">${totEn}</td>
+    <td colspan="2"></td>
+    <td class="mono fw6" style="text-align:center">${totAll}</td>
+  </tr></tfoot></table></div>
+  </div>`;
+
+  el.innerHTML=html;
+}
 
 function emptyState(ico,msg){
   return `<div class="empty"><div class="ico">${ico}</div><p>${msg}</p></div>`;

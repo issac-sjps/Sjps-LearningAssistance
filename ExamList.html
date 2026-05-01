@@ -613,6 +613,17 @@ document.dispatchEvent(new Event('fbReady'));
 const GRADE_TOTALS_DEFAULT={1:161,2:156,3:198,4:220,5:218,6:220};
 // MOE actual counts (from 教育部 system screenshot)
 const GRADE_TOTALS_MOE={1:157,2:150,3:188,4:205,5:212,6:213};
+// 鑑輔生免測人數 default（圖一資料）
+const SP_EXEMPT_DEFAULT={1:4,2:5,3:9,4:15,5:6,6:7};
+let SP_EXEMPT={...SP_EXEMPT_DEFAULT};
+// 教育部核定提報率（國語/數學/英語 各年級，%整數）
+// 圖一: 1年級國11%數19%、2年國11%數19%、3年國13%數19%英23%
+//       4年國18%數19%英22%、5年國13%數31%英17%、6年國13%數30%英18%
+const MOE_RATES={
+  chinese:{1:11,2:11,3:13,4:18,5:13,6:13},
+  math:   {1:19,2:19,3:19,4:19,5:31,6:30},
+  english:{1:0, 2:0, 3:23,4:22,5:17,6:18}
+};
 let GRADE_TOTALS={...GRADE_TOTALS_DEFAULT};
 const SUBJ_LABEL={chinese:'國語',math:'數學',english:'英語'};
 const SUBJ_ICON={chinese:'📖',math:'🔢',english:'🌍'};
@@ -1974,7 +1985,30 @@ async function loadMoeTargets(){
       const d=snap2.data();
       [1,2,3,4,5,6].forEach(g=>{if(d[g])GRADE_TOTALS[g]=d[g];});
     }
+    // Load SP exempt counts
+    const snap3=await getDoc(docRef(collection(window._db,'settings'),'spExempt'));
+    if(snap3.exists()){
+      const d=snap3.data();
+      [1,2,3,4,5,6].forEach(g=>{if(d[g]!==undefined)SP_EXEMPT[g]=d[g];});
+    }
   }catch(e){console.warn('Settings load failed:',e);}
+}
+
+async function saveSpExempt(){
+  try{
+    const{collection,doc:docRef,setDoc}=window._fs;
+    await setDoc(docRef(collection(window._db,'settings'),'spExempt'),{...SP_EXEMPT});
+    toast('鑑輔生免測人數已儲存','ok');
+  }catch(e){toast('儲存失敗: '+e.message,'err');}
+}
+
+// 教育部公式：ceil((年級總人數 - 鑑輔免測) × 核定提報率%)
+function moeCalcTarget(grade, subj){
+  const rate=MOE_RATES[subj]?.[grade]||0;
+  if(!rate)return null;
+  const pop=GRADE_TOTALS[grade];
+  const exempt=SP_EXEMPT[grade]||0;
+  return Math.ceil((pop-exempt)*rate/100);
 }
 
 async function saveGradeTotals(){
@@ -2104,63 +2138,83 @@ function renderSettings(){
   const el=document.getElementById('settings-content');
   const locked=!isEditMode;
 
-  // 5% target calculation display
   function calc5pct(g,subj){
     const tgt=subjTarget(g,subj);
-    return {total:tgt.total, note:tgt.note||`ceil(${GRADE_TOTALS[g]}×5%)=${tgt.total}人`};
+    return{total:tgt.total,note:tgt.note||`ceil(${GRADE_TOTALS[g]}×5%)=${tgt.total}人`};
   }
 
-  let html=`
-  <div class="card">
-    <div class="card-hd">⚙️ 年級人數設定
+  // ── Card 1: 年級人數 + 鑑輔免測設定 ──
+  let html=`<div class="card">
+    <div class="card-hd">⚙️ 年級人數 ＆ 鑑輔生免測人數設定
       ${locked?'<span class="b b-mt" style="margin-left:8px">🔒 需要編輯模式</span>':''}
     </div>
-    <div class="al al-info">ℹ️ 修改年級人數後，所有5%目標人數會自動重新計算。儲存後同步到雲端，所有裝置即時生效。</div>
-
+    <div class="al al-info">ℹ️ 教育部公式：<strong>ceil（年級人數 − 鑑輔免測人數）× 核定提報率%</strong> = 應提報施測人數。修改後儲存即同步雲端。</div>
     <div class="tw"><table>
       <thead><tr>
         <th>年級</th>
-        <th>目前設定人數</th>
-        <th style="background:#374151">教育部實際人數</th>
-        <th>差距</th>
-        <th>修改為</th>
+        <th>年級總人數</th>
+        <th style="background:#7e22ce">鑑輔免測人數</th>
+        <th>實際參測母數</th>
+        <th colspan="3" style="background:#b91c1c;text-align:center">國語</th>
+        <th colspan="3" style="background:#1d4ed8;text-align:center">數學</th>
+        <th colspan="3" style="background:#065f46;text-align:center">英語</th>
+      </tr>
+      <tr>
+        <th></th><th>可修改</th><th style="background:#6b21a8">可修改</th><th></th>
+        <th style="background:#991b1b">核定率</th><th style="background:#991b1b">教育部計算</th><th style="background:#991b1b">我的系統</th>
+        <th style="background:#1e3a8a">核定率</th><th style="background:#1e3a8a">教育部計算</th><th style="background:#1e3a8a">我的系統</th>
+        <th style="background:#064e3b">核定率</th><th style="background:#064e3b">教育部計算</th><th style="background:#064e3b">我的系統</th>
       </tr></thead><tbody>`;
 
   [1,2,3,4,5,6].forEach(g=>{
-    const cur=GRADE_TOTALS[g];
-    const moe=GRADE_TOTALS_MOE[g];
-    const diff=cur-moe;
+    const pop=GRADE_TOTALS[g];
+    const exempt=SP_EXEMPT[g]||0;
+    const net=pop-exempt;
+    const inp=(id,val,onch)=>locked
+      ?`<span class="mono fw6">${val}</span>`
+      :`<input type="number" id="${id}" min="0" max="999" value="${val}"
+          style="width:60px;padding:4px 6px;border:2px solid var(--teal);border-radius:5px;font-size:12px;text-align:center"
+          onchange="${onch}">`;
+
+    // Per subject
+    function subjCols(subj){
+      const rate=MOE_RATES[subj]?.[g]||0;
+      if(!rate)return '<td colspan="3" style="text-align:center;color:var(--muted);font-size:11px">—</td>';
+      const moeVal=Math.ceil(net*rate/100);
+      const myVal=subjTarget(g,subj).total;
+      const diff=myVal-moeVal;
+      const dColor=diff===0?'var(--green)':diff>0?'var(--red)':'var(--amber)';
+      return `<td class="mono" style="text-align:center">${rate}%</td>
+        <td class="mono fw6" style="text-align:center;color:var(--teal)">${moeVal}</td>
+        <td class="mono fw6" style="text-align:center;color:${dColor}">${myVal}
+          ${diff!==0?`<span style="font-size:10px">(${diff>0?'+':''}${diff})</span>`:'<span style="font-size:10px">✓</span>'}
+        </td>`;
+    }
+
     html+=`<tr>
       <td class="fw6">${g}年級</td>
-      <td class="mono fw6">${cur}</td>
-      <td class="mono" style="color:var(--teal)">${moe}</td>
-      <td class="mono" style="color:${diff===0?'var(--green)':diff>0?'var(--amber)':'var(--red)'}">
-        ${diff===0?'✓ 相同':diff>0?`+${diff} 人多`:`${diff} 人少`}
-      </td>
-      <td>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <input type="number" id="gt-${g}" min="1" max="999"
-            value="${cur}" ${locked?'disabled':''}
-            style="width:72px;padding:5px 8px;border:${locked?'1px solid var(--border)':'2px solid var(--teal)'};border-radius:6px;font-size:13px;font-family:JetBrains Mono,monospace;text-align:center;background:${locked?'#f8fafc':'#fff'}">
-          ${!locked?`<button class="btn btn-teal btn-sm" onclick="applySingleGrade(${g})">套用</button>`:''}
-        </div>
-      </td>
+      <td>${inp('gt-'+g, pop, `applySingleGradePop(${g})`)}${!locked?` <button class="btn btn-teal btn-sm" onclick="applySingleGradePop(${g})" style="padding:3px 7px">↵</button>`:''}</td>
+      <td>${inp('sp-'+g, exempt, `applySingleExempt(${g})`)}${!locked?` <button class="btn btn-sm" style="background:#7e22ce;color:#fff;padding:3px 7px;border-radius:4px;border:none;cursor:pointer" onclick="applySingleExempt(${g})">↵</button>`:''}</td>
+      <td class="mono fw6" style="color:var(--teal);text-align:center">${net}</td>
+      ${subjCols('chinese')}
+      ${subjCols('math')}
+      ${subjCols('english')}
     </tr>`;
   });
 
   html+=`</tbody></table></div>
-
     ${!locked?`
     <div class="row" style="margin-top:14px">
-      <button class="btn btn-blue" onclick="applyAllGrades()">✅ 套用全部並儲存</button>
-      <button class="btn btn-out" onclick="resetToDefault()">↩ 還原成原始人數(161/156/198/220/218/220)</button>
-      <button class="btn btn-out" onclick="resetToMOE()">📋 套用教育部人數(157/150/188/205/212/213)</button>
+      <button class="btn btn-blue" onclick="applyAllSettings()">✅ 套用全部並儲存</button>
+      <button class="btn btn-out" onclick="resetToDefault()">↩ 還原預設人數</button>
+      <button class="btn btn-out" onclick="resetToMOE()">📋 套用教育部人數</button>
     </div>`:''}
   </div>
 
+  <!-- Card 2: 5% calculation breakdown -->
   <div class="card" style="margin-top:14px">
-    <div class="card-hd">📊 5% 目標人數計算說明（依目前設定）</div>
-    <div class="al al-warn">⚠️ 若計算結果與教育部不符，通常是因為年級人數設定不同，或教育部用不同進位方式（floor/round）。</div>
+    <div class="card-hd">📊 我的系統 5% 目標計算說明</div>
+    <div class="al al-warn">⚠️ 我的系統用「年級總人數 × 5%」（特殊年級用上一年比例換算）。教育部用「(總人數-鑑輔免測) × 核定率%」。兩種公式不同，差距見上表。</div>
     <div class="tw"><table>
       <thead><tr>
         <th>年級</th><th>使用人數</th>
@@ -2185,53 +2239,58 @@ function renderSettings(){
     </tr>`;
   });
 
-  html+=`</tbody></table></div>
-  </div>`;
-
+  html+=`</tbody></table></div></div>`;
   el.innerHTML=html;
 }
 
-function applySingleGrade(g){
+function applySingleGradePop(g){
   if(!isEditMode){toast('請先進入編輯模式','warn');return;}
-  const val=parseInt(document.getElementById('gt-'+g).value);
+  const val=parseInt(document.getElementById('gt-'+g)?.value);
   if(!val||val<1||val>2000){toast('人數不合理','err');return;}
   GRADE_TOTALS[g]=val;
-  toast(`${g}年級人數更新為 ${val} 人（尚未儲存）`,'info');
   renderSettings();
 }
 
-function applyAllGrades(){
+function applySingleExempt(g){
   if(!isEditMode){toast('請先進入編輯模式','warn');return;}
-  let changed=false;
-  [1,2,3,4,5,6].forEach(g=>{
-    const el=document.getElementById('gt-'+g);
-    if(!el)return;
-    const val=parseInt(el.value);
-    if(val&&val>0&&val<2000){GRADE_TOTALS[g]=val;changed=true;}
-  });
-  if(changed){
-    saveGradeTotals();
-    renderAll();
-    renderSettings();
-    toast('所有年級人數已套用並儲存','ok');
-  }
+  const val=parseInt(document.getElementById('sp-'+g)?.value);
+  if(isNaN(val)||val<0||val>500){toast('免測人數不合理','err');return;}
+  SP_EXEMPT[g]=val;
+  renderSettings();
 }
+
+function applyAllSettings(){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
+  [1,2,3,4,5,6].forEach(g=>{
+    const pv=parseInt(document.getElementById('gt-'+g)?.value);
+    if(pv&&pv>0&&pv<2000)GRADE_TOTALS[g]=pv;
+    const sv=parseInt(document.getElementById('sp-'+g)?.value);
+    if(!isNaN(sv)&&sv>=0&&sv<500)SP_EXEMPT[g]=sv;
+  });
+  Promise.all([saveGradeTotals(),saveSpExempt()]).then(()=>{
+    renderAll();renderSettings();
+  });
+}
+
+function applyAllGrades(){applyAllSettings();}
 
 function resetToDefault(){
   if(!isEditMode){toast('請先進入編輯模式','warn');return;}
-  if(!confirm('還原成原始人數？(161/156/198/220/218/220)'))return;
+  if(!confirm('還原成原始人數？'))return;
   Object.assign(GRADE_TOTALS,GRADE_TOTALS_DEFAULT);
-  saveGradeTotals();renderAll();renderSettings();
-  toast('已還原為原始人數','ok');
+  Object.assign(SP_EXEMPT,SP_EXEMPT_DEFAULT);
+  Promise.all([saveGradeTotals(),saveSpExempt()]).then(()=>{renderAll();renderSettings();});
+  toast('已還原為預設值','ok');
 }
 
 function resetToMOE(){
   if(!isEditMode){toast('請先進入編輯模式','warn');return;}
-  if(!confirm('套用教育部人數？(157/150/188/205/212/213)'))return;
+  if(!confirm('套用教育部人數 157/150/188/205/212/213？'))return;
   Object.assign(GRADE_TOTALS,GRADE_TOTALS_MOE);
-  saveGradeTotals();renderAll();renderSettings();
+  Promise.all([saveGradeTotals(),saveSpExempt()]).then(()=>{renderAll();renderSettings();});
   toast('已套用教育部人數','ok');
 }
+
 
 function emptyState(ico,msg){
   return `<div class="empty"><div class="ico">${ico}</div><p>${msg}</p></div>`;

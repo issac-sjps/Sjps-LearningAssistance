@@ -416,6 +416,7 @@ body.view-only input[type=checkbox]{pointer-events:none}
   <button class="ntab" data-tab="gradesum"><span class="ntab-short">📋</span><span class="ntab-long"> 年級統計</span></button>
   <button class="ntab" data-tab="sp"><span class="ntab-short">🔵</span><span class="ntab-long"> 鑑輔生名單</span></button>
   <button class="ntab" data-tab="moecmp"><span class="ntab-short">🏫</span><span class="ntab-long"> 教育部對照</span></button>
+  <button class="ntab" data-tab="settings"><span class="ntab-short">⚙️</span><span class="ntab-long"> 系統設定</span></button>
 </nav>
 
 <div class="main">
@@ -568,6 +569,11 @@ body.view-only input[type=checkbox]{pointer-events:none}
   <div id="moecmp-content"></div>
 </div>
 
+<!-- ═══════════════════ TAB: 系統設定 ═══════════════════ -->
+<div class="tab" id="tab-settings">
+  <div id="settings-content"></div>
+</div>
+
 </div><!-- /main -->
 
 <!-- ═══════════════════ B35 FLOATING PROGRESS PANEL ═══════════════════ -->
@@ -602,7 +608,12 @@ document.dispatchEvent(new Event('fbReady'));
 <!-- ═══════════════════ MAIN SCRIPT ═══════════════════ -->
 <script>
 // ─── CONSTANTS ───
-const GRADE_TOTALS={1:161,2:156,3:198,4:220,5:218,6:220};
+// GRADE_TOTALS is now dynamic — loaded from Firebase (settable by admin)
+// These are the fallback defaults (original values)
+const GRADE_TOTALS_DEFAULT={1:161,2:156,3:198,4:220,5:218,6:220};
+// MOE actual counts (from 教育部 system screenshot)
+const GRADE_TOTALS_MOE={1:157,2:150,3:188,4:205,5:212,6:213};
+let GRADE_TOTALS={...GRADE_TOTALS_DEFAULT};
 const SUBJ_LABEL={chinese:'國語',math:'數學',english:'英語'};
 const SUBJ_ICON={chinese:'📖',math:'🔢',english:'🌍'};
 
@@ -1070,6 +1081,7 @@ function renderTabContent(tab){
   else if(tab==='gradesum')renderGradeSummary();
   else if(tab==='sp')renderSPList();
   else if(tab==='moecmp')renderMoeCmp();
+  else if(tab==='settings')renderSettings();
 }
 function renderAll(){
   updateDBStatus();
@@ -1467,7 +1479,7 @@ function updateB35FloatPanel(){
   const subj=b35Subj;
   const grades=subj==='english'?[3,4,5,6]:[1,2,3,4,5,6];
 
-  let html='<div class="b35fp-hd">選人進度</div>';
+  let html='<div class="b35fp-hd" style="display:grid;grid-template-columns:1fr auto auto;gap:0 8px;padding:6px 10px;font-size:9px;letter-spacing:.4px;text-transform:uppercase"><span>年級</span><span style="text-align:right">進度</span><span style="text-align:right;opacity:.7">教育部</span></div>';
   grades.forEach(g=>{
     const tgt=subjTarget(g,subj);
     const{reqCnt}=subjEffective(g,subj);
@@ -1475,11 +1487,20 @@ function updateB35FloatPanel(){
     const eff=reqCnt+sel;
     const diff=eff-tgt.total;
     const pct=Math.min(100,tgt.total>0?eff/tgt.total*100:0);
-    const cls=diff>0?'over':diff===0?'done':eff/tgt.total>=0.8?'close':'need';
+    // ≥0 green (over=good), <0 red
+    const cls=diff>=0?'done':'need';
     const isFirst=(g===1&&GRADE1_FIRST_EXAM&&subj!=='english')||(g===3&&subj==='english');
-    html+=`<div class="b35fp-row" title="${g}年級：已有效${eff}人 / 目標${tgt.total}人">
+    // MOE comparison
+    const moeTgt=moeTargets[moeKey(g,subj)]||0;
+    const moeDiff=moeTgt>0?eff-moeTgt:null;
+    const moeCls=moeDiff===null?'':'';
+    const moeColor=moeDiff===null?'rgba(255,255,255,.3)':moeDiff>=0?'#4ade80':'#f87171';
+    const moeStr=moeDiff===null?'—':(moeDiff>=0?`+${moeDiff}`:`${moeDiff}`);
+    html+=`<div class="b35fp-row" title="${g}年級：系統${eff}人/目標${tgt.total}人，教育部${moeTgt||'未填'}人"
+      style="display:grid;grid-template-columns:1fr auto auto;gap:0 8px;align-items:center">
       <span class="b35fp-lbl">${g}年${isFirst?' 🆕':''}</span>
       <span class="b35fp-val ${cls}">${eff}<span style="opacity:.5;font-size:10px">/${tgt.total}</span></span>
+      <span style="font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:${moeColor};text-align:right">${moeStr}</span>
     </div>
     <div class="b35fp-bar"><div class="b35fp-fill ${cls}" style="width:${pct}%"></div></div>`;
   });
@@ -1938,16 +1959,30 @@ async function saveMoeTargets(){
 async function loadMoeTargets(){
   try{
     const{collection,doc:docRef,getDoc}=window._fs;
+    // Load MOE targets
     const snap=await getDoc(docRef(collection(window._db,'moeTargets'),'targets'));
     if(snap.exists()){
       moeTargets={...MOE_DEFAULTS,...snap.data()};
     } else {
-      // First time: write defaults to Firebase
       moeTargets={...MOE_DEFAULTS};
       const{collection:col,doc:dr,setDoc:sd}=window._fs;
       await sd(dr(col(window._db,'moeTargets'),'targets'),moeTargets);
     }
-  }catch(e){console.warn('MOE load failed:',e);}
+    // Load grade totals settings
+    const snap2=await getDoc(docRef(collection(window._db,'settings'),'gradeTotals'));
+    if(snap2.exists()){
+      const d=snap2.data();
+      [1,2,3,4,5,6].forEach(g=>{if(d[g])GRADE_TOTALS[g]=d[g];});
+    }
+  }catch(e){console.warn('Settings load failed:',e);}
+}
+
+async function saveGradeTotals(){
+  try{
+    const{collection,doc:docRef,setDoc}=window._fs;
+    await setDoc(docRef(collection(window._db,'settings'),'gradeTotals'),{...GRADE_TOTALS});
+    toast('年級人數已儲存到雲端','ok');
+  }catch(e){toast('儲存失敗: '+e.message,'err');}
 }
 
 function moeKey(g,subj){return `${g}_${subj}`;}
@@ -2061,6 +2096,141 @@ function setMoe(grade,subj,val){
   else delete moeTargets[moeKey(grade,subj)];
   saveMoeTargets(); // async, fire-and-forget
   renderMoeCmp();
+}
+
+
+// ─── RENDER: 系統設定 ───
+function renderSettings(){
+  const el=document.getElementById('settings-content');
+  const locked=!isEditMode;
+
+  // 5% target calculation display
+  function calc5pct(g,subj){
+    const tgt=subjTarget(g,subj);
+    return {total:tgt.total, note:tgt.note||`ceil(${GRADE_TOTALS[g]}×5%)=${tgt.total}人`};
+  }
+
+  let html=`
+  <div class="card">
+    <div class="card-hd">⚙️ 年級人數設定
+      ${locked?'<span class="b b-mt" style="margin-left:8px">🔒 需要編輯模式</span>':''}
+    </div>
+    <div class="al al-info">ℹ️ 修改年級人數後，所有5%目標人數會自動重新計算。儲存後同步到雲端，所有裝置即時生效。</div>
+
+    <div class="tw"><table>
+      <thead><tr>
+        <th>年級</th>
+        <th>目前設定人數</th>
+        <th style="background:#374151">教育部實際人數</th>
+        <th>差距</th>
+        <th>修改為</th>
+      </tr></thead><tbody>`;
+
+  [1,2,3,4,5,6].forEach(g=>{
+    const cur=GRADE_TOTALS[g];
+    const moe=GRADE_TOTALS_MOE[g];
+    const diff=cur-moe;
+    html+=`<tr>
+      <td class="fw6">${g}年級</td>
+      <td class="mono fw6">${cur}</td>
+      <td class="mono" style="color:var(--teal)">${moe}</td>
+      <td class="mono" style="color:${diff===0?'var(--green)':diff>0?'var(--amber)':'var(--red)'}">
+        ${diff===0?'✓ 相同':diff>0?`+${diff} 人多`:`${diff} 人少`}
+      </td>
+      <td>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <input type="number" id="gt-${g}" min="1" max="999"
+            value="${cur}" ${locked?'disabled':''}
+            style="width:72px;padding:5px 8px;border:${locked?'1px solid var(--border)':'2px solid var(--teal)'};border-radius:6px;font-size:13px;font-family:JetBrains Mono,monospace;text-align:center;background:${locked?'#f8fafc':'#fff'}">
+          ${!locked?`<button class="btn btn-teal btn-sm" onclick="applySingleGrade(${g})">套用</button>`:''}
+        </div>
+      </td>
+    </tr>`;
+  });
+
+  html+=`</tbody></table></div>
+
+    ${!locked?`
+    <div class="row" style="margin-top:14px">
+      <button class="btn btn-blue" onclick="applyAllGrades()">✅ 套用全部並儲存</button>
+      <button class="btn btn-out" onclick="resetToDefault()">↩ 還原成原始人數(161/156/198/220/218/220)</button>
+      <button class="btn btn-out" onclick="resetToMOE()">📋 套用教育部人數(157/150/188/205/212/213)</button>
+    </div>`:''}
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="card-hd">📊 5% 目標人數計算說明（依目前設定）</div>
+    <div class="al al-warn">⚠️ 若計算結果與教育部不符，通常是因為年級人數設定不同，或教育部用不同進位方式（floor/round）。</div>
+    <div class="tw"><table>
+      <thead><tr>
+        <th>年級</th><th>使用人數</th>
+        <th style="background:#b91c1c">國語目標</th><th>計算方式</th>
+        <th style="background:#1d4ed8">數學目標</th><th>計算方式</th>
+        <th style="background:#065f46">英語目標</th><th>計算方式</th>
+      </tr></thead><tbody>`;
+
+  [1,2,3,4,5,6].forEach(g=>{
+    const ch=calc5pct(g,'chinese');
+    const mth=calc5pct(g,'math');
+    const en=g>=3?calc5pct(g,'english'):null;
+    html+=`<tr>
+      <td class="fw6">${g}年級</td>
+      <td class="mono">${GRADE_TOTALS[g]}</td>
+      <td class="mono fw6" style="color:var(--red);text-align:center">${ch.total}</td>
+      <td class="fs11 mu">${ch.note}</td>
+      <td class="mono fw6" style="color:var(--blue2);text-align:center">${mth.total}</td>
+      <td class="fs11 mu">${mth.note}</td>
+      <td class="mono fw6" style="color:var(--green);text-align:center">${en?en.total:'—'}</td>
+      <td class="fs11 mu">${en?en.note:'1-2年級無英語'}</td>
+    </tr>`;
+  });
+
+  html+=`</tbody></table></div>
+  </div>`;
+
+  el.innerHTML=html;
+}
+
+function applySingleGrade(g){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
+  const val=parseInt(document.getElementById('gt-'+g).value);
+  if(!val||val<1||val>2000){toast('人數不合理','err');return;}
+  GRADE_TOTALS[g]=val;
+  toast(`${g}年級人數更新為 ${val} 人（尚未儲存）`,'info');
+  renderSettings();
+}
+
+function applyAllGrades(){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
+  let changed=false;
+  [1,2,3,4,5,6].forEach(g=>{
+    const el=document.getElementById('gt-'+g);
+    if(!el)return;
+    const val=parseInt(el.value);
+    if(val&&val>0&&val<2000){GRADE_TOTALS[g]=val;changed=true;}
+  });
+  if(changed){
+    saveGradeTotals();
+    renderAll();
+    renderSettings();
+    toast('所有年級人數已套用並儲存','ok');
+  }
+}
+
+function resetToDefault(){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
+  if(!confirm('還原成原始人數？(161/156/198/220/218/220)'))return;
+  Object.assign(GRADE_TOTALS,GRADE_TOTALS_DEFAULT);
+  saveGradeTotals();renderAll();renderSettings();
+  toast('已還原為原始人數','ok');
+}
+
+function resetToMOE(){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
+  if(!confirm('套用教育部人數？(157/150/188/205/212/213)'))return;
+  Object.assign(GRADE_TOTALS,GRADE_TOTALS_MOE);
+  saveGradeTotals();renderAll();renderSettings();
+  toast('已套用教育部人數','ok');
 }
 
 function emptyState(ico,msg){

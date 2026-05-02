@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學習扶助測驗系統 v57.0 (隱蔽授權版)</title>
+    <title>學習扶助測驗系統 v57.1 (隱蔽授權版)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
@@ -13,7 +13,7 @@
 
     <style>
         /* --- 全域設定 --- */
-        * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
+        * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         body { font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif; margin: 0; background-color: #f4f4f4; padding-bottom: 50px; }
         
         /* --- 顏色定義 --- */
@@ -103,7 +103,9 @@
             background: white; text-align: left;
         }
 
-        /* --- 列印專用樣式 --- */
+        /* =============================================
+           列印專用樣式
+           ============================================= */
         @media print {
             @page { margin: 5mm; size: A4 portrait; }
             
@@ -128,6 +130,7 @@
                 font-size: 0; 
             }
             
+            /* === 預設：每個 wrapper 換頁（給家長通知書、調查表用） === */
             .preview-page-wrapper {
                 display: block !important;
                 background: white !important;
@@ -139,13 +142,58 @@
                 width: 100%;
                 font-size: 14pt;
             }
-            
             .preview-page-wrapper:last-child {
                 page-break-after: auto !important;
                 margin-bottom: 0 !important;
                 padding-bottom: 0 !important;
             }
             
+            /* === 通知單列印：A4 一頁印 4 格（2欄×2列） === */
+            body.print-slips #preview-container {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            body.print-slips .slip-a4-page {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                grid-template-rows: 1fr 1fr !important;
+                width: 200mm !important;
+                height: 280mm !important;
+                page-break-after: always !important;
+                page-break-inside: avoid !important;
+                margin: 0 auto !important;
+                padding: 3mm !important;
+                gap: 0 !important;
+                box-sizing: border-box !important;
+                background: white !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            body.print-slips .slip-a4-page:last-child {
+                page-break-after: auto !important;
+            }
+
+            body.print-slips .slip-cell {
+                display: block !important;
+                border: 1px dashed #aaa !important;
+                padding: 4mm 3mm !important;
+                box-sizing: border-box !important;
+                overflow: hidden !important;
+                font-size: 9pt !important;
+                break-inside: avoid !important;
+            }
+
+            body.print-slips .preview-page-wrapper {
+                display: block !important;
+                page-break-after: auto !important;
+                width: 100% !important;
+                font-size: 14pt !important;
+                box-shadow: none !important;
+            }
+
+            /* === 導師名單緊湊模式 === */
             body.print-teachers-compact .preview-page-wrapper { page-break-after: auto; margin-bottom: 0; }
             body.print-teachers-compact .page-break { page-break-after: auto; border-bottom: 2px dashed #999; margin: 25px 0; height: 1px; position: relative; display: block; }
             body.print-teachers-compact .page-break::after { content: "✂️ 裁切線"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: white; padding: 0 10px; font-size: 10pt; color: #666; }
@@ -159,6 +207,13 @@
             table.survey-table td, table.survey-table th { padding: 3px !important; }
             
             .split-cell { padding: 0 !important; }
+
+            /* 通知單格子內的表格縮小 */
+            body.print-slips .slip-cell table.std-table { font-size: 8pt !important; }
+            body.print-slips .slip-cell table.std-table td,
+            body.print-slips .slip-cell table.std-table th { padding: 2px !important; }
+            body.print-slips .slip-cell .slip-header { font-size: 8.5pt !important; margin-bottom: 2px !important; }
+            body.print-slips .slip-cell .square { width: 11px !important; height: 11px !important; font-size: 9px !important; }
         }
 
         /* 報表通用 */
@@ -172,6 +227,33 @@
         .slip-header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 5px; }
         .text-red { color: red !important; font-weight: bold; }
         .square { display: inline-block; width: 14px; height: 14px; margin-right: 3px; vertical-align: middle; border: 1px solid #000; line-height: 12px; text-align: center; font-size: 12px; }
+
+        /* 通知單 A4 格子（螢幕預覽用） */
+        .slip-a4-page {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            width: 200mm;
+            height: 282mm;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            margin: 0 auto 20px auto;
+            padding: 3mm;
+            gap: 0;
+            box-sizing: border-box;
+        }
+        .slip-cell {
+            border: 1px dashed #aaa;
+            padding: 4mm 3mm;
+            box-sizing: border-box;
+            overflow: hidden;
+            font-size: 9pt;
+        }
+        .slip-cell .slip-header { font-size: 9pt; margin-bottom: 3px; }
+        .slip-cell table.std-table { font-size: 8pt; }
+        .slip-cell table.std-table td,
+        .slip-cell table.std-table th { padding: 2px; }
+        .slip-cell .square { width: 11px; height: 11px; font-size: 9px; }
 
         /* 導師名單 */
         .teacher-header { background:#333; color:white; padding:5px 10px; font-weight:bold; display:flex; justify-content:space-between; font-size:14pt; -webkit-print-color-adjust: exact; }
@@ -276,7 +358,7 @@
 
     <div class="navbar">
         <div class="nav-left">
-            <h2 style="margin:0;">測驗系統 v57.0</h2>
+            <h2 style="margin:0;">測驗系統 v57.1</h2>
             <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
         </div>
         
@@ -328,6 +410,9 @@
                     <label><input type="checkbox" id="p-math"> 數學</label>
                     <label><input type="checkbox" id="p-eng"> 英語</label>
                     <br><br>
+                    <div style="background:#fff3cd; border:1px solid #ffc107; padding:10px; border-radius:5px; margin-bottom:15px; font-size:13px; text-align:left;">
+                        💡 <b>列印說明：</b>每張 A4 自動排列 <b>4 格通知單（2欄×2列）</b>，依班級→座號排序。列印後沿虛線裁切，即可分給各班導師。
+                    </div>
                     <button class="btn btn-green" onclick="renderSlips()">產生並預覽通知單</button>
                 </div>
             </div>
@@ -525,10 +610,9 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const auth = firebase.auth(); // 啟用 Firebase Auth
+    const auth = firebase.auth();
     // --------------------------------
 
-    // v57.0 全域管理員鎖定狀態與密碼
     let isAdminUnlocked = false;
     const ADMIN_PWD = "admin"; 
     let currentUser = null;
@@ -592,16 +676,10 @@
 
     function init() {
         renderGradeSettings();
-        
-        // 監聽 Firebase 登入狀態 (跨頁面自動繼承憑證)
-        auth.onAuthStateChanged((user) => {
-            currentUser = user;
-        });
-        
+        auth.onAuthStateChanged((user) => { currentUser = user; });
         loadConfig();
     }
 
-    // v57.0 隱蔽授權：防呆密碼 + 後台憑證雙重驗證
     function toggleAdminLock() {
         const btn = document.getElementById('admin-lock-btn');
         if (isAdminUnlocked) {
@@ -612,7 +690,6 @@
         } else {
             const pwd = prompt("請輸入密碼以解鎖修改權限：");
             if (pwd === ADMIN_PWD) {
-                // 密碼對了，檢查是否有底層授權
                 if (!currentUser) {
                     alert("系統偵測您尚未登入，請先至管理員專屬登入頁面完成登入！");
                     return;
@@ -780,7 +857,6 @@
             };
         }
         
-        // --- Firebase 雲端寫入，並攔截權限錯誤 ---
         db.collection('exam_system_settings').doc('global_config').set(config)
             .then(() => {
                 console.log("資料已成功同步至 Firebase 雲端！");
@@ -821,7 +897,6 @@
                     document.getElementById('pn-footer').value = parentNoticeConfig.footer;
                     document.getElementById('pn-reply-title').value = parentNoticeConfig.replyTitle;
                     document.getElementById('pn-reply-deadline').value = parentNoticeConfig.replyDeadline;
-                    
                     document.getElementById('pn-type').value = parentNoticeConfig.title.includes("篩選測驗") ? "screening" : "growth";
                 }
                 if(c.grades) {
@@ -902,6 +977,7 @@
                 };
             }).filter(s => s.name.length > 0); 
             
+            // 確保依 年級→班級→座號 排序
             globalStudents.sort((a,b) => {
                 if(a.grade!=b.grade) return parseInt(a.grade)-parseInt(b.grade);
                 if(a.cls!=b.cls) return parseInt(a.cls)-parseInt(b.cls);
@@ -997,10 +1073,8 @@
             
             const contentC = (dC ? `<span class="sch-time">${dC}</span>` : '') + 
                              (lC ? `<span class="sch-loc">地點：${lC}</span>` : '');
-                             
             const contentM = (dM ? `<span class="sch-time">${dM}</span>` : '') + 
                              (lM ? `<span class="sch-loc">地點：${lM}</span>` : '');
-                             
             const contentE = (dE ? `<span class="sch-time">${dE}</span>` : '') + 
                              (lE ? `<span class="sch-loc">地點：${lE}</span>` : '');
 
@@ -1070,11 +1144,9 @@
         const greeting = document.getElementById('pn-greeting').value;
         const intro = document.getElementById('pn-intro').value.replace(/\r\n|\r|\n/g, '<br>');
         const reason = document.getElementById('pn-reason').value.replace(/\r\n|\r|\n/g, '<br>');
-        
         const footer = document.getElementById('pn-footer').value;
         const replyTitle = document.getElementById('pn-reply-title').value;
         const replyDeadline = document.getElementById('pn-reply-deadline').value;
-        
         const pnType = document.getElementById('pn-type').value;
         const legendText = pnType === 'screening' ? 'X: 本次要考' : 'O: 免考 / X: 本次要考 / 空白: 未測驗免考';
 
@@ -1118,23 +1190,17 @@
                             <div style="text-indent:2em; margin-bottom:2px;">${greeting}</div>
                             <div>${intro}</div>
                         </div>
-                        
                         <div style="margin-top:5px;">
                             <div style="font-weight:bold; margin-bottom:2px;">目的與原因：</div>
                             <div>${reason}</div>
                         </div>
-
                         ${scheduleTable}
-                        
                         ${studentTable}
-
                         <div style="text-align:right; margin-top:5px; font-size:12pt;">
                             ${footer}
                         </div>
                     </div>
-
                     <div class="cut-line"><span>請 沿 虛 線 撕 下 繳 交 --- 上 方 資 料 家 長 自 行 留 存</span></div>
-
                     <div style="text-align:center;">
                         <div style="font-size:14pt; margin-bottom:5px;">${s.grade}年${s.cls}班 &nbsp;&nbsp; 學生：${s.name}</div>
                         <div class="reply-title">${replyTitle}</div>
@@ -1248,6 +1314,10 @@
         showPreview(html, 'print-surveys');
     }
 
+    // =============================================
+    // renderSlips：改版 v57.1
+    // 每張 A4 放 4 格（2欄×2列），依班級→座號排列
+    // =============================================
     function renderSlips() {
         if(globalStudents.length===0) return alert('無資料');
         const title = document.getElementById('slip-title').value;
@@ -1255,7 +1325,10 @@
         if(document.getElementById('p-chi').checked) subList.push('chi');
         if(document.getElementById('p-math').checked) subList.push('math');
         if(document.getElementById('p-eng').checked) subList.push('eng');
-        let html = '';
+        if(subList.length === 0) return alert('請至少勾選一個科目');
+
+        // 蒐集所有需要列印的通知單（單一科目單一學生 = 一個 cell）
+        const allSlips = [];
         subList.forEach(sub => {
             globalStudents.forEach(s => {
                 if(!s.isCase) return; 
@@ -1264,34 +1337,55 @@
                 const t = document.getElementById(sub=='chi'?`d-c-${i}`:sub=='math'?`d-m-${i}`:`d-e-${i}`).value;
                 const l = document.getElementById(sub=='chi'?`l-c-${i}`:sub=='math'?`l-m-${i}`:`l-e-${i}`).value;
                 const check = (k) => k==sub?'■':'□';
-                html += `
-                <div class="preview-page-wrapper">
-                    <div class="sheet-page" style="min-height:auto; height:auto; padding:10px;">
-                        <div class="slip-container">
-                            <div class="slip-header">${title}</div>
-                            <table class="std-table">
-                                <colgroup><col style="width:6%"><col style="width:6%"><col style="width:10%"><col style="width:18%"><col style="width:18%"><col style="width:12%"><col style="width:30%"></colgroup>
-                                <tr><th>年級</th><th>班級</th><th>姓名</th><th>地點</th><th>時間</th><th>科目</th><th>物品</th></tr>
-                                <tr>
-                                    <td>${s.grade}</td><td>${s.cls}</td><td>${s.name}</td>
-                                    <td class="text-red">${l}</td><td class="text-red">${t.replace(' ','<br>')}</td>
-                                    <td style="text-align:left; padding-left:10px;">
-                                        <div><span class="square">${check('chi')}</span>國語</div>
-                                        <div><span class="square">${check('math')}</span>數學</div>
-                                        <div><span class="square">${check('eng')}</span>英語</div>
-                                    </td>
-                                    <td style="text-align:center;">
-                                        <div><span class="square">■</span>鉛筆盒</div>
-                                        <div><span class="square">${sub=='eng'?'■':'□'}</span>耳機</div>
-                                        <span style="font-size:12px;">(如果有,比較衛生)</span>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>`;
+                const cellHtml = `
+                    <div class="slip-header">${title}</div>
+                    <table class="std-table">
+                        <colgroup>
+                            <col style="width:7%"><col style="width:7%"><col style="width:12%">
+                            <col style="width:20%"><col style="width:20%"><col style="width:14%"><col style="width:20%">
+                        </colgroup>
+                        <tr>
+                            <th>年級</th><th>班級</th><th>姓名</th>
+                            <th>地點</th><th>時間</th><th>科目</th><th>物品</th>
+                        </tr>
+                        <tr>
+                            <td>${s.grade}</td><td>${s.cls}</td><td>${s.name}</td>
+                            <td class="text-red">${l}</td>
+                            <td class="text-red">${t.replace(/\s/g,'<br>')}</td>
+                            <td style="text-align:left; padding-left:5px;">
+                                <div><span class="square">${check('chi')}</span>國語</div>
+                                <div><span class="square">${check('math')}</span>數學</div>
+                                <div><span class="square">${check('eng')}</span>英語</div>
+                            </td>
+                            <td style="text-align:center;">
+                                <div><span class="square">■</span>鉛筆盒</div>
+                                <div><span class="square">${sub=='eng'?'■':'□'}</span>耳機</div>
+                                <span style="font-size:10px;">(如果有,比較衛生)</span>
+                            </td>
+                        </tr>
+                    </table>`;
+                allSlips.push(cellHtml);
             });
         });
+
+        if(allSlips.length === 0) return alert('選定的科目沒有學生需要考試');
+
+        // 每4個通知單組成一頁（2×2格）
+        const CELLS_PER_PAGE = 4;
+        let html = '';
+        for(let pageStart = 0; pageStart < allSlips.length; pageStart += CELLS_PER_PAGE) {
+            const pageSlips = allSlips.slice(pageStart, pageStart + CELLS_PER_PAGE);
+            // 補空格讓 grid 對齊
+            while(pageSlips.length < CELLS_PER_PAGE) {
+                pageSlips.push(''); // 空格
+            }
+            html += `<div class="slip-a4-page">`;
+            pageSlips.forEach(cellContent => {
+                html += `<div class="slip-cell">${cellContent}</div>`;
+            });
+            html += `</div>`;
+        }
+
         showPreview(html, 'print-slips');
     }
 

@@ -2582,10 +2582,31 @@ function renderExtraList(){
       classMap.get(k).push(s);
     });
 
+    // Grade summary for this subject
+    const gradeSummary=[1,2,3,4,5,6].map(g=>{
+      if(key==='english'&&g<3)return null;
+      const cnt=subjExtras.filter(s=>s.grade===g).length;
+      if(!cnt)return null;
+      return{g,cnt};
+    }).filter(Boolean);
+
     html+=`<div class="card" style="border-left:4px solid ${color};margin-top:12px">
       <div style="background:${color};color:#fff;padding:8px 14px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between;margin:-18px -18px 14px">
         <span>${label} 補發名單</span>
         <span style="font-size:11px;opacity:.85">共 ${subjExtras.length} 人，${classMap.size} 班</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        ${gradeSummary.map(({g,cnt})=>`
+          <div style="background:${color}18;border:1px solid ${color}44;border-radius:8px;padding:8px 14px;min-width:80px;text-align:center">
+            <div style="font-size:11px;color:var(--muted)">${g}年級</div>
+            <div style="font-size:20px;font-weight:700;color:${color};font-family:'JetBrains Mono',monospace">${cnt}</div>
+            <div style="font-size:10px;color:var(--muted)">人需補發</div>
+          </div>`).join('')}
+        <div style="background:#37415118;border:1px dashed var(--border);border-radius:8px;padding:8px 14px;min-width:80px;text-align:center">
+          <div style="font-size:11px;color:var(--muted)">全部年級</div>
+          <div style="font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace">${subjExtras.length}</div>
+          <div style="font-size:10px;color:var(--muted)">人合計</div>
+        </div>
       </div>`;
 
     classMap.forEach((ss,k)=>{
@@ -2596,11 +2617,8 @@ function renderExtraList(){
       </div>
       <div class="tw"><table>
         <thead><tr>
-          <th>座號</th><th>姓名</th><th>分數（上學期）</th><th>身分類別</th>
+          <th>座號</th><th>姓名</th><th>分數（上學期）</th><th>身分類別</th><th>其他科已在名單</th>
         </tr></thead><tbody>`;
-      html+=`<thead><tr>
-        <th>座號</th><th>姓名</th><th>分數（上學期）</th><th>身分類別</th><th>其他科已在名單</th>
-      </tr></thead>`;
       ss.sort((a,b2)=>a.seat-b2.seat).forEach(s=>{
         const score=s[key]!==null&&s[key]!==undefined?s[key].toFixed(2):'—';
         // Check other subjects

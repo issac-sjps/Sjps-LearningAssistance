@@ -2197,15 +2197,15 @@ function renderSettings(){
         <th>年級總人數</th>
         <th style="background:#7e22ce">鑑輔免測人數</th>
         <th>實際參測母數</th>
-        <th colspan="3" style="background:#b91c1c;text-align:center">國語</th>
-        <th colspan="3" style="background:#1d4ed8;text-align:center">數學</th>
-        <th colspan="3" style="background:#065f46;text-align:center">英語</th>
+        <th colspan="4" style="background:#b91c1c;text-align:center">國語</th>
+        <th colspan="4" style="background:#1d4ed8;text-align:center">數學</th>
+        <th colspan="4" style="background:#065f46;text-align:center">英語</th>
       </tr>
       <tr>
         <th></th><th>可修改</th><th style="background:#6b21a8">可修改</th><th></th>
-        <th style="background:#991b1b">核定率</th><th style="background:#991b1b">教育部計算</th><th style="background:#991b1b">我的系統</th>
-        <th style="background:#1e3a8a">核定率</th><th style="background:#1e3a8a">教育部計算</th><th style="background:#1e3a8a">我的系統</th>
-        <th style="background:#064e3b">核定率</th><th style="background:#064e3b">教育部計算</th><th style="background:#064e3b">我的系統</th>
+        <th style="background:#991b1b">核定率</th><th style="background:#991b1b">教育部計算</th><th style="background:#991b1b">我的目標</th><th style="background:#7f1d1d">最終選取</th>
+        <th style="background:#1e3a8a">核定率</th><th style="background:#1e3a8a">教育部計算</th><th style="background:#1e3a8a">我的目標</th><th style="background:#1e2d6b">最終選取</th>
+        <th style="background:#064e3b">核定率</th><th style="background:#064e3b">教育部計算</th><th style="background:#064e3b">我的目標</th><th style="background:#022c22">最終選取</th>
       </tr></thead><tbody>`;
 
   [1,2,3,4,5,6].forEach(g=>{
@@ -2221,15 +2221,23 @@ function renderSettings(){
     // Per subject
     function subjCols(subj){
       const rate=MOE_RATES[subj]?.[g]||0;
-      if(!rate)return '<td colspan="3" style="text-align:center;color:var(--muted);font-size:11px">—</td>';
+      if(!rate)return '<td colspan="4" style="text-align:center;color:var(--muted);font-size:11px">—</td>';
       const moeVal=Math.ceil(net*rate/100);
       const myVal=subjTarget(g,subj).total;
-      const diff=myVal-moeVal;
-      const dColor=diff===0?'var(--green)':diff>0?'var(--red)':'var(--amber)';
+      // Actual selected count from exam list
+      const examAll=buildExamList();
+      const actualSel=examAll.filter(s=>s.grade===g&&(subj==='chinese'?s.needChinese:subj==='math'?s.needMath:s.needEnglish)).length;
+      const diffMyMoe=myVal-moeVal;
+      const diffActMoe=actualSel-moeVal;
+      const dColor=diffMyMoe===0?'var(--green)':diffMyMoe>0?'var(--red)':'var(--amber)';
+      const aColor=diffActMoe===0?'var(--green)':diffActMoe>0?'#f97316':'var(--red)';
       return `<td class="mono" style="text-align:center">${rate}%</td>
         <td class="mono fw6" style="text-align:center;color:var(--teal)">${moeVal}</td>
         <td class="mono fw6" style="text-align:center;color:${dColor}">${myVal}
-          ${diff!==0?`<span style="font-size:10px">(${diff>0?'+':''}${diff})</span>`:'<span style="font-size:10px">✓</span>'}
+          ${diffMyMoe!==0?`<span style="font-size:10px">(${diffMyMoe>0?'+':''}${diffMyMoe})</span>`:'<span style="font-size:10px">✓</span>'}
+        </td>
+        <td class="mono fw6" style="text-align:center;color:${aColor}">${actualSel}
+          <span style="font-size:10px">${diffActMoe===0?'✓ 達標':diffActMoe>0?'(+'+diffActMoe+')':'('+diffActMoe+')'}</span>
         </td>`;
     }
 

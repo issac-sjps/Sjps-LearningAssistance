@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學習扶助測驗系統 v57.2 (隱蔽授權版)</title>
+    <title>學習扶助測驗系統 v57.3 (隱蔽授權版)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
@@ -162,6 +162,7 @@
                 box-shadow: none !important;
                 border: none !important;
                 background: white !important;
+                /* page-break-after 由 inline style 控制 */
             }
             body.print-slips .slip-cell {
                 display: block !important;
@@ -170,10 +171,10 @@
                 border-top: none !important;
                 border-left: none !important;
                 border-right: none !important;
-                padding: 2mm 0 !important;
+                padding: 2.5mm 0 !important;
                 margin: 0 !important;
                 box-sizing: border-box !important;
-                font-size: 8.5pt !important;
+                font-size: 10pt !important;
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
             }
@@ -185,11 +186,11 @@
                 font-size: 14pt !important;
                 box-shadow: none !important;
             }
-            body.print-slips .slip-cell table.std-table { font-size: 8.5pt !important; }
+            body.print-slips .slip-cell table.std-table { font-size: 10pt !important; }
             body.print-slips .slip-cell table.std-table td,
-            body.print-slips .slip-cell table.std-table th { padding: 2px 3px !important; }
-            body.print-slips .slip-cell .slip-header { font-size: 8.5pt !important; margin-bottom: 1px !important; }
-            body.print-slips .slip-cell .square { width: 11px !important; height: 11px !important; font-size: 9px !important; }
+            body.print-slips .slip-cell table.std-table th { padding: 3px 4px !important; }
+            body.print-slips .slip-cell .slip-header { font-size: 10pt !important; margin-bottom: 1px !important; }
+            body.print-slips .slip-cell .square { width: 13px !important; height: 13px !important; font-size: 11px !important; }
 
             /* === 導師名單緊湊模式 === */
             body.print-teachers-compact .preview-page-wrapper { page-break-after: auto; margin-bottom: 0; }
@@ -228,19 +229,19 @@
             padding: 4mm 6mm;
             box-sizing: border-box;
         }
-        /* 每筆通知單：緊湊單列 */
+        /* 每筆通知單：固定6筆一頁，字體適中 */
         .slip-cell {
             border-bottom: 1px dashed #999;
-            padding: 2mm 0;
+            padding: 2.5mm 0;
             box-sizing: border-box;
-            font-size: 9pt;
+            font-size: 10pt;
         }
         .slip-cell:last-child { border-bottom: none; }
-        .slip-cell .slip-header { font-size: 8.5pt; margin-bottom: 2px; text-align: center; font-weight: bold; }
-        .slip-cell table.std-table { font-size: 8.5pt; }
+        .slip-cell .slip-header { font-size: 10pt; margin-bottom: 2px; text-align: center; font-weight: bold; }
+        .slip-cell table.std-table { font-size: 10pt; }
         .slip-cell table.std-table td,
-        .slip-cell table.std-table th { padding: 2px 3px; }
-        .slip-cell .square { width: 11px; height: 11px; font-size: 9px; }
+        .slip-cell table.std-table th { padding: 3px 4px; }
+        .slip-cell .square { width: 13px; height: 13px; font-size: 11px; }
 
         /* 導師名單 */
         .teacher-header { background:#333; color:white; padding:5px 10px; font-weight:bold; display:flex; justify-content:space-between; font-size:14pt; -webkit-print-color-adjust: exact; }
@@ -345,7 +346,7 @@
 
     <div class="navbar">
         <div class="nav-left">
-            <h2 style="margin:0;">測驗系統 v57.2</h2>
+            <h2 style="margin:0;">測驗系統 v57.3</h2>
             <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
         </div>
         
@@ -398,7 +399,7 @@
                     <label><input type="checkbox" id="p-eng"> 英語</label>
                     <br><br>
                     <div style="background:#fff3cd; border:1px solid #ffc107; padding:10px; border-radius:5px; margin-bottom:15px; font-size:13px; text-align:left;">
-                        💡 <b>列印說明：</b>通知單依班級→座號排序，<b>一欄連續排列，自動填滿 A4 換頁</b>（一頁約可放 6~8 筆）。列印後沿虛線裁切即可。
+                        💡 <b>列印說明：</b>通知單依班級→座號排序，<b>固定每頁 6 筆</b>，字體清晰方便家長閱讀。列印後沿虛線橫切即可。
                     </div>
                     <button class="btn btn-green" onclick="renderSlips()">產生並預覽通知單</button>
                 </div>
@@ -1357,13 +1358,18 @@
 
         if(allSlips.length === 0) return alert('選定的科目沒有學生需要考試');
 
-        // 全部通知單放進一個容器，讓瀏覽器/印表機自動在頁滿時換頁
-        // break-inside: avoid 確保每筆不被切斷
-        let html = `<div class="slip-a4-page">`;
-        allSlips.forEach(cellContent => {
-            html += `<div class="slip-cell">${cellContent}</div>`;
-        });
-        html += `</div>`;
+        // 每6筆一頁，固定換頁
+        const PER_PAGE = 6;
+        let html = '';
+        for(let i = 0; i < allSlips.length; i += PER_PAGE) {
+            const pageSlips = allSlips.slice(i, i + PER_PAGE);
+            const isLast = (i + PER_PAGE) >= allSlips.length;
+            html += `<div class="slip-a4-page" style="${!isLast ? 'page-break-after:always;' : ''}">`;
+            pageSlips.forEach(cellContent => {
+                html += `<div class="slip-cell">${cellContent}</div>`;
+            });
+            html += `</div>`;
+        }
 
         showPreview(html, 'print-slips');
     }

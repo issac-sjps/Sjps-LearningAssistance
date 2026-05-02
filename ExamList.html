@@ -76,6 +76,14 @@ tfoot td{padding:8px 10px;background:#f8fafc;font-weight:600;font-size:12px;bord
 .b-req{background:#fff7ed;color:var(--amber);border:1px solid #fed7aa}
 .b-sel{background:#faf5ff;color:var(--purple);border:1px solid #e9d5ff}
 .b-over{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:2px}
+@media print{
+  .b,.b-req,.b-sel,.b-over,.b-mt{font-size:9px!important;padding:1px 4px!important;white-space:normal!important}
+  tbody td{font-size:10px!important;padding:4px 5px!important}
+  thead th{font-size:10px!important;padding:5px!important}
+  table{min-width:unset!important}
+  .tw{overflow:visible!important}
+  .tw-wrap::after{display:none!important}
+}
 /* ── STAT GRID ── */
 .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:16px}
 .sc{background:var(--white);border-radius:10px;padding:14px;box-shadow:var(--sh);border-left:4px solid var(--teal)}
@@ -359,8 +367,11 @@ body.view-only input[type=checkbox]{pointer-events:none}
 }
 
 /* ── PRINT ── */
+@page{margin:.5cm .5cm .5cm .5cm}
+.print-only{display:none}
 @media print{
   .hdr,.nav,.no-print,#tst{display:none!important}
+  .print-only{display:table-row!important}
   .main{padding:0!important;max-width:100%}
   body{background:#fff}
   .card{box-shadow:none!important;border:1px solid #ddd!important;page-break-inside:avoid}
@@ -1686,7 +1697,17 @@ function renderExamList(){
         <td>${sourceBadge(s)}</td>
       </tr>`;
     });
-    html+=`</tbody><tfoot><tr>
+    // 補發學生 (extra/over-quota)
+    const extraIds=new Set(buildExtraList().filter(e=>e.grade===g&&e.classNum===cn).map(e=>e.id));
+    const extraSS=ss.filter(s=>extraIds.has(s.id));
+    const extraNote=extraSS.length?`
+    <tr class="no-print"><td colspan="${g>=3?10:8}" style="background:#fff7ed;color:#c2410c;font-size:11px;padding:6px 10px">
+      🟠 補發學生（${extraSS.length}人）：${extraSS.map(s=>s.name).join('、')} — 因教育部核定提報率調整而新增，需補發通知單及考古題。
+    </td></tr>
+    <tr class="print-only" style="display:none"><td colspan="${g>=3?10:8}" style="border-top:2px dashed #f97316;font-size:10px;padding:5px 8px;color:#c2410c">
+      ＊補發提醒：${extraSS.map(s=>s.seat+'號'+s.name).join('、')} 因教育部核定提報率調整而加入，請補發考試通知單及考古題。
+    </td></tr>`:'';
+    html+=`</tbody>${extraNote}<tfoot><tr>
       <td colspan="2" class="fw6">本班合計 ${ss.length} 人</td>
       <td class="fw6" style="color:var(--red)">國 ${countCh} 人</td>
       <td class="fw6" style="color:var(--blue2)">數 ${countMath} 人</td>
@@ -2577,18 +2598,38 @@ function renderExtraList(){
         <thead><tr>
           <th>座號</th><th>姓名</th><th>分數（上學期）</th><th>身分類別</th>
         </tr></thead><tbody>`;
+      html+=`<thead><tr>
+        <th>座號</th><th>姓名</th><th>分數（上學期）</th><th>身分類別</th><th>其他科已在名單</th>
+      </tr></thead>`;
       ss.sort((a,b2)=>a.seat-b2.seat).forEach(s=>{
         const score=s[key]!==null&&s[key]!==undefined?s[key].toFixed(2):'—';
+        // Check other subjects
+        const examAll=buildExamList();
+        const examS=examAll.find(e=>e.id===s.id||( e.name===s.name&&e.grade===s.grade));
+        const otherSubjs=[];
+        const SUBJ_ALL=['chinese','math','english'];
+        const SUBJ_LBL={chinese:'國語',math:'數學',english:'英語'};
+        SUBJ_ALL.forEach(subj=>{
+          if(subj===key)return; // skip current subject
+          if(subj==='english'&&s.grade<3)return;
+          const needField=subj==='chinese'?'needChinese':subj==='math'?'needMath':'needEnglish';
+          if(examS&&examS[needField]){
+            const isExtra=s.extraSubjs&&s.extraSubjs.includes(subj);
+            otherSubjs.push(`<span class="b ${isExtra?'b-over':'b-req'}" style="font-size:10px">${SUBJ_LBL[subj]}${isExtra?' 補':'✓'}</span>`);
+          }
+        });
+        const otherCell=otherSubjs.length?otherSubjs.join(' '):'<span class="mu fs11">—</span>';
         html+=`<tr style="background:#fff7ed">
           <td class="mono fw6">${String(s.seat).padStart(2,'0')}</td>
           <td class="fw6" style="white-space:nowrap">${s.name}</td>
           <td class="mono" style="color:${color}">${score}</td>
           <td class="fs11 mu">${s.note||'—'}</td>
+          <td>${otherCell}</td>
         </tr>`;
       });
       html+=`</tbody><tfoot><tr>
         <td colspan="2" class="fw6">本班小計</td>
-        <td class="mono fw6" style="color:${color}">${ss.length} 人</td><td></td>
+        <td class="mono fw6" style="color:${color}">${ss.length} 人</td><td colspan="2"></td>
       </tr></tfoot></table></div>`;
     });
 

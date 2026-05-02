@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學習扶助測驗系統 v57.4 (隱蔽授權版)</title>
+    <title>學習扶助測驗系統 v57.5 (隱蔽授權版)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
@@ -174,7 +174,7 @@
                 padding: 2.5mm 0 !important;
                 margin: 0 !important;
                 box-sizing: border-box !important;
-                font-size: 10pt !important;
+                font-size: 11pt !important;
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
             }
@@ -186,11 +186,11 @@
                 font-size: 14pt !important;
                 box-shadow: none !important;
             }
-            body.print-slips .slip-cell table.std-table { font-size: 10pt !important; }
+            body.print-slips .slip-cell table.std-table { font-size: 11pt !important; }
             body.print-slips .slip-cell table.std-table td,
             body.print-slips .slip-cell table.std-table th { padding: 3px 4px !important; }
-            body.print-slips .slip-cell .slip-header { font-size: 10pt !important; margin-bottom: 1px !important; }
-            body.print-slips .slip-cell .square { width: 13px !important; height: 13px !important; font-size: 11px !important; }
+            body.print-slips .slip-cell .slip-header { font-size: 11pt !important; margin-bottom: 1px !important; }
+            body.print-slips .slip-cell .square { width: 14px !important; height: 14px !important; font-size: 12px !important; }
 
             /* === 導師名單緊湊模式 === */
             body.print-teachers-compact .preview-page-wrapper { page-break-after: auto; margin-bottom: 0; }
@@ -229,19 +229,19 @@
             padding: 4mm 6mm;
             box-sizing: border-box;
         }
-        /* 每筆通知單：固定6筆一頁，字體適中 */
+        /* 每筆通知單：固定8筆一頁，字體適中 */
         .slip-cell {
             border-bottom: 1px dashed #999;
             padding: 2.5mm 0;
             box-sizing: border-box;
-            font-size: 10pt;
+            font-size: 11pt;
         }
         .slip-cell:last-child { border-bottom: none; }
-        .slip-cell .slip-header { font-size: 10pt; margin-bottom: 2px; text-align: center; font-weight: bold; }
-        .slip-cell table.std-table { font-size: 10pt; }
+        .slip-cell .slip-header { font-size: 11pt; margin-bottom: 2px; text-align: center; font-weight: bold; }
+        .slip-cell table.std-table { font-size: 11pt; }
         .slip-cell table.std-table td,
         .slip-cell table.std-table th { padding: 3px 4px; }
-        .slip-cell .square { width: 13px; height: 13px; font-size: 11px; }
+        .slip-cell .square { width: 14px; height: 14px; font-size: 12px; }
 
         /* 導師名單 */
         .teacher-header { background:#333; color:white; padding:5px 10px; font-weight:bold; display:flex; justify-content:space-between; font-size:14pt; -webkit-print-color-adjust: exact; }
@@ -346,7 +346,7 @@
 
     <div class="navbar">
         <div class="nav-left">
-            <h2 style="margin:0;">測驗系統 v57.4</h2>
+            <h2 style="margin:0;">測驗系統 v57.5</h2>
             <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
         </div>
         

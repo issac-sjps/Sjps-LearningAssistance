@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學習扶助測驗系統 v57.3 (隱蔽授權版)</title>
+    <title>學習扶助測驗系統 v57.4 (隱蔽授權版)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
@@ -346,7 +346,7 @@
 
     <div class="navbar">
         <div class="nav-left">
-            <h2 style="margin:0;">測驗系統 v57.3</h2>
+            <h2 style="margin:0;">測驗系統 v57.4</h2>
             <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
         </div>
         
@@ -399,7 +399,7 @@
                     <label><input type="checkbox" id="p-eng"> 英語</label>
                     <br><br>
                     <div style="background:#fff3cd; border:1px solid #ffc107; padding:10px; border-radius:5px; margin-bottom:15px; font-size:13px; text-align:left;">
-                        💡 <b>列印說明：</b>通知單依班級→座號排序，<b>固定每頁 6 筆</b>，字體清晰方便家長閱讀。列印後沿虛線橫切即可。
+                        💡 <b>列印說明：</b>通知單依班級→座號排序，<b>固定每頁 8 筆</b>，列印後沿虛線橫切即可。
                     </div>
                     <button class="btn btn-green" onclick="renderSlips()">產生並預覽通知單</button>
                 </div>
@@ -1358,8 +1358,8 @@
 
         if(allSlips.length === 0) return alert('選定的科目沒有學生需要考試');
 
-        // 每6筆一頁，固定換頁
-        const PER_PAGE = 6;
+        // 每8筆一頁，固定換頁
+        const PER_PAGE = 8;
         let html = '';
         for(let i = 0; i < allSlips.length; i += PER_PAGE) {
             const pageSlips = allSlips.slice(i, i + PER_PAGE);

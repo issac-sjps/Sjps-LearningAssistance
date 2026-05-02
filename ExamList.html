@@ -75,6 +75,13 @@ tfoot td{padding:8px 10px;background:#f8fafc;font-weight:600;font-size:12px;bord
 .b-mt{background:#f8fafc;color:var(--muted);border:1px solid var(--border)}
 .b-req{background:#fff7ed;color:var(--amber);border:1px solid #fed7aa}
 .b-sel{background:#faf5ff;color:var(--purple);border:1px solid #e9d5ff}
+.b-formal{background:#f0fdf4;color:#15803d;border:1.5px solid #86efac;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:2px}
+.b-extra{background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:2px}
+/* locked formal = green, extra = orange */
+tbody tr.row-formal{background:#f0fdf4!important}
+tbody tr.row-extra{background:#fff7ed!important}
+tbody tr.row-formal td:nth-child(1){background:#f0fdf4!important}
+tbody tr.row-extra td:nth-child(1){background:#fff7ed!important}
 .b-over{background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:2px}
 @media print{
   .b,.b-req,.b-sel,.b-over,.b-mt{font-size:9px!important;padding:1px 4px!important;white-space:normal!important}
@@ -513,6 +520,7 @@ body.view-only input[type=checkbox]{pointer-events:none}
 <!-- ═══════════════════ TAB: B35 ═══════════════════ -->
 <div class="tab" id="tab-b35">
   <div class="no-print" style="margin-bottom:10px">
+    <div id="b35-snapshot-bar" style="margin-bottom:8px"></div>
     <div class="stabs" id="b35-stabs" style="margin-bottom:8px">
       <button class="stab on" data-subj="chinese" onclick="setB35Subj('chinese',this)">📖 國語排序</button>
       <button class="stab" data-subj="math" onclick="setB35Subj('math',this)">🔢 數學排序</button>
@@ -1204,6 +1212,9 @@ function subjBadge(v){
 //   三年級英語：首次施測，目標 = round(四年級英語必考人數/220 × 198) + ceil(198×5%)
 //   其餘：必考名單各科X人數 + 後35%已選有該科成績人數，目標 = ceil(年級人數×5%)
 const GRADE1_FIRST_EXAM=true;
+// Snapshot: locked formal list { id -> {selChinese,selMath,selEnglish} }
+let formalSnapshot=null; // null = not locked yet
+let formalSnapshotTime=null;
 // Convert subj key to Firebase field name
 function selField(subj){return 'sel'+subj[0].toUpperCase()+subj.slice(1);}  // chinese→selChinese
 function isSP(note){return String(note||'').includes('鑑輔');}
@@ -1383,6 +1394,23 @@ function renderB35(){
   const grade=parseInt(document.getElementById('b35-grade').value)||0;
   const subj=b35Subj;
   const el=document.getElementById('b35-content');
+  // Update snapshot bar
+  const snapBar=document.getElementById('b35-snapshot-bar');
+  if(snapBar){
+    if(formalSnapshot){
+      const cnt=Object.keys(formalSnapshot).length;
+      snapBar.innerHTML=`<div class="al al-ok" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        🔒 <strong>正式名單已鎖定</strong>（${formalSnapshotTime}，共 ${cnt} 人次）
+        — 綠色=正式名單，橘色=補發超額
+        <button class="btn btn-red btn-sm no-edit" onclick="clearFormalSnapshot()">🔓 解除鎖定</button>
+      </div>`;
+    } else {
+      snapBar.innerHTML=`<div class="al al-warn" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ⚠️ 尚未鎖定正式名單。選完正式名單後請按鎖定，之後再勾選的學生才會標為「補發超額」。
+        <button class="btn btn-teal no-edit" onclick="lockFormalSnapshot()">🔒 鎖定目前為正式名單</button>
+      </div>`;
+    }
+  }
   if(!B35.length){el.innerHTML=emptyState('📊','尚無後35%名單資料，請先上傳。');return;}
   
   let students=B35.filter(s=>{
@@ -1470,17 +1498,24 @@ function renderB35(){
         String(r[subj]||'').trim().toUpperCase()==='X'
       );
       const isSel=!!s[sf];
-      // Is this student "over quota" for MY target (selected beyond my 5% target)?
-      const myTgt=subjTarget(g,subj).total;
-      const{reqCnt:rCnt}=subjEffective(g,subj);
-      const selSoFar=selCountForSubj_global(g,subj); // includes current student if selected
-      // rank of this student among selected (by score order)
-      const selRank=gs.filter((t,ti)=>ti<i&&!!t[sf]).length+1; // how many selected before this one
-      const isOverMyQuota=isSel&&!inReqSubj&&(rCnt+selRank)>myTgt;
-      const rowClass=inReqSubj?'style="background:#fffbeb"':isOverMyQuota?'style="background:#fff7ed"':isSel?'style="background:#faf5ff"':'';
+      // Snapshot-based: if snapshot exists, use it to determine formal vs extra
+      // Otherwise fall back to rank-based method
+      let isOverMyQuota=false;
+      if(formalSnapshot){
+        // Extra = selected but NOT in formal snapshot for this subject
+        isOverMyQuota=isSel&&!inReqSubj&&!isInFormal(s.id,subj);
+      } else {
+        // Rank-based fallback
+        const myTgt=subjTarget(g,subj).total;
+        const{reqCnt:rCnt}=subjEffective(g,subj);
+        const selRank=gs.filter((t,ti)=>ti<i&&!!t[sf]).length+1;
+        isOverMyQuota=isSel&&!inReqSubj&&(rCnt+selRank)>myTgt;
+      }
+      const isFormalSel=isSel&&!isOverMyQuota&&!inReqSubj;
+      const rowClass=inReqSubj?'style="background:#fffbeb"':isOverMyQuota?'style="background:#fff7ed"':isFormalSel?'style="background:#faf5ff"':'';
       const statusBadge=isFirst
-        ?(isSel?(isOverMyQuota?'<span class="b b-over">🟠 補發超額</span>':'<span class="b b-sel">✔ 已選入名單</span>'):'<span class="b b-mt">—</span>')
-        :(inReqSubj?'<span class="b b-req">✦ 必考名單</span>':isSel?(isOverMyQuota?'<span class="b b-over">🟠 補發超額</span>':'<span class="b b-sel">✔ 已選5%</span>'):'<span class="b b-mt">—</span>');
+        ?(isSel?(isOverMyQuota?'<span class="b b-extra">🟠 補發超額</span>':'<span class="b b-sel">✔ 正式名單</span>'):'<span class="b b-mt">—</span>')
+        :(inReqSubj?'<span class="b b-req">✦ 必考名單</span>':isSel?(isOverMyQuota?'<span class="b b-extra">🟠 補發超額</span>':'<span class="b b-sel">✔ 正式名單</span>'):'<span class="b b-mt">—</span>');
       const sp=isSP(s.note);
       tableHtml+=`<tr ${rowClass}>
         <td style="vertical-align:middle">
@@ -2041,6 +2076,15 @@ async function loadMoeTargets(){
       const d=snap3.data();
       [1,2,3,4,5,6].forEach(g=>{if(d[g]!==undefined)SP_EXEMPT[g]=d[g];});
     }
+    // Load formal snapshot
+    try{
+      const snap4=await getDoc(docRef(collection(window._db,'settings'),'formalSnapshot'));
+      if(snap4&&snap4.exists&&snap4.exists()){
+        const d=snap4.data();
+        formalSnapshot=d.snapshot||null;
+        formalSnapshotTime=d.time||null;
+      }
+    }catch(e2){console.warn('Snapshot load failed:',e2);}
   }catch(e){console.warn('Settings load failed:',e);}
 }
 
@@ -2059,6 +2103,54 @@ function moeCalcTarget(grade, subj){
   const pop=GRADE_TOTALS[grade];
   const exempt=SP_EXEMPT[grade]||0;
   return Math.ceil((pop-exempt)*rate/100);
+}
+
+
+async function saveFormalSnapshot(){
+  try{
+    const{collection,doc:docRef,setDoc}=window._fs;
+    await setDoc(docRef(collection(window._db,'settings'),'formalSnapshot'),{
+      snapshot:formalSnapshot,time:formalSnapshotTime
+    });
+  }catch(e){toast('鎖定儲存失敗: '+e.message,'err');}
+}
+
+async function lockFormalSnapshot(){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
+  if(formalSnapshot&&!confirm('已有鎖定的正式名單，確定要重新鎖定（覆蓋舊快照）？'))return;
+  formalSnapshot={};
+  B35.forEach(b=>{
+    if(b.selChinese||b.selMath||b.selEnglish){
+      formalSnapshot[b.id]={selChinese:!!b.selChinese,selMath:!!b.selMath,selEnglish:!!b.selEnglish};
+    }
+  });
+  formalSnapshotTime=new Date().toLocaleString('zh-TW');
+  await saveFormalSnapshot();
+  renderAll();
+  toast(`✅ 正式名單鎖定！共 ${Object.keys(formalSnapshot).length} 人次。之後新勾選 = 補發超額。`,'ok');
+}
+
+async function clearFormalSnapshot(){
+  if(!isEditMode){toast('請先進入編輯模式','warn');return;}
+  if(!confirm('確定解除鎖定？'))return;
+  formalSnapshot=null;formalSnapshotTime=null;
+  const{collection,doc:docRef,setDoc}=window._fs;
+  await setDoc(docRef(collection(window._db,'settings'),'formalSnapshot'),{snapshot:null,time:null});
+  renderAll();
+  toast('已解除正式名單鎖定','ok');
+}
+
+function isInFormal(id,subj){
+  if(!formalSnapshot)return false;
+  return !!(formalSnapshot[id]?.[selField(subj)]);
+}
+
+function isExtraBySnapshot(id,subj){
+  if(!formalSnapshot)return false; // no snapshot = use old rank method
+  const sf=selField(subj);
+  const b=B35.find(x=>x.id===id);
+  if(!b||!b[sf])return false; // not selected
+  return !isInFormal(id,subj); // selected but NOT in formal = extra
 }
 
 async function saveGradeTotals(){
@@ -2521,9 +2613,15 @@ function buildExtraList(){
         return a.seat-b2.seat;
       });
 
-      // Students beyond MY target are "extra for MOE"
-      const overStart=Math.max(0,myTgt-reqCnt);
-      selStudents.slice(overStart).forEach(s=>{
+      // Use snapshot if available, else rank-based
+      const getExtraStudents=()=>{
+        if(formalSnapshot){
+          return selStudents.filter(s=>!isInFormal(s.id,subj));
+        }
+        const overStart=Math.max(0,myTgt-reqCnt);
+        return selStudents.slice(overStart);
+      };
+      getExtraStudents().forEach(s=>{
         // Check if already added for another subject
         const ex=extras.find(e=>e.id===s.id);
         if(ex){ex.extraSubjs.push(subj);}

@@ -2112,18 +2112,31 @@ function renderMoeCmp(){
         ${diffCell(myEn,moeEn)}</td>`
       :`<td colspan="3" style="text-align:center;color:var(--muted);font-size:11px">—</td>`;
 
+    const pop=GRADE_TOTALS[g];
+    function pct(n){return pop>0?`<span class="mu fs11">(${(n/pop*100).toFixed(1)}%)</span>`:''}
+    function moePct(n){return pop>0?`<span class="mu fs11">(${(n/pop*100).toFixed(1)}%)</span>`:''}
+    const enCellsWithPct=g>=3
+      ?`<td class="mono" style="text-align:center">${myEn} ${pct(myEn)}</td>
+        <td><input type="number" min="0" max="999" style="width:64px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:12px;text-align:center"
+          value="${moeEn||''}" placeholder="—" onchange="setMoe(${g},'english',this.value)">
+          ${moeEn?moePct(moeEn):''}</td>
+        ${diffCell(myEn,moeEn)}</td>`
+      :`<td colspan="3" style="text-align:center;color:var(--muted);font-size:11px">—</td>`;
+
     html+=`<tr>
       <td class="fw6">${g}年級</td>
-      <td class="mono" style="text-align:center">${GRADE_TOTALS[g]}</td>
-      <td class="mono" style="text-align:center">${myCh}</td>
+      <td class="mono" style="text-align:center">${pop}</td>
+      <td class="mono" style="text-align:center">${myCh} ${pct(myCh)}</td>
       <td><input type="number" min="0" max="999" style="width:64px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:12px;text-align:center"
-        value="${moeCh||''}" placeholder="—" onchange="setMoe(${g},'chinese',this.value)"></td>
+        value="${moeCh||''}" placeholder="—" onchange="setMoe(${g},'chinese',this.value)">
+        ${moeCh?moePct(moeCh):''}</td>
       ${diffCell(myCh,moeCh)}</td>
-      <td class="mono" style="text-align:center">${myMth}</td>
+      <td class="mono" style="text-align:center">${myMth} ${pct(myMth)}</td>
       <td><input type="number" min="0" max="999" style="width:64px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:12px;text-align:center"
-        value="${moeMth||''}" placeholder="—" onchange="setMoe(${g},'math',this.value)"></td>
+        value="${moeMth||''}" placeholder="—" onchange="setMoe(${g},'math',this.value)">
+        ${moeMth?moePct(moeMth):''}</td>
       ${diffCell(myMth,moeMth)}</td>
-      ${enCells}
+      ${enCellsWithPct}
     </tr>`;
   });
 

@@ -2083,10 +2083,10 @@ function renderMoeCmp(){
   let totals={chinese:{my:0,moe:0},math:{my:0,moe:0},english:{my:0,moe:0}};
 
   grades.forEach(g=>{
-    const gs=examAll.filter(s=>s.grade===g);
-    const myCh=gs.filter(s=>s.needChinese).length;
-    const myMth=gs.filter(s=>s.needMath).length;
-    const myEn=g>=3?gs.filter(s=>s.needEnglish).length:null;
+    // Use subjTarget (my target, not actual selected count) for fair comparison with MOE
+    const myCh=subjTarget(g,'chinese').total;
+    const myMth=subjTarget(g,'math').total;
+    const myEn=g>=3?subjTarget(g,'english').total:null;
     totals.chinese.my+=myCh; totals.math.my+=myMth;
     if(myEn!==null)totals.english.my+=myEn;
 

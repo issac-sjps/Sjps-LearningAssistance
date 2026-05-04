@@ -238,6 +238,7 @@ let examNames      = [];
 let duplicateNames = [];
 let mergedData     = [];
 let examClsMap     = {};  // name → 班級(從考試名單)，用於雙重比對
+let examRowMap     = {};  // name → 考試名單原始 row
 
 // ── 全校名單欄位別名 ────────────────────────────────────────────────────
 const SCHOOL_ALIAS = {
@@ -323,13 +324,15 @@ setupZone('zone1', 'file1', (fname, rows) => {
     headers.find(h => h.trim() === '目前年級') ||
     headers.find(h => h.includes('班級') || h.includes('年級'));
   examClsMap = {};
-  if (examClsCol) {
-    rows.forEach(r => {
-      const n = String(r[nameCol] || '').trim();
+  examRowMap = {};  // name → 考試名單原始 row（供找不到時顯示）
+  rows.forEach(r => {
+    const n = String(r[nameCol] || '').trim();
+    if (!examRowMap[n]) examRowMap[n] = r;  // 只取第一筆（重複的已另外處理）
+    if (examClsCol) {
       const c = String(r[examClsCol] || '').trim();
       if (n && c) examClsMap[n] = c;
-    });
-  }
+    }
+  });
 
   // 顯示檔案資訊
   const info = document.getElementById('file1-info');
@@ -476,7 +479,7 @@ function doMerge() {
 
   targetNames.forEach(name => {
     let matches = schoolMap[name];
-    if (!matches || !matches.length) { notFound.push(name); return; }
+    if (!matches || !matches.length) { notFound.push(name); return; }  // 考試名單 row 已在 examRowMap 可查
 
     // 若考試名單有班級資訊，用班級精確比對縮減多筆
     if (matches.length > 1 && examClsMap[name]) {
@@ -517,7 +520,7 @@ function doMerge() {
     html += makeAlert('warn', '⚠️',
       `${uniq.length} 位學生的身分證在全校名單中是空的，請手動補充：`, uniq);
   }
-  if (notFound.length)  html += makeAlert('warn', '⚠️', `${notFound.length} 位學生在全校名單中找不到：`, notFound);
+  if (notFound.length)  html += makeNotFoundAlert(notFound);
   if (multiMatch.length) html += makeMultiMatchAlert(multiMatch);
   if (mergedData.length) {
     html += `<div class="alert alert-success"><span class="alert-icon">✅</span>` +
@@ -546,6 +549,46 @@ function doMerge() {
   ];
   renderPreview(mergedData, OUTPUT_COLS);
   document.getElementById('btn-export').disabled = mergedData.length === 0;
+}
+
+function makeNotFoundAlert(names) {
+  // 取考試名單的欄位（優先顯示序號、班級、座號、年級等）
+  const examHeaders = examRows.length ? Object.keys(examRows[0]) : [];
+  const PRIORITY = ['序號','姓名','學生姓名','年級','目前年級','班級','座號','身分類別','身分證統一編號'];
+  const showCols = [];
+  for (const p of PRIORITY) {
+    const f = examHeaders.find(h => h === p || h.includes(p));
+    if (f && !showCols.includes(f)) showCols.push(f);
+  }
+  for (const h of examHeaders) {
+    if (showCols.length >= 8) break;
+    if (!showCols.includes(h)) showCols.push(h);
+  }
+
+  const tableRows = names.map(name => {
+    const r = examRowMap[name] || {};
+    return `<tr style="background:#fff8ee;">` +
+      showCols.map(k => `<td style="padding:5px 10px;border:1px solid #f5c97a;">${r[k] !== undefined ? r[k] : ''}</td>`).join('') +
+      `</tr>`;
+  }).join('');
+
+  const thead = showCols.map(k =>
+    `<th style="padding:5px 10px;border:1px solid #e0a040;background:#fde8b0;text-align:left;">${k}</th>`
+  ).join('');
+
+  return `<div class="alert alert-warn" style="flex-direction:column;gap:8px;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="alert-icon">⚠️</span>
+      <strong>${names.length} 位學生在全校名單中找不到，以下是他們在「考試名單」中的資料：</strong>
+    </div>
+    <div style="overflow-x:auto;margin-top:4px;">
+      <table style="border-collapse:collapse;font-size:0.82rem;width:100%;">
+        <thead><tr>${thead}</tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+    <div style="font-size:0.78rem;color:#7a4f00;">💡 請確認姓名是否打錯，或此學生尚未建檔於全校名單。</div>
+  </div>`;
 }
 
 function makeMultiMatchAlert(multiList) {

@@ -614,6 +614,7 @@
     <div class="tab-bar">
       <button class="tab-btn active" onclick="switchTab('updated')">✅ 更新後名單</button>
       <button class="tab-btn" id="tabUnmatched" onclick="switchTab('unmatched')">⚠️ 未比對到 <span class="badge-count" id="unmatchedCount">0</span></button>
+      <button class="tab-btn" id="tabConflict" onclick="switchTab('conflict')">🔴 姓名衝突 <span class="badge-count" id="conflictCount" style="background:rgba(252,129,129,0.15);color:var(--danger)">0</span></button>
     </div>
 
     <div class="tab-pane active" id="pane-updated">
@@ -632,6 +633,19 @@
       </div>
       <div class="table-wrap">
         <table id="unmatchedTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-conflict">
+      <div class="unmatched-hint" id="conflictHint">
+        <strong>🔴 姓名出現在兩個檔案，但班級或座號不一致。</strong><br>
+        這些學生很可能沒有被正確更新，請手動確認。
+      </div>
+      <div class="table-wrap">
+        <table id="conflictTable">
           <thead></thead>
           <tbody></tbody>
         </table>
@@ -874,8 +888,56 @@ function processFiles() {
     resultData[i][c1.seat]  = pad2(resultData[i][c1.seat]);
   }
 
+  // === Name-conflict detection ===
+  // Build name→{cls,seat} maps for both files
+  const nameMap1 = {}; // name → [{cls, seat, row}]
+  for (let i = 1; i < data1.length; i++) {
+    const row = data1[i];
+    const name = c1Name >= 0 ? (row[c1Name] || '').toString().trim() : '';
+    if (!name) continue;
+    if (!nameMap1[name]) nameMap1[name] = [];
+    nameMap1[name].push({
+      cls:  pad2((row[c1.class] || '').toString().trim()),
+      seat: pad2((row[c1.seat]  || '').toString().trim()),
+      row: i
+    });
+  }
+  const nameMap2 = {}; // name → [{cls, seat, row}]
+  for (let i = 1; i < data2.length; i++) {
+    const row = data2[i];
+    const name = c2Name >= 0 ? (row[c2Name] || '').toString().trim() : '';
+    if (!name) continue;
+    if (!nameMap2[name]) nameMap2[name] = [];
+    nameMap2[name].push({
+      cls:  pad2((row[c2.class] || '').toString().trim()),
+      seat: pad2((row[c2.seat]  || '').toString().trim()),
+      row: i
+    });
+  }
+
+  const conflictRows = [];
+  for (const name of Object.keys(nameMap2)) {
+    if (!nameMap1[name]) continue; // handled by unmatched already
+    for (const e2 of nameMap2[name]) {
+      // Check if any entry in file1 has same name but different cls+seat
+      const exactMatch = nameMap1[name].some(e1 => e1.cls === e2.cls && e1.seat === e2.seat);
+      if (!exactMatch) {
+        // name exists in both but position differs
+        conflictRows.push({
+          name,
+          file1: nameMap1[name].map(e => `班${e.cls} 座${e.seat}`).join('、'),
+          file2: `班${e2.cls} 座${e2.seat}`,
+        });
+      }
+    }
+  }
+
+  document.getElementById('conflictCount').textContent = conflictRows.length;
+  renderConflict(conflictRows);
+
   log('---', 'info');
   log(`比對完成：${matched} 筆符合，${changed} 次更新，${unmatched} 筆未找到`, 'ok');
+  if (conflictRows.length > 0) log(`⚠ 姓名衝突 ${conflictRows.length} 筆，請切換至「姓名衝突」分頁確認`, 'warn');
 
   // Update stats
   document.getElementById('statTotal').textContent = data1.length - 1;
@@ -1022,6 +1084,52 @@ function renderAllN(data) {
   document.getElementById('allnSection').classList.add('visible');
 }
 
+function renderConflict(rows) {
+  const thead = document.querySelector('#conflictTable thead');
+  const tbody  = document.querySelector('#conflictTable tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML  = '';
+
+  const hRow = document.createElement('tr');
+  ['姓名', '原始名單（班級 座號）', '測驗名單（班級 座號）', '說明'].forEach(h => {
+    const th = document.createElement('th'); th.textContent = h; hRow.appendChild(th);
+  });
+  thead.appendChild(hRow);
+
+  if (rows.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 4;
+    td.style.cssText = 'text-align:center;color:var(--success);padding:1.5rem';
+    td.textContent = '✓ 沒有發現姓名衝突';
+    tr.appendChild(td); tbody.appendChild(tr);
+    return;
+  }
+
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+
+    const tdName = document.createElement('td');
+    tdName.style.fontWeight = '600';
+    tdName.textContent = r.name;
+
+    const tdF1 = document.createElement('td');
+    tdF1.style.cssText = 'font-family:Space Mono,monospace;font-size:0.75rem;color:var(--accent)';
+    tdF1.textContent = r.file1;
+
+    const tdF2 = document.createElement('td');
+    tdF2.style.cssText = 'font-family:Space Mono,monospace;font-size:0.75rem;color:var(--accent2)';
+    tdF2.textContent = r.file2;
+
+    const tdNote = document.createElement('td');
+    tdNote.style.cssText = 'font-size:0.75rem;color:var(--danger)';
+    tdNote.textContent = '⚠ 班級或座號不同，未被更新';
+
+    tr.append(tdName, tdF1, tdF2, tdNote);
+    tbody.appendChild(tr);
+  });
+}
+
 function findCloseMatch(cls, seat, keys) {
   // Try padding/unpadding variations
   const variants = [
@@ -1143,6 +1251,9 @@ function resetAll() {
   document.getElementById('btnExport').style.display = 'none';
   document.getElementById('btnProcess').disabled = true;
   document.getElementById('unmatchedCount').textContent = '0';
+  document.getElementById('conflictCount').textContent = '0';
+  document.querySelector('#conflictTable thead').innerHTML = '';
+  document.querySelector('#conflictTable tbody').innerHTML = '';
   document.getElementById('allnSection').classList.remove('visible');
   document.querySelector('#allnTable thead').innerHTML = '';
   document.querySelector('#allnTable tbody').innerHTML = '';

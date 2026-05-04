@@ -265,6 +265,14 @@ function calcEntryYear(clsStr) {
   return (!grade || isNaN(grade)) ? '' : String(now - grade);
 }
 
+// 目前班級只取年級數字：101→1, 803→8, 1001→10
+function extractGrade(clsStr) {
+  const s = String(clsStr).trim();
+  if      (s.length === 3) return s[0];
+  else if (s.length === 4) return s.substring(0, 2);
+  else                     return s;
+}
+
 // ── 上傳區設定 ─────────────────────────────────────────────────────────
 function setupZone(zoneId, inputId, cb) {
   const zone  = document.getElementById(zoneId);
@@ -466,7 +474,7 @@ function doMerge() {
         '學生姓名'                                       : name,
         '身分證統一編號'                                  : idVal,
         '入學年度'                                        : calcEntryYear(cls),
-        '目前班級'                                        : cls,
+        '目前班級'                                        : extractGrade(cls),
         '座號(選填)'                                      : seat,
         'OpenID(選填)'                                    : '',
         '身分類別(必填，多重身分請以空白分隔)'             : '99',

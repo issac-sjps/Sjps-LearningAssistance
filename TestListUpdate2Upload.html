@@ -475,6 +475,35 @@
 
   .unmatched-hint strong { font-weight: 600; }
 
+  /* All-n preview */
+  .alln-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: none;
+  }
+  .alln-section.visible { display: block; }
+  .alln-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .alln-header h3 { font-size: 0.95rem; font-weight: 500; }
+  .alln-count {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent3);
+    background: rgba(246,173,85,0.12);
+    border: 1px solid rgba(246,173,85,0.3);
+    border-radius: 20px;
+    padding: 0.2rem 0.7rem;
+  }
+
   footer {
     text-align: center;
     padding-top: 2rem;
@@ -521,6 +550,20 @@
         <div class="file-drop-label">支援 .xlsx .xls .csv</div>
         <div class="file-name" id="fname2"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- All-n preview (shown after file1 loaded) -->
+  <div class="alln-section" id="allnSection">
+    <div class="alln-header">
+      <h3>📋 三科全為 n 的學生（原始名單）</h3>
+      <span class="alln-count" id="allnCount">0 筆</span>
+    </div>
+    <div class="table-wrap">
+      <table id="allnTable">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 
@@ -663,6 +706,7 @@ function handleFile(num, file) {
         data1 = json;
         document.getElementById('fname1').textContent = '✓ ' + file.name;
         document.getElementById('card1').classList.add('has-file');
+        renderAllN(json);
       } else {
         data2 = json;
         document.getElementById('fname2').textContent = '✓ ' + file.name;
@@ -904,6 +948,80 @@ function exportFile() {
   XLSX.writeFile(wb, '更新後名單_' + new Date().toISOString().slice(0,10) + '.xlsx');
 }
 
+function renderAllN(data) {
+  const headers = data[0].map(h => h ? h.toString().trim() : '');
+  const colChinese = findCol(headers, COL1.chinese);
+  const colMath    = findCol(headers, COL1.math);
+  const colEnglish = findCol(headers, COL1.english);
+  const colName    = findCol(headers, ['姓名']);
+  const colClass   = findCol(headers, COL1.class);
+  const colSeat    = findCol(headers, COL1.seat);
+
+  if (colChinese < 0 || colMath < 0 || colEnglish < 0) return;
+
+  const allNRows = [];
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const ch = (row[colChinese] || '').toString().trim().toLowerCase();
+    const ma = (row[colMath]    || '').toString().trim().toLowerCase();
+    const en = (row[colEnglish] || '').toString().trim().toLowerCase();
+    if ((ch === 'n' || ch === '') && (ma === 'n' || ma === '') && (en === 'n' || en === '')) {
+      allNRows.push(row);
+    }
+  }
+
+  document.getElementById('allnCount').textContent = allNRows.length + ' 筆';
+
+  const thead = document.querySelector('#allnTable thead');
+  const tbody  = document.querySelector('#allnTable tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML  = '';
+
+  // Show selected columns: 班級, 座號, 姓名, 三科
+  const showCols = [
+    { label: '班級', idx: colClass },
+    { label: '座號', idx: colSeat },
+    { label: '姓名', idx: colName },
+    { label: '國語文', idx: colChinese },
+    { label: '數學',   idx: colMath },
+    { label: '英語',   idx: colEnglish },
+  ].filter(c => c.idx >= 0);
+
+  const hRow = document.createElement('tr');
+  showCols.forEach(c => {
+    const th = document.createElement('th');
+    th.textContent = c.label;
+    hRow.appendChild(th);
+  });
+  thead.appendChild(hRow);
+
+  if (allNRows.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = showCols.length;
+    td.style.cssText = 'text-align:center;color:var(--success);padding:1.5rem';
+    td.textContent = '✓ 沒有三科全 n 的學生';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  } else {
+    allNRows.forEach(row => {
+      const tr = document.createElement('tr');
+      showCols.forEach(c => {
+        const td = document.createElement('td');
+        const val = (row[c.idx] || '').toString().trim();
+        if (['國語文','數學','英語'].includes(c.label)) {
+          td.className = 'cell-n';
+        }
+        td.textContent = val;
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('allnSection').classList.add('visible');
+}
+
 function findCloseMatch(cls, seat, keys) {
   // Try padding/unpadding variations
   const variants = [
@@ -1025,6 +1143,9 @@ function resetAll() {
   document.getElementById('btnExport').style.display = 'none';
   document.getElementById('btnProcess').disabled = true;
   document.getElementById('unmatchedCount').textContent = '0';
+  document.getElementById('allnSection').classList.remove('visible');
+  document.querySelector('#allnTable thead').innerHTML = '';
+  document.querySelector('#allnTable tbody').innerHTML = '';
   // Reset tabs
   document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===0));
   document.querySelectorAll('.tab-pane').forEach((p,i) => p.classList.toggle('active', i===0));

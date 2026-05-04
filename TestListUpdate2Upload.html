@@ -804,6 +804,9 @@ function processFiles() {
     return s.padStart(2, '0');
   }
 
+  const c1Name = findCol(headers1, ['姓名']);
+  const c2Name = findCol(headers2, ['姓名']);
+
   // Build lookup from file2 using normalized keys (班級 + 座號 + 入學年度)
   const lookup = {};
   for (let i = 1; i < data2.length; i++) {
@@ -823,9 +826,6 @@ function processFiles() {
   }
 
   log('測驗名單索引建立完成（班/座號補零' + (useYear?'、含入學年度':'') + '），共 ' + Object.keys(lookup).length + ' 筆', 'info');
-
-  const c1Name = findCol(headers1, ['姓名']);
-  const c2Name = findCol(headers2, ['姓名']);
 
   // Track which file2 keys were matched
   const matchedKeys = new Set();

@@ -475,6 +475,53 @@
 
   .unmatched-hint strong { font-weight: 600; }
 
+  /* Year bar */
+  .year-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .year-bar-inner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .year-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .year-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  #currentYear {
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 0.3rem 0.6rem;
+    width: 70px;
+    text-align: center;
+  }
+  #currentYear:focus { outline: none; border-color: var(--accent2); }
+  .year-unit {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+  .year-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+  }
+
   /* All-n preview */
   .alln-section {
     background: var(--surface);
@@ -550,6 +597,18 @@
         <div class="file-drop-label">支援 .xlsx .xls .csv</div>
         <div class="file-name" id="fname2"></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Current school year setting -->
+  <div class="year-bar" id="yearBar">
+    <div class="year-bar-inner">
+      <span class="year-label">📅 目前學年度</span>
+      <div class="year-input-wrap">
+        <input type="number" id="currentYear" value="114" min="100" max="130" step="1">
+        <span class="year-unit">學年度</span>
+      </div>
+      <span class="year-hint">用於將 Excel2「年級 1~6」換算成入學年度（入學年度 = 學年度 − 年級 + 1）</span>
     </div>
   </div>
 
@@ -677,7 +736,7 @@ const COL1 = {
 const COL2 = {
   class:   ['班級'],
   seat:    ['座號'],
-  year:    ['入學年度'],
+  year:    ['目前年級', '年級', '入學年度'],
   chinese: ['國語文測驗'],
   math:    ['數學測驗'],
   english: ['英語測驗']
@@ -793,7 +852,8 @@ function processFiles() {
 
   const useYear = c1.year >= 0 && c2.year >= 0;
   if (useYear) {
-    log('欄位比對成功 ✓（含入學年度）', 'ok');
+    const curYrDisplay = parseInt(document.getElementById('currentYear').value) || 114;
+    log(`欄位比對成功 ✓（含入學年度，學年度設定：${curYrDisplay}，Excel2 年級將自動換算）`, 'ok');
   } else {
     log('欄位比對成功 ✓（找不到入學年度欄位，僅用班級+座號）', 'warn');
   }
@@ -807,6 +867,15 @@ function processFiles() {
   const c1Name = findCol(headers1, ['姓名']);
   const c2Name = findCol(headers2, ['姓名']);
 
+  // Detect if Excel2 year column is grade (1~6) or actual year (109~)
+  const curSchoolYear = parseInt(document.getElementById('currentYear').value) || 114;
+  function normalizeYear2(rawVal) {
+    const n = parseInt(rawVal);
+    if (isNaN(n)) return rawVal;
+    if (n >= 1 && n <= 6) return String(curSchoolYear - n + 1); // grade → admission year
+    return String(n); // already an admission year
+  }
+
   // Build lookup from file2 using normalized keys (班級 + 座號 + 入學年度)
   const lookup = {};
   for (let i = 1; i < data2.length; i++) {
@@ -814,7 +883,7 @@ function processFiles() {
     const cls  = (row[c2.class] || '').toString().trim();
     const seat = (row[c2.seat]  || '').toString().trim();
     if (!cls && !seat) continue;
-    const yr   = useYear ? (row[c2.year] || '').toString().trim() : '';
+    const yr   = useYear ? normalizeYear2((row[c2.year] || '').toString().trim()) : '';
     const key  = (useYear ? yr + '_' : '') + pad2(cls) + '_' + pad2(seat);
     lookup[key] = {
       chinese: (row[c2.chinese] || '').toString().trim().toUpperCase(),

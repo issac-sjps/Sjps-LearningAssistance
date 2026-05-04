@@ -237,6 +237,7 @@ let schoolRows     = [];
 let examNames      = [];
 let duplicateNames = [];
 let mergedData     = [];
+let examClsMap     = {};  // name → 班級(從考試名單)，用於雙重比對
 
 // ── 全校名單欄位別名 ────────────────────────────────────────────────────
 const SCHOOL_ALIAS = {
@@ -315,6 +316,20 @@ setupZone('zone1', 'file1', (fname, rows) => {
   allNames.forEach(n => countMap[n] = (countMap[n] || 0) + 1);
   duplicateNames = Object.entries(countMap).filter(([, c]) => c > 1).map(([n]) => n);
   examNames      = [...new Set(allNames.filter(n => !duplicateNames.includes(n)))];
+
+  // 偵測考試名單的班級欄（用於後續雙重比對）
+  const examClsCol =
+    headers.find(h => h.trim() === '班級') ||
+    headers.find(h => h.trim() === '目前年級') ||
+    headers.find(h => h.includes('班級') || h.includes('年級'));
+  examClsMap = {};
+  if (examClsCol) {
+    rows.forEach(r => {
+      const n = String(r[nameCol] || '').trim();
+      const c = String(r[examClsCol] || '').trim();
+      if (n && c) examClsMap[n] = c;
+    });
+  }
 
   // 顯示檔案資訊
   const info = document.getElementById('file1-info');
@@ -460,9 +475,22 @@ function doMerge() {
   mergedData = [];
 
   targetNames.forEach(name => {
-    const matches = schoolMap[name];
+    let matches = schoolMap[name];
     if (!matches || !matches.length) { notFound.push(name); return; }
-    if (matches.length > 1) multiMatch.push(name);
+
+    // 若考試名單有班級資訊，用班級精確比對縮減多筆
+    if (matches.length > 1 && examClsMap[name]) {
+      const examCls = String(examClsMap[name]).trim();
+      // 嘗試用最後一碼比對（e.g. 考試名單班級=4 → 全校204, 402都取最後碼=4）
+      const filtered = matches.filter(r => {
+        const sc = String(r[clsCol] || '').trim();
+        return extractGrade(sc) === examCls || sc === examCls;
+      });
+      if (filtered.length === 1) matches = filtered; // 精確匹配到唯一一筆
+    }
+
+    if (matches.length > 1) multiMatch.push({ name, rows: matches, clsCol, seatCol, idCol });
+
     matches.forEach(r => {
       const cls   = String(r[clsCol]  || '').trim();
       const idVal = idCol   ? String(r[idCol]   || '').trim() : '';
@@ -490,7 +518,7 @@ function doMerge() {
       `${uniq.length} 位學生的身分證在全校名單中是空的，請手動補充：`, uniq);
   }
   if (notFound.length)  html += makeAlert('warn', '⚠️', `${notFound.length} 位學生在全校名單中找不到：`, notFound);
-  if (multiMatch.length)html += makeAlert('warn', '🔍', `${multiMatch.length} 位學生在全校名單有多筆資料，已全部加入：`, multiMatch);
+  if (multiMatch.length) html += makeMultiMatchAlert(multiMatch);
   if (mergedData.length) {
     html += `<div class="alert alert-success"><span class="alert-icon">✅</span>` +
       `<strong>整合完成！共 ${mergedData.length} 筆資料，請確認下方預覽後再匯出。</strong></div>`;
@@ -518,6 +546,37 @@ function doMerge() {
   ];
   renderPreview(mergedData, OUTPUT_COLS);
   document.getElementById('btn-export').disabled = mergedData.length === 0;
+}
+
+function makeMultiMatchAlert(multiList) {
+  const schoolHeaders = Object.keys(schoolRows[0] || {});
+  const SHOW = ['班級','座號','姓名','身分證','性別'];
+  const showCols = SHOW.map(p => schoolHeaders.find(h => h.includes(p))).filter(Boolean)
+    .filter((v,i,a) => a.indexOf(v)===i);
+
+  let inner = multiList.map(item => {
+    const rows = item.rows;
+    const tableRows = rows.map(r =>
+      `<tr>${showCols.map(k => `<td>${r[k] !== undefined ? r[k] : ''}</td>`).join('')}</tr>`
+    ).join('');
+    return `<div style="margin-bottom:10px;">
+      <div style="font-weight:600;margin-bottom:4px;">「${item.name}」— ${rows.length} 筆，已全部加入：</div>
+      <div style="overflow-x:auto;">
+      <table style="border-collapse:collapse;font-size:0.82rem;width:100%;">
+        <thead><tr style="background:#f5e8c8;">${showCols.map(k=>`<th style="padding:5px 10px;border:1px solid #e0c87a;text-align:left;">${k}</th>`).join('')}</tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="alert alert-warn" style="flex-direction:column;gap:8px;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="alert-icon">🔍</span>
+      <strong>${multiList.length} 位學生在全校名單有多筆資料，已全部加入，請確認是否正確：</strong>
+    </div>
+    <div style="margin-top:4px;">${inner}</div>
+  </div>`;
 }
 
 function makeAlert(type, icon, title, names) {

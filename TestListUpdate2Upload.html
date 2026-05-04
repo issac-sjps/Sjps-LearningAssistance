@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>測驗名單更新工具</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #17171e;
+    --surface2: #1e1e28;
+    --border: #2a2a38;
+    --accent: #7c6af7;
+    --accent2: #4fd1c5;
+    --accent3: #f6ad55;
+    --text: #e8e8f0;
+    --text-muted: #6b6b80;
+    --success: #68d391;
+    --danger: #fc8181;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,247,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,247,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.25rem 0.75rem;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 0.5rem;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 300;
+  }
+
+  /* Steps */
+  .steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 600px) {
+    .steps { grid-template-columns: 1fr; }
+  }
+
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .step-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .step-card.has-file {
+    border-color: var(--accent);
+  }
+
+  .step-card.has-file::before { opacity: 1; }
+
+  .step-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+    margin-bottom: 0.5rem;
+  }
+
+  .step-card h3 {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+    color: var(--text);
+  }
+
+  .step-card p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+
+  .file-drop {
+    border: 1.5px dashed var(--border);
+    border-radius: 8px;
+    padding: 1.2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+  }
+
+  .file-drop:hover {
+    border-color: var(--accent);
+    background: rgba(124,106,247,0.06);
+  }
+
+  .file-drop.dragover {
+    border-color: var(--accent2);
+    background: rgba(79,209,197,0.08);
+  }
+
+  .file-drop input { display: none; }
+
+  .file-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.4rem;
+    display: block;
+  }
+
+  .file-drop-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .file-drop-label strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .file-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--success);
+    margin-top: 0.5rem;
+    word-break: break-all;
+  }
+
+  /* Preview table */
+  .preview-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: none;
+  }
+
+  .preview-section.visible { display: block; }
+
+  .preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .preview-header h3 {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    background: rgba(124,106,247,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(124,106,247,0.3);
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  thead tr {
+    background: var(--surface2);
+  }
+
+  th {
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    font-weight: 500;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.55rem 0.8rem;
+    border-bottom: 1px solid rgba(42,42,56,0.6);
+    white-space: nowrap;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  .cell-y {
+    color: var(--success);
+    font-weight: 600;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+  }
+
+  .cell-n {
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+  }
+
+  .cell-changed {
+    color: var(--accent3);
+    font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    position: relative;
+  }
+
+  .cell-changed::after {
+    content: ' ↑';
+    font-size: 0.65rem;
+  }
+
+  /* Action */
+  .action-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: #8f7ef9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(124,106,247,0.4);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .btn-success {
+    background: var(--success);
+    color: #0f0f13;
+  }
+
+  .btn-success:hover {
+    background: #7be3a1;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(104,211,145,0.4);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Log */
+  .log-section {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
+    display: none;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .log-section.visible { display: block; }
+
+  .log-header {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.8rem;
+    text-transform: uppercase;
+  }
+
+  .log-line {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.8;
+    padding: 0.15rem 0;
+    border-bottom: 1px solid rgba(42,42,56,0.4);
+  }
+
+  .log-line.ok { color: var(--success); }
+  .log-line.warn { color: var(--accent3); }
+  .log-line.info { color: var(--accent2); }
+  .log-line.err { color: var(--danger); }
+
+  /* Summary */
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    display: none;
+  }
+
+  .summary.visible { display: grid; }
+
+  @media (max-width: 600px) {
+    .summary { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  footer {
+    text-align: center;
+    padding-top: 2rem;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="badge">Excel 工具 v1.0</div>
+    <h1>測驗名單<span>更新工具</span></h1>
+    <p class="subtitle">將測驗名單（X 標記）自動更新至原始名單（n → y）</p>
+  </header>
+
+  <!-- Upload Steps -->
+  <div class="steps">
+    <!-- File 1 -->
+    <div class="step-card" id="card1">
+      <div class="step-num">STEP 01</div>
+      <h3>原始名單（要修改的）</h3>
+      <p>欄位：No. 入學年度 姓名 班級 座號 身分證統一編號 國語文 數學 英語 是否個案</p>
+      <div class="file-drop" id="drop1" ondragover="dragOver(event,'drop1')" ondragleave="dragLeave('drop1')" ondrop="dropFile(event,1)">
+        <input type="file" id="file1" accept=".xlsx,.xls,.csv" onchange="loadFile(1)">
+        <span class="file-icon">📋</span>
+        <div class="file-drop-label"><strong>點擊選擇</strong>或拖曳檔案至此</div>
+        <div class="file-drop-label">支援 .xlsx .xls .csv</div>
+        <div class="file-name" id="fname1"></div>
+      </div>
+    </div>
+
+    <!-- File 2 -->
+    <div class="step-card" id="card2">
+      <div class="step-num">STEP 02</div>
+      <h3>測驗名單（有 X 標記的）</h3>
+      <p>欄位：序號 姓名 身分證統一編號 入學年度 目前年級 班級 座號 國語文測驗 數學測驗 英語測驗 身分類別</p>
+      <div class="file-drop" id="drop2" ondragover="dragOver(event,'drop2')" ondragleave="dragLeave('drop2')" ondrop="dropFile(event,2)">
+        <input type="file" id="file2" accept=".xlsx,.xls,.csv" onchange="loadFile(2)">
+        <span class="file-icon">✅</span>
+        <div class="file-drop-label"><strong>點擊選擇</strong>或拖曳檔案至此</div>
+        <div class="file-drop-label">支援 .xlsx .xls .csv</div>
+        <div class="file-name" id="fname2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <button class="btn btn-primary" id="btnProcess" onclick="processFiles()" disabled>
+      ⚡ 開始更新
+    </button>
+    <button class="btn btn-ghost" onclick="resetAll()">↺ 重置</button>
+    <button class="btn btn-success" id="btnExport" onclick="exportFile()" style="display:none">
+      ⬇ 匯出 Excel
+    </button>
+  </div>
+
+  <!-- Log -->
+  <div class="log-section" id="logSection">
+    <div class="log-header">// 處理紀錄</div>
+    <div id="logContent"></div>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary" id="summary">
+    <div class="stat-card">
+      <span class="stat-num" id="statTotal">0</span>
+      <div class="stat-label">原始名單總筆數</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num" id="statMatched">0</span>
+      <div class="stat-label">成功比對學生</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num" id="statChanged" style="color:var(--accent3)">0</span>
+      <div class="stat-label">n → y 更新次數</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-num" id="statUnmatched" style="color:var(--danger)">0</span>
+      <div class="stat-label">未比對到學生</div>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="preview-section" id="previewSection">
+    <div class="preview-header">
+      <h3>📊 更新後預覽（原始名單）</h3>
+      <span class="tag">橘色 = 已更新</span>
+    </div>
+    <div class="table-wrap">
+      <table id="previewTable">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    班級 + 座號 對應 ｜ X → y，空白不變 ｜ 本工具不上傳任何資料
+  </footer>
+</div>
+
+<script>
+let data1 = null; // 原始名單
+let data2 = null; // 測驗名單
+let resultData = null;
+let changedCells = {}; // track which cells changed
+
+// Column name mappings
+const COL1 = {
+  class: ['班級'],
+  seat: ['座號'],
+  chinese: ['國語文'],
+  math: ['數學'],
+  english: ['英語']
+};
+
+const COL2 = {
+  class: ['班級'],
+  seat: ['座號'],
+  chinese: ['國語文測驗'],
+  math: ['數學測驗'],
+  english: ['英語測驗']
+};
+
+function findCol(headers, candidates) {
+  for (const c of candidates) {
+    const idx = headers.findIndex(h => h && h.toString().trim().includes(c));
+    if (idx >= 0) return idx;
+  }
+  return -1;
+}
+
+function dragOver(e, id) {
+  e.preventDefault();
+  document.getElementById(id).classList.add('dragover');
+}
+function dragLeave(id) {
+  document.getElementById(id).classList.remove('dragover');
+}
+function dropFile(e, num) {
+  e.preventDefault();
+  const id = 'drop' + num;
+  document.getElementById(id).classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(num, file);
+}
+
+function loadFile(num) {
+  const input = document.getElementById('file' + num);
+  if (input.files[0]) handleFile(num, input.files[0]);
+}
+
+function handleFile(num, file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      if (num === 1) {
+        data1 = json;
+        document.getElementById('fname1').textContent = '✓ ' + file.name;
+        document.getElementById('card1').classList.add('has-file');
+      } else {
+        data2 = json;
+        document.getElementById('fname2').textContent = '✓ ' + file.name;
+        document.getElementById('card2').classList.add('has-file');
+      }
+      checkReady();
+    } catch(err) {
+      alert('讀取檔案失敗：' + err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function checkReady() {
+  document.getElementById('btnProcess').disabled = !(data1 && data2);
+}
+
+function log(msg, type='info') {
+  const div = document.getElementById('logContent');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  line.textContent = msg;
+  div.appendChild(line);
+  document.getElementById('logSection').classList.add('visible');
+  div.scrollTop = div.scrollHeight;
+}
+
+function processFiles() {
+  document.getElementById('logContent').innerHTML = '';
+  document.getElementById('logSection').classList.remove('visible');
+  changedCells = {};
+  resultData = null;
+
+  const headers1 = data1[0].map(h => h ? h.toString().trim() : '');
+  const headers2 = data2[0].map(h => h ? h.toString().trim() : '');
+
+  log('讀取原始名單：' + (data1.length - 1) + ' 筆', 'info');
+  log('讀取測驗名單：' + (data2.length - 1) + ' 筆', 'info');
+
+  // Find columns in file 1
+  const c1 = {
+    class:   findCol(headers1, COL1.class),
+    seat:    findCol(headers1, COL1.seat),
+    chinese: findCol(headers1, COL1.chinese),
+    math:    findCol(headers1, COL1.math),
+    english: findCol(headers1, COL1.english),
+  };
+
+  // Find columns in file 2
+  const c2 = {
+    class:   findCol(headers2, COL2.class),
+    seat:    findCol(headers2, COL2.seat),
+    chinese: findCol(headers2, COL2.chinese),
+    math:    findCol(headers2, COL2.math),
+    english: findCol(headers2, COL2.english),
+  };
+
+  // Validate
+  for (const [k,v] of Object.entries(c1)) {
+    if (v < 0) { log('原始名單找不到欄位：' + k, 'err'); return; }
+  }
+  for (const [k,v] of Object.entries(c2)) {
+    if (v < 0) { log('測驗名單找不到欄位：' + k, 'err'); return; }
+  }
+
+  log('欄位比對成功 ✓', 'ok');
+
+  // Build lookup from file2: key = "班級_座號" → {chinese, math, english}
+  const lookup = {};
+  for (let i = 1; i < data2.length; i++) {
+    const row = data2[i];
+    const cls = (row[c2.class] || '').toString().trim();
+    const seat = (row[c2.seat] || '').toString().trim();
+    if (!cls && !seat) continue;
+    const key = cls + '_' + seat;
+    lookup[key] = {
+      chinese: (row[c2.chinese] || '').toString().trim().toUpperCase(),
+      math:    (row[c2.math]    || '').toString().trim().toUpperCase(),
+      english: (row[c2.english] || '').toString().trim().toUpperCase(),
+    };
+  }
+
+  log('測驗名單索引建立完成，共 ' + Object.keys(lookup).length + ' 筆', 'info');
+
+  // Process file1 (deep copy)
+  resultData = data1.map(r => [...r]);
+  let matched = 0, changed = 0, unmatched = 0;
+
+  for (let i = 1; i < resultData.length; i++) {
+    const row = resultData[i];
+    const cls = (row[c1.class] || '').toString().trim();
+    const seat = (row[c1.seat] || '').toString().trim();
+    const key = cls + '_' + seat;
+
+    if (!lookup[key]) {
+      unmatched++;
+      continue;
+    }
+
+    matched++;
+    const lk = lookup[key];
+    changedCells[i] = {};
+
+    const subjects = [
+      { lkKey: 'chinese', colIdx: c1.chinese, label: '國語文' },
+      { lkKey: 'math',    colIdx: c1.math,    label: '數學' },
+      { lkKey: 'english', colIdx: c1.english, label: '英語' },
+    ];
+
+    for (const s of subjects) {
+      if (lk[s.lkKey] === 'X') {
+        const old = (row[s.colIdx] || '').toString().trim().toLowerCase();
+        if (old === 'n' || old === '') {
+          resultData[i][s.colIdx] = 'y';
+          changedCells[i][s.colIdx] = true;
+          changed++;
+          log(`班${cls} 座${seat} → ${s.label}: n → y`, 'ok');
+        }
+      }
+    }
+  }
+
+  log('---', 'info');
+  log(`比對完成：${matched} 筆符合，${changed} 次更新，${unmatched} 筆未找到`, 'ok');
+
+  // Update stats
+  document.getElementById('statTotal').textContent = data1.length - 1;
+  document.getElementById('statMatched').textContent = matched;
+  document.getElementById('statChanged').textContent = changed;
+  document.getElementById('statUnmatched').textContent = unmatched;
+  document.getElementById('summary').classList.add('visible');
+
+  // Render preview
+  renderPreview(resultData, c1, changedCells);
+  document.getElementById('btnExport').style.display = 'inline-flex';
+}
+
+function renderPreview(data, c1, changed) {
+  const section = document.getElementById('previewSection');
+  const thead = document.querySelector('#previewTable thead');
+  const tbody = document.querySelector('#previewTable tbody');
+
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+
+  const subjectCols = new Set([c1.chinese, c1.math, c1.english]);
+
+  // Header
+  const tr = document.createElement('tr');
+  data[0].forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);
+
+  // Rows (show all)
+  const maxRows = Math.min(data.length, 200);
+  for (let i = 1; i < maxRows; i++) {
+    const row = data[i];
+    const tr = document.createElement('tr');
+    row.forEach((cell, j) => {
+      const td = document.createElement('td');
+      const val = (cell || '').toString().trim();
+
+      if (subjectCols.has(j)) {
+        if (changed[i] && changed[i][j]) {
+          td.className = 'cell-changed';
+        } else if (val.toLowerCase() === 'y') {
+          td.className = 'cell-y';
+        } else {
+          td.className = 'cell-n';
+        }
+      }
+
+      td.textContent = val;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+
+  section.classList.add('visible');
+}
+
+function exportFile() {
+  if (!resultData) return;
+  const ws = XLSX.utils.aoa_to_sheet(resultData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '更新後名單');
+  XLSX.writeFile(wb, '更新後名單_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+function resetAll() {
+  data1 = null; data2 = null; resultData = null; changedCells = {};
+  ['file1','file2'].forEach(id => { document.getElementById(id).value = ''; });
+  ['fname1','fname2'].forEach(id => { document.getElementById(id).textContent = ''; });
+  ['card1','card2'].forEach(id => { document.getElementById(id).classList.remove('has-file'); });
+  document.getElementById('logContent').innerHTML = '';
+  document.getElementById('logSection').classList.remove('visible');
+  document.getElementById('previewSection').classList.remove('visible');
+  document.getElementById('summary').classList.remove('visible');
+  document.getElementById('btnExport').style.display = 'none';
+  document.getElementById('btnProcess').disabled = true;
+}
+
+// Click on drop zone
+document.getElementById('drop1').addEventListener('click', () => document.getElementById('file1').click());
+document.getElementById('drop2').addEventListener('click', () => document.getElementById('file2').click());
+</script>
+</body>
+</html>

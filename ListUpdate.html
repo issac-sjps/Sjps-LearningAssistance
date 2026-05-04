@@ -454,31 +454,58 @@ function doMatch() {
       out.__newSeat    = newSeat;
       out.__newClsName = newClsName;
 
-      /* Update 目前班級 */
+      /* Update 目前班級
+         比對時忽略前置零：01 == 1，視為相同不更動 */
       if (clsCol1) {
         const old = String(out[clsCol1] || '').trim();
-        if (old !== newGrade) {
+        const oldNum = parseInt(old, 10);
+        const newNum = parseInt(newGrade, 10);
+        // 數值不同才算真的有差
+        if (!isNaN(oldNum) && !isNaN(newNum) ? oldNum !== newNum : old !== newGrade) {
           out.__changes[clsCol1] = { from: old, to: newGrade };
           out[clsCol1] = newGrade;
           out.__changed = true;
         }
       }
 
-      /* Update 座號 */
+      /* Update 座號
+         01-09 視為與 1-9 相同（數值比對），不更動；
+         匯出時保留 Excel1 原始格式（原本有補零就維持補零） */
       if (seatCol1 && newSeat !== '') {
         const old = String(out[seatCol1] || '').trim();
+        const oldNum = parseInt(old, 10);
         const newSeatNum = parseInt(newSeat, 10);
-        const newSeatVal = isNaN(newSeatNum) ? newSeat : newSeatNum;
-        if (old !== String(newSeatVal)) {
-          out.__changes[seatCol1] = { from: old, to: newSeatVal };
-          out[seatCol1] = newSeatVal;
+        // 數值相同 → 不視為變動，保留原始格式
+        if (!isNaN(oldNum) && !isNaN(newSeatNum) && oldNum === newSeatNum) {
+          // 相同，不動
+        } else if (old !== newSeat) {
+          // 數值不同才更新，更新時保持與原始相同的補零格式
+          const origLen = old.length;
+          let newVal = isNaN(newSeatNum) ? newSeat : String(newSeatNum).padStart(origLen >= 2 && old.startsWith('0') ? origLen : 0, '0');
+          out.__changes[seatCol1] = { from: old, to: newVal };
+          out[seatCol1] = newVal;
           out.__changed = true;
         }
       }
+      out.__sortGrade = parseInt(newGrade, 10) || 0;
+      out.__sortCls   = parseInt(newCls,   10) || 0;
+      out.__sortSeat  = parseInt(newSeat,  10) || 0;
+    } else {
+      // unmatched rows go to end
+      out.__sortGrade = 9999;
+      out.__sortCls   = 9999;
+      out.__sortSeat  = 9999;
     }
 
     return out;
   });
+
+  /* 依年級 → 班級 → 座號排序（僅影響畫面顯示，匯出順序不變） */
+  resultRows.sort((a, b) =>
+    a.__sortGrade - b.__sortGrade ||
+    a.__sortCls   - b.__sortCls   ||
+    a.__sortSeat  - b.__sortSeat
+  );
 
   const matched   = resultRows.filter(r => r.__matched).length;
   const unmatched = resultRows.length - matched;
@@ -604,7 +631,10 @@ function renderTable() {
 function doExport() {
   if (!resultRows.length) return;
 
-  const exportRows = resultRows.map(r => {
+  // 匯出維持原始 Excel1 的列順序（依 __rowIdx）
+  const sorted = [...resultRows].sort((a, b) => a.__rowIdx - b.__rowIdx);
+
+  const exportRows = sorted.map(r => {
     const out = {};
     for (const k of Object.keys(r)) {
       if (!k.startsWith('__')) out[k] = r[k];

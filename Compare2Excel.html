@@ -265,12 +265,10 @@ function calcEntryYear(clsStr) {
   return (!grade || isNaN(grade)) ? '' : String(now - grade);
 }
 
-// 目前班級只取年級數字：101→1, 803→8, 1001→10
+// 目前班級取最後一碼（班級號）：101→1, 203→3, 803→3, 1001→1
 function extractGrade(clsStr) {
   const s = String(clsStr).trim();
-  if      (s.length === 3) return s[0];
-  else if (s.length === 4) return s.substring(0, 2);
-  else                     return s;
+  return s[s.length - 1] || s;
 }
 
 // ── 上傳區設定 ─────────────────────────────────────────────────────────

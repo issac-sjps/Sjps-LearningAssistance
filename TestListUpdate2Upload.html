@@ -730,14 +730,20 @@ function processFiles() {
 
   log('欄位比對成功 ✓', 'ok');
 
-  // Build lookup from file2: key = "班級_座號" → {chinese, math, english}
+  // Normalize to 2-digit zero-padded string for matching
+  function pad2(v) {
+    const s = v.toString().trim().replace(/^0+/, '') || '0';
+    return s.padStart(2, '0');
+  }
+
+  // Build lookup from file2 using normalized (zero-padded) keys
   const lookup = {};
   for (let i = 1; i < data2.length; i++) {
     const row = data2[i];
-    const cls = (row[c2.class] || '').toString().trim();
-    const seat = (row[c2.seat] || '').toString().trim();
+    const cls  = (row[c2.class] || '').toString().trim();
+    const seat = (row[c2.seat]  || '').toString().trim();
     if (!cls && !seat) continue;
-    const key = cls + '_' + seat;
+    const key = pad2(cls) + '_' + pad2(seat);
     lookup[key] = {
       chinese: (row[c2.chinese] || '').toString().trim().toUpperCase(),
       math:    (row[c2.math]    || '').toString().trim().toUpperCase(),
@@ -745,7 +751,7 @@ function processFiles() {
     };
   }
 
-  log('測驗名單索引建立完成，共 ' + Object.keys(lookup).length + ' 筆', 'info');
+  log('測驗名單索引建立完成（班/座號已統一補零），共 ' + Object.keys(lookup).length + ' 筆', 'info');
 
   const lookup2Keys = Object.keys(lookup);
   const c1Name = findCol(headers1, ['姓名']);
@@ -757,9 +763,10 @@ function processFiles() {
 
   for (let i = 1; i < resultData.length; i++) {
     const row = resultData[i];
-    const cls = (row[c1.class] || '').toString().trim();
-    const seat = (row[c1.seat] || '').toString().trim();
-    const key = cls + '_' + seat;
+    const cls  = (row[c1.class] || '').toString().trim();
+    const seat = (row[c1.seat]  || '').toString().trim();
+    // Normalize to 2-digit for lookup
+    const key = pad2(cls) + '_' + pad2(seat);
 
     if (!lookup[key]) {
       unmatched++;
@@ -794,6 +801,12 @@ function processFiles() {
         }
       }
     }
+  }
+
+  // Normalize class & seat in resultData to zero-padded format (01, 02...)
+  for (let i = 1; i < resultData.length; i++) {
+    resultData[i][c1.class] = pad2(resultData[i][c1.class]);
+    resultData[i][c1.seat]  = pad2(resultData[i][c1.seat]);
   }
 
   log('---', 'info');

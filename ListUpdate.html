@@ -279,6 +279,12 @@
 
   <!-- Actions -->
   <div class="actions">
+    <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px;">
+      <label style="font-size:0.83rem;color:var(--text2);white-space:nowrap;">📅 當前學年度</label>
+      <input type="number" id="currentYear" value="114" min="100" max="200"
+        style="width:70px;background:transparent;border:none;border-bottom:1px solid var(--accent);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:600;text-align:center;outline:none;padding:2px 4px;">
+      <span style="font-size:0.78rem;color:var(--text2);">學年度（用於年級↔入學年度換算）</span>
+    </div>
     <button class="btn btn-primary" id="btnMatch" disabled onclick="doMatch()">🔍 開始比對</button>
     <button class="btn btn-success" id="btnExport" disabled onclick="doExport()">⬇️ 匯出更新後 Excel</button>
   </div>
@@ -408,20 +414,25 @@ function doMatch() {
   if (!data1.length || !data2.length) return;
   document.getElementById('msgArea').innerHTML = '';
 
+  const currentYear = parseInt(document.getElementById('currentYear').value, 10) || 114;
+  // Excel2 年級1 → 入學年度 = currentYear, 年級2 → currentYear-1, ...
+  // grade → enrollYear: enrollYear = currentYear - grade + 1
+  // enrollYear → grade: grade = currentYear - enrollYear + 1
+
   const sample1 = data1[0], sample2 = data2[0];
 
   const idCol1    = detectCol(sample1, ID_COLS_1);
   const idCol2    = detectCol(sample2, ID_COLS_2);
   const nameCol1  = detectCol(sample1, NAME_COLS);
   const gradeCol2 = detectCol(sample2, GRADE_COLS);
-  const clsCol2   = detectCol(sample2, CLS_COLS_2);
+  const clsCol2   = detectCol(sample2, CLS_COLS_2);   // Excel2 班級：01, 02...
   const seatCol2  = detectCol(sample2, SEAT_COLS_2);
-  const clsnCol2  = detectCol(sample2, CLSNAME_COLS);
-  const clsCol1   = detectCol(sample1, CLS_COLS_1);
+  const yearCol1  = detectCol(sample1, YEAR_COLS);     // Excel1 入學年度：114,113...
+  const clsCol1   = detectCol(sample1, CLS_COLS_1);   // Excel1 目前班級：101,102...
   const seatCol1  = detectCol(sample1, SEAT_COLS_1);
 
-  if (!idCol1) { showMsg('⚠️ Excel 1 找不到身分證欄位，請確認欄位名稱。偵測到欄位：' + Object.keys(sample1).join('、'), 'warn'); return; }
-  if (!idCol2) { showMsg('⚠️ Excel 2 找不到身分證欄位，請確認欄位名稱。偵測到欄位：' + Object.keys(sample2).join('、'), 'warn'); return; }
+  if (!idCol1) { showMsg('⚠️ Excel 1 找不到身分證欄位。偵測到欄位：' + Object.keys(sample1).join('、'), 'warn'); return; }
+  if (!idCol2) { showMsg('⚠️ Excel 2 找不到身分證欄位。偵測到欄位：' + Object.keys(sample2).join('、'), 'warn'); return; }
 
   /* Build lookup from Excel2 */
   const map2 = {};
@@ -435,7 +446,7 @@ function doMatch() {
     const ref = id ? map2[id] : null;
     const out = { ...r };
 
-    out.__rowIdx  = idx + 2; // Excel row (1-indexed + header)
+    out.__rowIdx  = idx + 2;
     out.__idKey   = id;
     out.__matched = false;
     out.__changed = false;
@@ -444,59 +455,74 @@ function doMatch() {
     if (ref) {
       out.__matched = true;
 
-      const newGrade = String(ref[gradeCol2] || '').trim();
-      const newCls   = String(ref[clsCol2]   || '').trim().padStart(2, '0');
-      const newSeat  = ref[seatCol2] != null ? String(ref[seatCol2]).trim() : '';
-      const newClsName = clsnCol2 ? String(ref[clsnCol2] || '').trim() : (newGrade + newCls);
+      // Excel2 的年級（1~6）
+      const grade2    = parseInt(ref[gradeCol2] || '0', 10);
+      // Excel2 的班級（01, 02...）→ 取數字
+      const cls2Num   = parseInt(ref[clsCol2]   || '0', 10);
+      const newSeat   = ref[seatCol2] != null ? String(ref[seatCol2]).trim() : '';
 
-      out.__newGrade   = newGrade;
-      out.__newCls     = newCls;
-      out.__newSeat    = newSeat;
-      out.__newClsName = newClsName;
+      // 由年級換算 → 入學年度（Excel1 格式）
+      const correctEnrollYear = currentYear - grade2 + 1;  // e.g. 114-1+1=114, 114-2+1=113
 
-      /* Update 目前班級
-         Excel1「目前班級」對應的是 Excel2「班級名稱」（如 101、102）。
-         比對規則：數值相同視為一樣（101 == 101，忽略前置零差異）。
-         若 Excel2 沒有班級名稱欄，則用「年級數字 + 班級數字補零2位」組合（如 1+01=101）。 */
-      if (clsCol1) {
-        const old    = String(out[clsCol1] || '').trim();
-        const oldNum = parseInt(old, 10);
-        const newNum = parseInt(newClsName, 10);
-        // 數值相同 → 不視為變動
-        const isSame = !isNaN(oldNum) && !isNaN(newNum)
-          ? oldNum === newNum
-          : old === newClsName;
-        if (!isSame) {
-          out.__changes[clsCol1] = { from: old, to: newClsName };
-          out[clsCol1] = newClsName;
+      // 目前班級 = 年級 + 班級補零2位，e.g. 年級1 + 班01 = 101
+      const correctClsName = String(grade2) + String(cls2Num).padStart(2, '0');  // "101","102"
+
+      out.__newGrade    = grade2;
+      out.__newCls      = cls2Num;
+      out.__newSeat     = newSeat;
+      out.__newEnroll   = correctEnrollYear;
+      out.__newClsName  = correctClsName;
+
+      /* ── 比對並更新「入學年度」 ── */
+      if (yearCol1) {
+        const oldYear = parseInt(String(out[yearCol1] || '').trim(), 10);
+        if (!isNaN(oldYear) && oldYear !== correctEnrollYear) {
+          out.__changes[yearCol1] = { from: String(oldYear), to: String(correctEnrollYear) };
+          out[yearCol1] = correctEnrollYear;
           out.__changed = true;
         }
       }
 
-      /* Update 座號
-         01-09 視為與 1-9 相同（數值比對），不更動；
-         匯出時保留 Excel1 原始格式（原本有補零就維持補零） */
+      /* ── 比對並更新「目前班級」 ──
+         Excel1 目前班級存的是 "101","102" 這樣的班級代碼
+         正確值 = 年級 + 班級（補零2位） */
+      if (clsCol1) {
+        const oldCls    = String(out[clsCol1] || '').trim();
+        const oldClsNum = parseInt(oldCls, 10);
+        const newClsNum = parseInt(correctClsName, 10);
+        const isSame    = !isNaN(oldClsNum) && !isNaN(newClsNum)
+          ? oldClsNum === newClsNum
+          : oldCls === correctClsName;
+        if (!isSame) {
+          out.__changes[clsCol1] = { from: oldCls, to: correctClsName };
+          out[clsCol1] = correctClsName;
+          out.__changed = true;
+        }
+      }
+
+      /* ── 比對並更新「座號」 ──
+         數值相同（01==1）不視為變動，保留原始補零格式 */
       if (seatCol1 && newSeat !== '') {
-        const old = String(out[seatCol1] || '').trim();
-        const oldNum = parseInt(old, 10);
+        const old        = String(out[seatCol1] || '').trim();
+        const oldNum     = parseInt(old, 10);
         const newSeatNum = parseInt(newSeat, 10);
-        // 數值相同 → 不視為變動，保留原始格式
         if (!isNaN(oldNum) && !isNaN(newSeatNum) && oldNum === newSeatNum) {
-          // 相同，不動
+          // 數值相同，不動（保留 01 格式）
         } else if (old !== newSeat) {
-          // 數值不同才更新，更新時保持與原始相同的補零格式
           const origLen = old.length;
-          let newVal = isNaN(newSeatNum) ? newSeat : String(newSeatNum).padStart(origLen >= 2 && old.startsWith('0') ? origLen : 0, '0');
+          const newVal  = isNaN(newSeatNum)
+            ? newSeat
+            : String(newSeatNum).padStart(origLen >= 2 && old.startsWith('0') ? origLen : 0, '0');
           out.__changes[seatCol1] = { from: old, to: newVal };
           out[seatCol1] = newVal;
           out.__changed = true;
         }
       }
-      out.__sortGrade = parseInt(newGrade, 10) || 0;
-      out.__sortCls   = parseInt(newCls,   10) || 0;
-      out.__sortSeat  = parseInt(newSeat,  10) || 0;
+
+      out.__sortGrade = grade2;
+      out.__sortCls   = cls2Num;
+      out.__sortSeat  = parseInt(newSeat, 10) || 0;
     } else {
-      // unmatched rows go to end
       out.__sortGrade = 9999;
       out.__sortCls   = 9999;
       out.__sortSeat  = 9999;
@@ -543,6 +569,7 @@ function renderTable() {
   const sample1  = data1[0];
   const idCol1   = detectCol(sample1, ID_COLS_1);
   const nameCol1 = detectCol(sample1, NAME_COLS);
+  const yearCol1 = detectCol(sample1, YEAR_COLS);
   const clsCol1  = detectCol(sample1, CLS_COLS_1);
   const seatCol1 = detectCol(sample1, SEAT_COLS_1);
 
@@ -564,6 +591,7 @@ function renderTable() {
     return;
   }
 
+  const showYear = !!yearCol1;
   const showCls  = !!clsCol1;
   const showSeat = !!seatCol1;
 
@@ -571,6 +599,7 @@ function renderTable() {
     <th>#</th>
     <th>學生姓名</th>
     <th>身分證號</th>
+    ${showYear ? '<th>入學年度（更新後）</th>' : ''}
     ${showCls  ? '<th>目前班級（更新後）</th>' : ''}
     ${showSeat ? '<th>座號（更新後）</th>' : ''}
     <th>全校名單<br>年級</th>
@@ -583,7 +612,18 @@ function renderTable() {
     const name  = r[nameCol1] || '—';
     const idRaw = r.__idKey  || '—';
 
-    /* 班級欄 */
+    /* 入學年度欄 */
+    let yearCell = '—';
+    if (showYear) {
+      const ch = r.__changes?.[yearCol1];
+      if (ch) {
+        yearCell = `<span class="changed-cell">${ch.from || '（空）'}</span><span class="arrow">→</span><span class="new-val">${ch.to}</span>`;
+      } else {
+        yearCell = String(r[yearCol1] ?? '—');
+      }
+    }
+
+    /* 目前班級欄 */
     let clsCell = '—';
     if (showCls) {
       const ch = r.__changes?.[clsCol1];
@@ -619,11 +659,12 @@ function renderTable() {
       <td class="row-num">${r.__rowIdx}</td>
       <td>${name}</td>
       <td class="mono">${idRaw}</td>
+      ${showYear ? `<td>${yearCell}</td>` : ''}
       ${showCls  ? `<td>${clsCell}</td>` : ''}
       ${showSeat ? `<td>${seatCell}</td>` : ''}
-      <td>${r.__matched ? (r.__newGrade || '—') : '—'}</td>
-      <td>${r.__matched ? (r.__newCls   || '—') : '—'}</td>
-      <td>${r.__matched ? (r.__newSeat  || '—') : '—'}</td>
+      <td>${r.__matched ? (r.__newGrade   || '—') : '—'}</td>
+      <td>${r.__matched ? (r.__newCls     || '—') : '—'}</td>
+      <td>${r.__matched ? (r.__newSeat    || '—') : '—'}</td>
       <td>${tag}</td>
     </tr>`;
   });

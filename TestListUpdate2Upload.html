@@ -753,13 +753,16 @@ function processFiles() {
 
   log('測驗名單索引建立完成（班/座號已統一補零），共 ' + Object.keys(lookup).length + ' 筆', 'info');
 
-  const lookup2Keys = Object.keys(lookup);
   const c1Name = findCol(headers1, ['姓名']);
+  const c2Name = findCol(headers2, ['姓名']);
+
+  // Track which file2 keys were matched
+  const matchedKeys = new Set();
 
   // Process file1 (deep copy)
   resultData = data1.map(r => [...r]);
   let matched = 0, changed = 0, unmatched = 0;
-  const unmatchedRows = [];
+  const unmatchedRows = []; // in file1 but not in file2
 
   for (let i = 1; i < resultData.length; i++) {
     const row = resultData[i];
@@ -770,15 +773,16 @@ function processFiles() {
 
     if (!lookup[key]) {
       unmatched++;
-      // Try zero-padded variants as hint
-      const hint = findCloseMatch(cls, seat, lookup2Keys);
       unmatchedRows.push({
+        source: '原始名單',
         rowNum: i,
         name: c1Name >= 0 ? (row[c1Name] || '').toString() : '',
-        cls, seat, hint
+        cls: pad2(cls), seat: pad2(seat),
       });
       continue;
     }
+
+    matchedKeys.add(key);
 
     matched++;
     const lk = lookup[key];
@@ -800,6 +804,23 @@ function processFiles() {
           log(`班${cls} 座${seat} → ${s.label}: n → y`, 'ok');
         }
       }
+    }
+  }
+
+  // Find file2 rows that had no match in file1
+  for (let i = 1; i < data2.length; i++) {
+    const row = data2[i];
+    const cls  = (row[c2.class] || '').toString().trim();
+    const seat = (row[c2.seat]  || '').toString().trim();
+    if (!cls && !seat) continue;
+    const key = pad2(cls) + '_' + pad2(seat);
+    if (!matchedKeys.has(key)) {
+      unmatchedRows.push({
+        source: '測驗名單',
+        rowNum: i,
+        name: c2Name >= 0 ? (row[c2Name] || '').toString() : '',
+        cls: pad2(cls), seat: pad2(seat),
+      });
     }
   }
 
@@ -910,7 +931,7 @@ function renderUnmatched(rows) {
   tbody.innerHTML = '';
 
   const hRow = document.createElement('tr');
-  ['原始名單行', '姓名', '班級（原始）', '座號（原始）', '可能原因'].forEach(h => {
+  ['來源檔案', '行號', '姓名', '班級', '座號'].forEach(h => {
     const th = document.createElement('th');
     th.textContent = h;
     hRow.appendChild(th);
@@ -930,43 +951,59 @@ function renderUnmatched(rows) {
     return;
   }
 
-  rows.forEach(r => {
+  // Sort: 原始名單 first, then 測驗名單
+  const sorted = [...rows].sort((a,b) => a.source.localeCompare(b.source));
+
+  sorted.forEach(r => {
     const tr = document.createElement('tr');
 
+    // Source badge
+    const tdSrc = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.textContent = r.source;
+    const isFile1 = r.source === '原始名單';
+    badge.style.cssText = `
+      display:inline-block;
+      font-size:0.68rem;
+      font-family:'Space Mono',monospace;
+      padding:0.15rem 0.5rem;
+      border-radius:4px;
+      background:${isFile1 ? 'rgba(124,106,247,0.15)' : 'rgba(79,209,197,0.12)'};
+      color:${isFile1 ? 'var(--accent)' : 'var(--accent2)'};
+      border:1px solid ${isFile1 ? 'rgba(124,106,247,0.3)' : 'rgba(79,209,197,0.3)'};
+      white-space:nowrap;
+    `;
+    tdSrc.appendChild(badge);
+
     const tdRow = document.createElement('td');
-    tdRow.style.fontFamily = 'Space Mono, monospace';
-    tdRow.style.fontSize = '0.72rem';
-    tdRow.style.color = 'var(--text-muted)';
+    tdRow.style.cssText = 'font-family:Space Mono,monospace;font-size:0.72rem;color:var(--text-muted)';
     tdRow.textContent = 'R' + r.rowNum;
 
     const tdName = document.createElement('td');
     tdName.textContent = r.name;
 
     const tdCls = document.createElement('td');
-    tdCls.style.fontFamily = 'Space Mono, monospace';
-    tdCls.style.fontSize = '0.75rem';
-    tdCls.style.color = 'var(--danger)';
-    tdCls.textContent = JSON.stringify(r.cls); // show exact value with quotes
+    tdCls.style.cssText = 'font-family:Space Mono,monospace;font-size:0.75rem;';
+    tdCls.textContent = r.cls;
 
     const tdSeat = document.createElement('td');
-    tdSeat.style.fontFamily = 'Space Mono, monospace';
-    tdSeat.style.fontSize = '0.75rem';
-    tdSeat.style.color = 'var(--danger)';
-    tdSeat.textContent = JSON.stringify(r.seat);
+    tdSeat.style.cssText = 'font-family:Space Mono,monospace;font-size:0.75rem;';
+    tdSeat.textContent = r.seat;
 
-    const tdHint = document.createElement('td');
-    tdHint.style.fontSize = '0.75rem';
-    if (r.hint) {
-      tdHint.style.color = 'var(--accent3)';
-      tdHint.textContent = '⚠ 格式不符：' + r.hint;
-    } else {
-      tdHint.style.color = 'var(--text-muted)';
-      tdHint.textContent = '不在測驗名單中';
-    }
-
-    tr.append(tdRow, tdName, tdCls, tdSeat, tdHint);
+    tr.append(tdSrc, tdRow, tdName, tdCls, tdSeat);
     tbody.appendChild(tr);
   });
+
+  // Summary count by source
+  const f1 = rows.filter(r => r.source === '原始名單').length;
+  const f2 = rows.filter(r => r.source === '測驗名單').length;
+  const hint = document.querySelector('.unmatched-hint');
+  hint.innerHTML = `
+    <strong>共 ${rows.length} 筆未互相比對到：</strong>
+    <span style="color:var(--accent)">原始名單多出 ${f1} 筆</span>（在原始名單中有，但測驗名單找不到）、
+    <span style="color:var(--accent2)">測驗名單多出 ${f2} 筆</span>（在測驗名單中有，但原始名單找不到）。<br>
+    若兩邊數字都是 0 代表完全對應。
+  `;
 }
 
 function switchTab(tab) {

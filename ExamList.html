@@ -429,7 +429,7 @@ body.view-only input[type=checkbox]{pointer-events:none}
   <button class="ntab on" data-tab="upload"><span class="ntab-short">📁</span><span class="ntab-long"> 資料上傳</span></button>
   <button class="ntab" data-tab="filter"><span class="ntab-short">📊</span><span class="ntab-long"> 篩選名單</span></button>
   <button class="ntab" data-tab="rate"><span class="ntab-short">📈</span><span class="ntab-long"> 提報率</span></button>
-  <button class="ntab" data-tab="b35"><span class="ntab-short">🔍</span><span class="ntab-long"> 後35%</span></button>
+  <button class="ntab" data-tab="b35"><span class="ntab-short">🔍</span><span class="ntab-long"> 後40%</span></button>
   <button class="ntab" data-tab="examlist"><span class="ntab-short">📋</span><span class="ntab-long"> 考試名單</span></button>
   <button class="ntab" data-tab="stat1"><span class="ntab-short">📉</span><span class="ntab-long"> +5%前</span></button>
   <button class="ntab" data-tab="stat2"><span class="ntab-short">➕</span><span class="ntab-long"> +5%後</span></button>
@@ -462,18 +462,18 @@ body.view-only input[type=checkbox]{pointer-events:none}
       </div>
     </div>
     <div class="card">
-      <div class="card-hd">📊 上傳後35%成績名單 <span class="badge-count" id="b35-count">0 筆</span></div>
-      <div class="al al-info">ℹ️ Excel 欄位：班級（如101）、座號、身分證（略過）、姓名、國文分數、數學分數、英語分數、身份註記。無成績=非後35%。一二年級無英語。</div>
+      <div class="card-hd">📊 上傳後40%成績名單 <span class="badge-count" id="b35-count">0 筆</span></div>
+      <div class="al al-info">ℹ️ Excel 欄位：班級（如101）、座號、身分證（略過）、姓名、國文分數、數學分數、英語分數、身份註記。無成績=非後40%。一二年級無英語。</div>
       <div class="upzone" id="upzone-b35" onclick="document.getElementById('file-b35').click()">
         <div class="ico">📂</div>
-        <p>點擊或拖曳上傳<br><strong>後35%成績 Excel 檔案</strong></p>
+        <p>點擊或拖曳上傳<br><strong>後40%成績 Excel 檔案</strong></p>
       </div>
       <input type="file" id="file-b35" accept=".xlsx,.xls,.csv">
       <div id="b35-preview"></div>
       <div id="b35-diff-area" style="margin-top:10px"></div>
       <div class="row" style="margin-top:10px">
         <button class="btn btn-blue no-edit" id="btn-save-b35" disabled onclick="saveBottom35List()">💾 儲存到 Firebase</button>
-        <button class="btn btn-red btn-sm no-edit" onclick="clearBottom35List()">🗑 清除後35%名單</button>
+        <button class="btn btn-red btn-sm no-edit" onclick="clearBottom35List()">🗑 清除後40%名單</button>
       </div>
     </div>
   </div>
@@ -482,7 +482,7 @@ body.view-only input[type=checkbox]{pointer-events:none}
     <div class="card-hd">🗄 Firebase 資料庫狀態</div>
     <div class="sgrid" id="db-status-grid">
       <div class="sc blue"><div class="lbl">必考名單學生數</div><div class="val" id="db-req-cnt">—</div></div>
-      <div class="sc"><div class="lbl">後35%名單學生數</div><div class="val" id="db-b35-cnt">—</div></div>
+      <div class="sc"><div class="lbl">後40%名單學生數</div><div class="val" id="db-b35-cnt">—</div></div>
       <div class="sc amber"><div class="lbl">已選5%人數</div><div class="val" id="db-sel-cnt">—</div></div>
     </div>
     <button class="btn btn-teal" onclick="loadAll()">🔄 從 Firebase 重新載入</button>
@@ -993,7 +993,7 @@ async function saveBottom35List(){
     showB35UploadDiff(prevB35, newB35);
     document.getElementById('btn-save-b35').disabled=true;
     updateDBStatus();renderAll();
-    toast(`後35%名單已儲存 (${B35.length} 筆)`,'ok');
+    toast(`後40%名單已儲存 (${B35.length} 筆)`,'ok');
   }catch(e){toast('儲存失敗: '+e.message,'err');}
 }
 async function clearRequiredList(){
@@ -1011,7 +1011,7 @@ async function clearRequiredList(){
 }
 async function clearBottom35List(){
   if(!isEditMode){toast('請先進入編輯模式','warn');return;}
-  if(!confirm('確定清除所有後35%名單資料？'))return;
+  if(!confirm('確定清除所有後40%名單資料？'))return;
   try{
     await fbBatchWrite('bottom35',[]);
     B35=[];pendingB35=null;
@@ -1019,7 +1019,7 @@ async function clearBottom35List(){
     document.getElementById('btn-save-b35').disabled=true;
     document.getElementById('b35-count').textContent='0 筆';
     updateDBStatus();renderAll();
-    toast('後35%名單已清除','ok');
+    toast('後40%名單已清除','ok');
   }catch(e){toast('清除失敗: '+e.message,'err');}
 }
 
@@ -1033,7 +1033,7 @@ async function loadAll(){
     renderAll();
     document.getElementById('fb-dot').className='fb-dot ok';
     document.getElementById('fb-status').textContent='已連線';
-    toast(`載入完成：必考${REQ.length}筆，後35%${B35.length}筆`,'ok');
+    toast(`載入完成：必考${REQ.length}筆，後40%${B35.length}筆`,'ok');
   }catch(e){
     document.getElementById('fb-dot').className='fb-dot err';
     document.getElementById('fb-status').textContent='連線失敗';
@@ -1078,7 +1078,7 @@ document.getElementById('file-b35').addEventListener('change',async e=>{
     document.getElementById('btn-save-b35').disabled=false;
     document.getElementById('b35-count').textContent=students.length+' 筆 (待存)';
     preview.innerHTML=`<div class="al al-ok" style="margin-top:10px">✅ 解析完成：共 <strong>${students.length}</strong> 位學生。點擊「儲存到 Firebase」以儲存。</div>`;
-    showDupWarnings(dups,'後35%名單');
+    showDupWarnings(dups,'後40%名單');
     e.target.value='';
   }catch(err){
     preview.innerHTML=`<div class="al al-err" style="margin-top:10px">❌ 解析失敗：${err.message}</div>`;
@@ -1208,9 +1208,9 @@ function subjBadge(v){
 
 // ─── RENDER: RATE TAB ───
 // 特殊規則：
-//   一年級國語/數學：首次施測，無必考名單，從後35%直接選取，目標 = ceil(161×5%)
+//   一年級國語/數學：首次施測，無必考名單，從後40%直接選取，目標 = ceil(161×5%)
 //   三年級英語：首次施測，目標 = round(四年級英語必考人數/220 × 198) + ceil(198×5%)
-//   其餘：必考名單各科X人數 + 後35%已選有該科成績人數，目標 = ceil(年級人數×5%)
+//   其餘：必考名單各科X人數 + 後40%已選有該科成績人數，目標 = ceil(年級人數×5%)
 const GRADE1_FIRST_EXAM=true;
 // Snapshot: locked formal list { id -> {selChinese,selMath,selEnglish} }
 let formalSnapshot=null; // null = not locked yet
@@ -1242,7 +1242,7 @@ function subjEffective(grade,subj){
   const isFirst=(grade===1&&GRADE1_FIRST_EXAM&&subj!=='english')||(grade===3&&subj==='english');
   // 必考名單中該科X的人數（首測=0）
   const reqCnt=isFirst?0:REQ.filter(r=>r.grade===grade&&String(r[subj]||'').trim().toUpperCase()==='X').length;
-  // 後35%中已勾選、且有該科成績的人
+  // 後40%中已勾選、且有該科成績的人
   // 排除「該科目有X在必考名單」的人（他們已算在reqCnt，首測科目不排除）
   const sf=selField(subj);
   const selCnt=B35.filter(b=>{
@@ -1293,7 +1293,7 @@ function renderRate(){
 
   // ── 說明提示 ──
   let html=`
-  <div class="al al-warn">⚠️ <strong>一年級國語/數學</strong>：目標人數 = 二年級同科比例換算到一年級 + 一年級5%，無既有必考名單，從後35%名單直接選取。</div>
+  <div class="al al-warn">⚠️ <strong>一年級國語/數學</strong>：目標人數 = 二年級同科比例換算到一年級 + 一年級5%，無既有必考名單，從後40%名單直接選取。</div>
   <div class="al al-info">ℹ️ <strong>三年級英語</strong>：目標人數 = 四年級英語比例換算到三年級 + 三年級5%，首次施測無既有必考名單。</div>`;
 
   // ── 三個科目分開 ──
@@ -1326,7 +1326,7 @@ function renderRate(){
       totalEff+=total;totalTgt+=tgt.total;
       const barW=Math.min(100,total/tgt.total*100);
       const subLine=isFirst
-        ?`後35%已選 <strong>${selCnt}</strong> 人 / 目標<strong>${tgt.total}</strong>人`
+        ?`後40%已選 <strong>${selCnt}</strong> 人 / 目標<strong>${tgt.total}</strong>人`
         :`必考${reqCnt}人＋新增${selCnt}人<br>目標 <strong>${tgt.base}</strong>+<strong>${tgt.fivePct}</strong>=<strong>${tgt.total}</strong>人`;
       html+=`<div class="sc${diff>=0?'':' red'}${isFirst?' amber':''}">
         <div class="lbl">${g}年級（${pop}人）${isFirst?'<span style="font-size:10px;color:var(--amber);font-weight:700"> 首測</span>':''}</div>
@@ -1344,7 +1344,7 @@ function renderRate(){
     html+=`<div class="tw"><table>
       <thead style="background:${color}"><tr>
         <th>年級</th><th>年級人數</th><th>必考名單(X)</th>
-        <th>後35%新增</th><th>本次提報數</th><th>提報率</th>
+        <th>後40%新增</th><th>本次提報數</th><th>提報率</th>
         <th>目標人數</th><th>差距</th><th>備註</th>
       </tr></thead><tbody>`;
     let tR=0,tS=0,tE2=0,tT=0;
@@ -1411,7 +1411,7 @@ function renderB35(){
       </div>`;
     }
   }
-  if(!B35.length){el.innerHTML=emptyState('📊','尚無後35%名單資料，請先上傳。');return;}
+  if(!B35.length){el.innerHTML=emptyState('📊','尚無後40%名單資料，請先上傳。');return;}
   
   let students=B35.filter(s=>{
     if(grade&&s.grade!==grade)return false;
@@ -1425,10 +1425,10 @@ function renderB35(){
   });
   
   const grades=[...new Set(students.map(s=>s.grade))].sort((a,b)=>a-b);
-  if(!students.length){el.innerHTML=emptyState('✅','此篩選條件下沒有後35%學生。');return;}
+  if(!students.length){el.innerHTML=emptyState('✅','此篩選條件下沒有後40%學生。');return;}
   
   const showGr1=(grade===0||grade===1);
-  let infoHtml=`<div class="al al-info">顯示 <strong>${SUBJ_LABEL[subj]}</strong> 後35%學生（由低分到高分排序）。勾選以加入考試名單。</div>`;
+  let infoHtml=`<div class="al al-info">顯示 <strong>${SUBJ_LABEL[subj]}</strong> 後40%學生（由低分到高分排序）。勾選以加入考試名單。</div>`;
   if(showGr1&&subj!=='english'){
     infoHtml+=`<div class="al al-warn">⚠️ <strong>一年級為本學期首次施測</strong>，無既有必考名單，請從下方直接勾選學生加入考試名單（目標 <strong>${get5Target(1)}</strong> 人）。一年級所有勾選學生都將列為正式考試名單。</div>`;
   }
@@ -1955,7 +1955,7 @@ function renderGradeSummary(){
     <td class="mono fw6" style="text-align:center">${totAll}</td>
   </tr></tfoot></table></div>
 
-  <div class="al al-info" style="margin-top:12px">ℹ️ 此統計包含必考名單（X）＋後35%已選5%新增學生。一人可同時出現於多科（須考國語且須考數學），因此「考試名單總人數」≠ 各科加總。</div>`;
+  <div class="al al-info" style="margin-top:12px">ℹ️ 此統計包含必考名單（X）＋後40%已選5%新增學生。一人可同時出現於多科（須考國語且須考數學），因此「考試名單總人數」≠ 各科加總。</div>`;
 
   el.innerHTML=html;
 }
@@ -1980,7 +1980,7 @@ function renderSPList(){
     const key=`${b.grade}|${b.classNum}|${b.seat}|${b.name}`;
     if(!spMap.has(key))spMap.set(key,{
       name:b.name,grade:b.grade,classNum:b.classNum,seat:b.seat,
-      note:b.note,source:'後35%',
+      note:b.note,source:'後40%',
       chinese:b.chinese,math:b.math,english:b.english,
     });
     else{
@@ -1991,7 +1991,7 @@ function renderSPList(){
   });
 
   if(!spMap.size){
-    el.innerHTML=`<div class="card">${emptyState('🔵','目前無鑑輔生資料。確認後35%名單或必考名單的身份註記是否含「鑑輔」。')}</div>`;
+    el.innerHTML=`<div class="card">${emptyState('🔵','目前無鑑輔生資料。確認後40%名單或必考名單的身份註記是否含「鑑輔」。')}</div>`;
     return;
   }
 
@@ -2000,7 +2000,7 @@ function renderSPList(){
 
   let html=`<div class="card">
     <div class="card-hd">🔵 鑑輔生名單 <span class="badge-count">${list.length} 人</span></div>
-    <div class="al al-warn" style="margin-bottom:12px">⚠️ 以下學生身份註記含「鑑輔」，在後35%排序勾選時建議主動跳過或審慎評估。</div>`;
+    <div class="al al-warn" style="margin-bottom:12px">⚠️ 以下學生身份註記含「鑑輔」，在後40%排序勾選時建議主動跳過或審慎評估。</div>`;
 
   const subjCols=`<th style="background:#b91c1c">國語</th><th style="background:#1d4ed8">數學</th>`;
   const enHdr=`<th style="background:#065f46">英語</th>`;

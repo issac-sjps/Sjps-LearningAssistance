@@ -455,15 +455,20 @@ function doMatch() {
       out.__newClsName = newClsName;
 
       /* Update 目前班級
-         比對時忽略前置零：01 == 1，視為相同不更動 */
+         Excel1「目前班級」對應的是 Excel2「班級名稱」（如 101、102）。
+         比對規則：數值相同視為一樣（101 == 101，忽略前置零差異）。
+         若 Excel2 沒有班級名稱欄，則用「年級數字 + 班級數字補零2位」組合（如 1+01=101）。 */
       if (clsCol1) {
-        const old = String(out[clsCol1] || '').trim();
+        const old    = String(out[clsCol1] || '').trim();
         const oldNum = parseInt(old, 10);
-        const newNum = parseInt(newGrade, 10);
-        // 數值不同才算真的有差
-        if (!isNaN(oldNum) && !isNaN(newNum) ? oldNum !== newNum : old !== newGrade) {
-          out.__changes[clsCol1] = { from: old, to: newGrade };
-          out[clsCol1] = newGrade;
+        const newNum = parseInt(newClsName, 10);
+        // 數值相同 → 不視為變動
+        const isSame = !isNaN(oldNum) && !isNaN(newNum)
+          ? oldNum === newNum
+          : old === newClsName;
+        if (!isSame) {
+          out.__changes[clsCol1] = { from: old, to: newClsName };
+          out[clsCol1] = newClsName;
           out.__changed = true;
         }
       }

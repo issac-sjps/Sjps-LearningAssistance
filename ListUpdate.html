@@ -122,6 +122,10 @@
     line-height: 1;
   }
 
+  .btn-warn { background: #7a4a00; color: var(--warn); border: 1px solid var(--warn); }
+  .btn-warn:hover:not(:disabled) { background: var(--warn); color: #0f1117; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(245,166,35,0.3); }
+  .btn-warn:disabled { opacity: 0.38; cursor: not-allowed; }
+
   .stat-label { font-size: 0.73rem; color: var(--text2); margin-top: 4px; }
   .stat.matched .stat-num { color: var(--accent2); }
   .stat.unmatched .stat-num { color: var(--danger); }
@@ -286,7 +290,8 @@
       <span style="font-size:0.78rem;color:var(--text2);">學年度（用於年級↔入學年度換算）</span>
     </div>
     <button class="btn btn-primary" id="btnMatch" disabled onclick="doMatch()">🔍 開始比對</button>
-    <button class="btn btn-success" id="btnExport" disabled onclick="doExport()">⬇️ 匯出更新後 Excel</button>
+    <button class="btn btn-success" id="btnExport" disabled onclick="doExport(false)">⬇️ 匯出全部名單</button>
+    <button class="btn btn-warn" id="btnExportChanged" disabled onclick="doExport(true)">⬇️ 只匯出有修正的名單</button>
   </div>
 
   <!-- Messages -->
@@ -544,6 +549,7 @@ function doMatch() {
   document.getElementById('statsArea').style.display = 'flex';
   document.getElementById('filterBar').style.display = 'flex';
   document.getElementById('btnExport').disabled = false;
+  document.getElementById('btnExportChanged').disabled = changed === 0;
 
   const msgs = [];
   if (unmatched > 0) msgs.push(`⚠️ 有 <strong>${unmatched}</strong> 筆在全校名單中找不到對應身分證號，請人工確認。`);
@@ -669,11 +675,19 @@ function renderTable() {
 }
 
 /* ── Export ── */
-function doExport() {
+function doExport(changedOnly = false) {
   if (!resultRows.length) return;
 
-  // 匯出維持原始 Excel1 的列順序（依 __rowIdx）
-  const sorted = [...resultRows].sort((a, b) => a.__rowIdx - b.__rowIdx);
+  // 維持原始 Excel1 列順序
+  let sorted = [...resultRows].sort((a, b) => a.__rowIdx - b.__rowIdx);
+
+  // 只匯出有修正的
+  if (changedOnly) sorted = sorted.filter(r => r.__changed);
+
+  if (sorted.length === 0) {
+    showMsg('⚠️ 沒有任何有修正的資料可匯出。', 'warn');
+    return;
+  }
 
   const exportRows = sorted.map(r => {
     const out = {};
@@ -690,10 +704,12 @@ function doExport() {
   ws['!cols'] = cols.map(c => ({ wch: Math.max(c.length * 1.8, 10) }));
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '更新後名單');
+  const sheetName = changedOnly ? '有修正名單' : '更新後名單';
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  XLSX.writeFile(wb, `學生名單_更新後_${dateStr}.xlsx`);
+  const suffix  = changedOnly ? '_僅修正筆數' : '_全部';
+  XLSX.writeFile(wb, `學生名單${suffix}_${dateStr}.xlsx`);
 }
 </script>
 </body>

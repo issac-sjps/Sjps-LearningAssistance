@@ -239,6 +239,7 @@ let duplicateNames = [];
 let mergedData     = [];
 let examClsMap     = {};  // name → 班級(從考試名單)，用於雙重比對
 let examRowMap     = {};  // name → 考試名單原始 row
+let examEntryYearMap = {};  // name → 入學年度（從考試名單直接讀取）
 
 // ── 全校名單欄位別名 ────────────────────────────────────────────────────
 const SCHOOL_ALIAS = {
@@ -324,13 +325,23 @@ setupZone('zone1', 'file1', (fname, rows) => {
     headers.find(h => h.trim() === '目前年級') ||
     headers.find(h => h.includes('班級') || h.includes('年級'));
   examClsMap = {};
-  examRowMap = {};  // name → 考試名單原始 row（供找不到時顯示）
+  examRowMap = {};
+  examEntryYearMap = {};
+  // 偵測入學年度欄（數字欄位值在 109~120 範圍）
+  const examEntryCol = headers.find(h => {
+    const sample = rows.slice(0,5).map(r => parseInt(r[h])).filter(v => v >= 109 && v <= 120);
+    return sample.length > 0;
+  });
   rows.forEach(r => {
     const n = String(r[nameCol] || '').trim();
-    if (!examRowMap[n]) examRowMap[n] = r;  // 只取第一筆（重複的已另外處理）
+    if (!examRowMap[n]) examRowMap[n] = r;
     if (examClsCol) {
       const c = String(r[examClsCol] || '').trim();
       if (n && c) examClsMap[n] = c;
+    }
+    if (examEntryCol) {
+      const y = String(r[examEntryCol] || '').trim();
+      if (n && y) examEntryYearMap[n] = y;
     }
   });
 
@@ -497,12 +508,12 @@ function doMerge() {
     matches.forEach(r => {
       const cls   = String(r[clsCol]  || '').trim();
       const idVal = idCol   ? String(r[idCol]   || '').trim() : '';
-      const seat  = seatCol ? String(r[seatCol] || '').trim() : '';
+      const seat  = seatCol ? String(parseInt(r[seatCol]) || r[seatCol] || '').trim() : '';
       if (!idVal) emptyId.push(name);
       mergedData.push({
         '學生姓名'                                       : name,
         '身分證統一編號'                                  : idVal,
-        '入學年度'                                        : calcEntryYear(cls),
+        '入學年度'                                        : (examEntryYearMap[name] || calcEntryYear(cls)),
         '目前班級'                                        : extractGrade(cls),
         '座號(選填)'                                      : seat,
         'OpenID(選填)'                                    : '',

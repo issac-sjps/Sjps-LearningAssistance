@@ -421,6 +421,60 @@
     color: var(--text-muted);
   }
 
+  /* Tabs */
+  .tab-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+  }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-btn .badge-count {
+    display: inline-block;
+    background: rgba(252,129,129,0.15);
+    color: var(--danger);
+    border-radius: 10px;
+    font-size: 0.68rem;
+    font-family: 'Space Mono', monospace;
+    padding: 0.05rem 0.45rem;
+    margin-left: 0.4rem;
+  }
+
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .unmatched-hint {
+    background: rgba(252,129,129,0.07);
+    border: 1px solid rgba(252,129,129,0.2);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    font-size: 0.78rem;
+    color: var(--danger);
+    margin-bottom: 1rem;
+    line-height: 1.6;
+  }
+
+  .unmatched-hint strong { font-weight: 600; }
+
   footer {
     text-align: center;
     padding-top: 2rem;
@@ -510,14 +564,35 @@
   <!-- Preview -->
   <div class="preview-section" id="previewSection">
     <div class="preview-header">
-      <h3>📊 更新後預覽（原始名單）</h3>
+      <h3>📊 結果總覽</h3>
       <span class="tag">橘色 = 已更新</span>
     </div>
-    <div class="table-wrap">
-      <table id="previewTable">
-        <thead></thead>
-        <tbody></tbody>
-      </table>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('updated')">✅ 更新後名單</button>
+      <button class="tab-btn" id="tabUnmatched" onclick="switchTab('unmatched')">⚠️ 未比對到 <span class="badge-count" id="unmatchedCount">0</span></button>
+    </div>
+
+    <div class="tab-pane active" id="pane-updated">
+      <div class="table-wrap">
+        <table id="previewTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="pane-unmatched">
+      <div class="unmatched-hint">
+        <strong>以下學生在原始名單中找不到對應的測驗名單記錄（以班級+座號比對）。</strong><br>
+        常見原因：① 班級格式不同（如「1」vs「01」）② 座號格式不同（如「6」vs「06」）③ 該學生確實不在測驗名單中（正常情況）
+      </div>
+      <div class="table-wrap">
+        <table id="unmatchedTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -672,9 +747,13 @@ function processFiles() {
 
   log('測驗名單索引建立完成，共 ' + Object.keys(lookup).length + ' 筆', 'info');
 
+  const lookup2Keys = Object.keys(lookup);
+  const c1Name = findCol(headers1, ['姓名']);
+
   // Process file1 (deep copy)
   resultData = data1.map(r => [...r]);
   let matched = 0, changed = 0, unmatched = 0;
+  const unmatchedRows = [];
 
   for (let i = 1; i < resultData.length; i++) {
     const row = resultData[i];
@@ -684,6 +763,13 @@ function processFiles() {
 
     if (!lookup[key]) {
       unmatched++;
+      // Try zero-padded variants as hint
+      const hint = findCloseMatch(cls, seat, lookup2Keys);
+      unmatchedRows.push({
+        rowNum: i,
+        name: c1Name >= 0 ? (row[c1Name] || '').toString() : '',
+        cls, seat, hint
+      });
       continue;
     }
 
@@ -720,8 +806,12 @@ function processFiles() {
   document.getElementById('statUnmatched').textContent = unmatched;
   document.getElementById('summary').classList.add('visible');
 
-  // Render preview
+  // Update unmatched tab badge
+  document.getElementById('unmatchedCount').textContent = unmatched;
+
+  // Render preview and unmatched
   renderPreview(resultData, c1, changedCells);
+  renderUnmatched(unmatchedRows);
   document.getElementById('btnExport').style.display = 'inline-flex';
 }
 
@@ -780,6 +870,99 @@ function exportFile() {
   XLSX.writeFile(wb, '更新後名單_' + new Date().toISOString().slice(0,10) + '.xlsx');
 }
 
+function findCloseMatch(cls, seat, keys) {
+  // Try padding/unpadding variations
+  const variants = [
+    cls + '_' + seat,
+    cls.padStart(2,'0') + '_' + seat,
+    cls.replace(/^0+/,'') + '_' + seat,
+    cls + '_' + seat.padStart(2,'0'),
+    cls + '_' + seat.replace(/^0+/,''),
+    cls.padStart(2,'0') + '_' + seat.padStart(2,'0'),
+    cls.replace(/^0+/,'') + '_' + seat.replace(/^0+/,''),
+  ];
+  for (const v of variants) {
+    if (keys.includes(v) && v !== cls + '_' + seat) {
+      const [c2,s2] = v.split('_');
+      return `測驗名單中為 班${c2} 座${s2}`;
+    }
+  }
+  return null;
+}
+
+function renderUnmatched(rows) {
+  const thead = document.querySelector('#unmatchedTable thead');
+  const tbody = document.querySelector('#unmatchedTable tbody');
+  thead.innerHTML = '';
+  tbody.innerHTML = '';
+
+  const hRow = document.createElement('tr');
+  ['原始名單行', '姓名', '班級（原始）', '座號（原始）', '可能原因'].forEach(h => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    hRow.appendChild(th);
+  });
+  thead.appendChild(hRow);
+
+  if (rows.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 5;
+    td.style.textAlign = 'center';
+    td.style.color = 'var(--success)';
+    td.style.padding = '1.5rem';
+    td.textContent = '✓ 全部比對成功，沒有未找到的學生';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+
+    const tdRow = document.createElement('td');
+    tdRow.style.fontFamily = 'Space Mono, monospace';
+    tdRow.style.fontSize = '0.72rem';
+    tdRow.style.color = 'var(--text-muted)';
+    tdRow.textContent = 'R' + r.rowNum;
+
+    const tdName = document.createElement('td');
+    tdName.textContent = r.name;
+
+    const tdCls = document.createElement('td');
+    tdCls.style.fontFamily = 'Space Mono, monospace';
+    tdCls.style.fontSize = '0.75rem';
+    tdCls.style.color = 'var(--danger)';
+    tdCls.textContent = JSON.stringify(r.cls); // show exact value with quotes
+
+    const tdSeat = document.createElement('td');
+    tdSeat.style.fontFamily = 'Space Mono, monospace';
+    tdSeat.style.fontSize = '0.75rem';
+    tdSeat.style.color = 'var(--danger)';
+    tdSeat.textContent = JSON.stringify(r.seat);
+
+    const tdHint = document.createElement('td');
+    tdHint.style.fontSize = '0.75rem';
+    if (r.hint) {
+      tdHint.style.color = 'var(--accent3)';
+      tdHint.textContent = '⚠ 格式不符：' + r.hint;
+    } else {
+      tdHint.style.color = 'var(--text-muted)';
+      tdHint.textContent = '不在測驗名單中';
+    }
+
+    tr.append(tdRow, tdName, tdCls, tdSeat, tdHint);
+    tbody.appendChild(tr);
+  });
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-' + tab).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
 function resetAll() {
   data1 = null; data2 = null; resultData = null; changedCells = {};
   ['file1','file2'].forEach(id => { document.getElementById(id).value = ''; });
@@ -791,6 +974,10 @@ function resetAll() {
   document.getElementById('summary').classList.remove('visible');
   document.getElementById('btnExport').style.display = 'none';
   document.getElementById('btnProcess').disabled = true;
+  document.getElementById('unmatchedCount').textContent = '0';
+  // Reset tabs
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  document.querySelectorAll('.tab-pane').forEach((p,i) => p.classList.toggle('active', i===0));
 }
 
 // Click on drop zone

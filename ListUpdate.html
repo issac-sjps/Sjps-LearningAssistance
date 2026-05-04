@@ -484,18 +484,13 @@ function doMatch() {
       }
 
       /* ── 比對並更新「目前班級」 ──
-         Excel1 目前班級存的是 "101","102" 這樣的班級代碼
-         正確值 = 年級 + 班級（補零2位） */
+         Excel1「目前班級」存的就是「年級」數字（1~6），
+         直接與 Excel2 的年級比對，數值相同不更動。 */
       if (clsCol1) {
-        const oldCls    = String(out[clsCol1] || '').trim();
-        const oldClsNum = parseInt(oldCls, 10);
-        const newClsNum = parseInt(correctClsName, 10);
-        const isSame    = !isNaN(oldClsNum) && !isNaN(newClsNum)
-          ? oldClsNum === newClsNum
-          : oldCls === correctClsName;
-        if (!isSame) {
-          out.__changes[clsCol1] = { from: oldCls, to: correctClsName };
-          out[clsCol1] = correctClsName;
+        const oldCls = parseInt(String(out[clsCol1] || '').trim(), 10);
+        if (!isNaN(oldCls) && oldCls !== grade2) {
+          out.__changes[clsCol1] = { from: String(oldCls), to: String(grade2) };
+          out[clsCol1] = grade2;
           out.__changed = true;
         }
       }

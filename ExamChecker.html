@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考科比對系統</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e334d;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --ok: #22c55e;
+    --warn: #f59e0b;
+    --error: #ef4444;
+    --text: #e2e8f0;
+    --text2: #8892a4;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 20px 60px;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: .04em;
+  }
+  header p {
+    color: var(--text2);
+    margin-top: 6px;
+    font-size: .9rem;
+  }
+
+  /* ── Upload zone ── */
+  .upload-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 800px;
+    margin: 0 auto 32px;
+  }
+  @media (max-width: 560px) { .upload-grid { grid-template-columns: 1fr; } }
+
+  .upload-card {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  .upload-card:hover { border-color: var(--accent); background: var(--surface2); }
+  .upload-card.loaded { border-color: var(--ok); border-style: solid; }
+
+  .upload-card input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+
+  .upload-card .icon {
+    font-size: 2.2rem; margin-bottom: 10px;
+  }
+  .upload-card .label {
+    font-size: .85rem; font-weight: 700; color: var(--accent); letter-spacing: .06em;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .upload-card .sublabel {
+    font-size: .8rem; color: var(--text2);
+  }
+  .upload-card .filename {
+    margin-top: 10px; font-size: .78rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ok); word-break: break-all;
+  }
+
+  /* ── Button ── */
+  .btn-row { text-align: center; margin-bottom: 36px; }
+  button#compareBtn {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    border: none;
+    padding: 14px 42px;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+    letter-spacing: .04em;
+  }
+  button#compareBtn:hover { opacity: .88; }
+  button#compareBtn:active { transform: scale(.97); }
+  button#compareBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: none;
+    max-width: 960px;
+    margin: 0 auto 28px;
+    display: none;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .stats-bar.visible { display: flex; }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 24px;
+    text-align: center;
+    min-width: 130px;
+  }
+  .stat-card .num {
+    font-size: 1.9rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .stat-card .lbl { font-size: .75rem; color: var(--text2); margin-top: 2px; }
+  .stat-card.ok .num  { color: var(--ok); }
+  .stat-card.warn .num { color: var(--warn); }
+  .stat-card.err .num  { color: var(--error); }
+
+  /* ── Filter tabs ── */
+  .filter-row {
+    display: none;
+    max-width: 960px;
+    margin: 0 auto 20px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filter-row.visible { display: flex; }
+
+  .filter-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 7px 18px;
+    border-radius: 50px;
+    font-size: .82rem;
+    cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: all .15s;
+  }
+  .filter-btn.active, .filter-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* ── Search ── */
+  .search-row {
+    display: none;
+    max-width: 960px;
+    margin: 0 auto 20px;
+  }
+  .search-row.visible { display: block; }
+  .search-row input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    font-size: .9rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .search-row input:focus { border-color: var(--accent); }
+
+  /* ── Results table ── */
+  .result-wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .85rem;
+  }
+  thead th {
+    background: var(--surface2);
+    color: var(--text2);
+    font-weight: 600;
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    font-size: .78rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+  }
+  tbody tr:hover { background: var(--surface); }
+  tbody tr.row-error { background: rgba(239,68,68,.06); }
+  tbody tr.row-missing { background: rgba(245,158,11,.06); }
+
+  td {
+    padding: 11px 14px;
+    vertical-align: middle;
+  }
+  td.name { font-weight: 600; }
+
+  /* subject cell */
+  .subject-cell {
+    display: flex; flex-direction: column; gap: 3px; min-width: 90px;
+  }
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .75rem; padding: 3px 8px; border-radius: 4px;
+    white-space: nowrap;
+  }
+  .tag.ok  { background: rgba(34,197,94,.15); color: var(--ok); }
+  .tag.err { background: rgba(239,68,68,.18); color: var(--error); }
+  .tag.miss { background: rgba(245,158,11,.15); color: var(--warn); }
+  .tag.skip { background: rgba(100,100,120,.12); color: var(--text2); }
+
+  /* status badge */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 50px;
+    font-size: .73rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+  .badge.ok   { background: rgba(34,197,94,.15); color: var(--ok); }
+  .badge.err  { background: rgba(239,68,68,.15); color: var(--error); }
+  .badge.miss { background: rgba(245,158,11,.15); color: var(--warn); }
+
+  /* empty state */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text2);
+    font-size: .95rem;
+  }
+
+  /* ── Error message ── */
+  #errorMsg {
+    max-width: 800px; margin: 0 auto 20px;
+    background: rgba(239,68,68,.12);
+    border: 1px solid rgba(239,68,68,.3);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    color: #fca5a5;
+    font-size: .88rem;
+    display: none;
+  }
+
+  /* legend */
+  .legend {
+    max-width: 960px; margin: 28px auto 0;
+    display: none;
+    gap: 16px;
+    flex-wrap: wrap;
+    font-size: .78rem;
+    color: var(--text2);
+  }
+  .legend.visible { display: flex; }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📋 考科比對系統</h1>
+  <p>上傳兩個 Excel 檔案，自動比對考科是否一致，並標示出所有差異</p>
+</header>
+
+<div class="upload-grid">
+  <label class="upload-card" id="card1">
+    <input type="file" id="file1" accept=".xlsx,.xls,.csv">
+    <div class="icon">🗂️</div>
+    <div class="label">系統名單</div>
+    <div class="sublabel">（y = 需考該科）</div>
+    <div class="filename" id="name1">尚未選擇檔案</div>
+  </label>
+
+  <label class="upload-card" id="card2">
+    <input type="file" id="file2" accept=".xlsx,.xls,.csv">
+    <div class="icon">📄</div>
+    <div class="label">我的名單</div>
+    <div class="sublabel">（X = 需考該科）</div>
+    <div class="filename" id="name2">尚未選擇檔案</div>
+  </label>
+</div>
+
+<div class="btn-row">
+  <button id="compareBtn" disabled>開始比對</button>
+</div>
+
+<div id="errorMsg"></div>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat-card">
+    <div class="num" id="statTotal">0</div>
+    <div class="lbl">系統名單總人數</div>
+  </div>
+  <div class="stat-card ok">
+    <div class="num" id="statOk">0</div>
+    <div class="lbl">完全一致</div>
+  </div>
+  <div class="stat-card err">
+    <div class="num" id="statErr">0</div>
+    <div class="lbl">考科不符</div>
+  </div>
+  <div class="stat-card warn">
+    <div class="num" id="statMiss">0</div>
+    <div class="lbl">我的名單找不到</div>
+  </div>
+  <div class="stat-card warn">
+    <div class="num" id="statExtra">0</div>
+    <div class="lbl">我的名單多出的人</div>
+  </div>
+</div>
+
+<div class="filter-row" id="filterRow">
+  <button class="filter-btn active" data-filter="all">全部</button>
+  <button class="filter-btn" data-filter="err">考科不符</button>
+  <button class="filter-btn" data-filter="miss">名單缺少</button>
+  <button class="filter-btn" data-filter="extra">多出的人</button>
+  <button class="filter-btn" data-filter="ok">完全正確</button>
+</div>
+
+<div class="search-row" id="searchRow">
+  <input type="text" id="searchInput" placeholder="🔍 搜尋姓名…">
+</div>
+
+<div class="result-wrap">
+  <table id="resultTable" style="display:none">
+    <thead>
+      <tr>
+        <th>來源</th>
+        <th>班級</th>
+        <th>座號</th>
+        <th>姓名</th>
+        <th>國語文</th>
+        <th>數學</th>
+        <th>英語</th>
+        <th>狀態</th>
+        <th>問題說明</th>
+      </tr>
+    </thead>
+    <tbody id="resultBody"></tbody>
+  </table>
+  <div class="empty" id="emptyMsg" style="display:none">沒有符合的資料</div>
+</div>
+
+<div class="legend" id="legend">
+  <span><span class="tag ok">✓ 一致</span> 兩份名單相同</span>
+  <span><span class="tag err">✗ 不符</span> 考科設定衝突</span>
+  <span><span class="tag miss">? 缺少</span> 我的名單沒有此人</span>
+  <span><span class="tag skip">— 不考</span> 兩份均不考</span>
+</div>
+
+<script>
+// ── Globals ──────────────────────────────────────────────────────────
+let data1 = [], data2 = [];
+let allRows = [];
+let currentFilter = 'all';
+let searchTerm = '';
+
+// ── File loading ──────────────────────────────────────────────────────
+function readExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        resolve(rows);
+      } catch(err) { reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+document.getElementById('file1').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  document.getElementById('name1').textContent = f.name;
+  document.getElementById('card1').classList.add('loaded');
+  data1 = await readExcel(f);
+  checkReady();
+});
+
+document.getElementById('file2').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  document.getElementById('name2').textContent = f.name;
+  document.getElementById('card2').classList.add('loaded');
+  data2 = await readExcel(f);
+  checkReady();
+});
+
+function checkReady() {
+  document.getElementById('compareBtn').disabled = !(data1.length && data2.length);
+}
+
+// ── Normalise helpers ─────────────────────────────────────────────────
+function normName(s) { return String(s||'').trim().replace(/\s+/g, ''); }
+function normId(s)   { return String(s||'').trim().toUpperCase(); }
+
+// Find column in a row object whose header contains any of the keywords
+function findCol(row, ...keywords) {
+  const keys = Object.keys(row);
+  for (const kw of keywords) {
+    const k = keys.find(k => k.includes(kw));
+    if (k !== undefined) return k;
+  }
+  return null;
+}
+
+function getBool1(row, colKey) {
+  // system list: y/n
+  if (!colKey) return false;
+  const v = String(row[colKey]||'').trim().toLowerCase();
+  return v === 'y';
+}
+
+function getBool2(row, colKey) {
+  // my list: X (any non-empty = yes)
+  if (!colKey) return false;
+  const v = String(row[colKey]||'').trim();
+  return v !== '' && v !== '0';
+}
+
+// ── Compare ───────────────────────────────────────────────────────────
+document.getElementById('compareBtn').addEventListener('click', () => {
+  document.getElementById('errorMsg').style.display = 'none';
+  try { compare(); }
+  catch(e) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = '比對時發生錯誤：' + e.message;
+    el.style.display = 'block';
+  }
+});
+
+function compare() {
+  // ── Build lookup for my list (file2) by name & id ──
+  const byName = {};
+  const byId   = {};
+
+  // Detect columns in file2
+  const sample2 = data2[0] || {};
+  const c2_name  = findCol(sample2, '姓名');
+  const c2_id    = findCol(sample2, '身分證');
+  const c2_chin  = findCol(sample2, '國語文');
+  const c2_math  = findCol(sample2, '數學');
+  const c2_eng   = findCol(sample2, '英語');
+  const c2_class = findCol(sample2, '班級');
+  const c2_seat  = findCol(sample2, '座號');
+
+  const usedInMyList = new Set();
+
+  data2.forEach(row => {
+    const nm = normName(row[c2_name]);
+    const id = normId(row[c2_id]);
+    if (nm) byName[nm] = row;
+    if (id) byId[id]   = row;
+  });
+
+  // ── Detect columns in file1 ──
+  const sample1 = data1[0] || {};
+  const c1_name  = findCol(sample1, '姓名');
+  const c1_id    = findCol(sample1, '身分證');
+  const c1_chin  = findCol(sample1, '國語文');
+  const c1_math  = findCol(sample1, '數學');
+  const c1_eng   = findCol(sample1, '英語');
+  const c1_class = findCol(sample1, '班級');
+  const c1_seat  = findCol(sample1, '座號');
+
+  allRows = [];
+
+  // ── Process each row in system list (file1) ──
+  data1.forEach(row => {
+    const nm = normName(row[c1_name]);
+    const id = normId(row[c1_id]);
+    if (!nm) return; // skip header or empty
+
+    const s1 = {
+      chin: getBool1(row, c1_chin),
+      math: getBool1(row, c1_math),
+      eng:  getBool1(row, c1_eng),
+    };
+
+    // Find match in my list
+    let match = byId[id] || byName[nm] || null;
+
+    const classVal = row[c1_class] !== undefined ? row[c1_class] : '';
+    const seatVal  = row[c1_seat]  !== undefined ? row[c1_seat]  : '';
+
+    if (!match) {
+      allRows.push({
+        source: 'system',
+        name: nm,
+        classVal,
+        seatVal,
+        s1,
+        s2: null,
+        status: 'miss',
+        issues: ['我的名單中找不到此人']
+      });
+      return;
+    }
+
+    // Mark as used
+    const matchKey = normName(match[c2_name]);
+    usedInMyList.add(matchKey);
+
+    const s2 = {
+      chin: getBool2(match, c2_chin),
+      math: getBool2(match, c2_math),
+      eng:  getBool2(match, c2_eng),
+    };
+
+    const issues = [];
+    if (s1.chin !== s2.chin) issues.push(`國語文：系統=${s1.chin?'要考':'不考'}，我的名單=${s2.chin?'要考':'不考'}`);
+    if (s1.math !== s2.math) issues.push(`數學：系統=${s1.math?'要考':'不考'}，我的名單=${s2.math?'要考':'不考'}`);
+    if (s1.eng  !== s2.eng ) issues.push(`英語：系統=${s1.eng ?'要考':'不考'}，我的名單=${s2.eng ?'要考':'不考'}`);
+
+    allRows.push({
+      source: 'system',
+      name: nm,
+      classVal,
+      seatVal,
+      s1, s2,
+      status: issues.length ? 'err' : 'ok',
+      issues
+    });
+  });
+
+  // ── Extra rows in my list not in system ──
+  data2.forEach(row => {
+    const nm = normName(row[c2_name]);
+    if (!nm || usedInMyList.has(nm)) return;
+    // check if id matched
+    const id = normId(row[c2_id]);
+    if (id && byId[id] && usedInMyList.has(normName(byId[id][c2_name]))) return;
+
+    const s2 = {
+      chin: getBool2(row, c2_chin),
+      math: getBool2(row, c2_math),
+      eng:  getBool2(row, c2_eng),
+    };
+    allRows.push({
+      source: 'mine',
+      name: nm,
+      classVal: row[c2_class] || '',
+      seatVal:  row[c2_seat]  || '',
+      s1: null,
+      s2,
+      status: 'extra',
+      issues: ['此人在我的名單，但系統名單沒有']
+    });
+  });
+
+  // ── Stats ──
+  const total = data1.filter(r => normName(r[c1_name])).length;
+  const ok    = allRows.filter(r => r.status === 'ok').length;
+  const err   = allRows.filter(r => r.status === 'err').length;
+  const miss  = allRows.filter(r => r.status === 'miss').length;
+  const extra = allRows.filter(r => r.status === 'extra').length;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statOk').textContent    = ok;
+  document.getElementById('statErr').textContent   = err;
+  document.getElementById('statMiss').textContent  = miss;
+  document.getElementById('statExtra').textContent = extra;
+
+  document.getElementById('statsBar').classList.add('visible');
+  document.getElementById('filterRow').classList.add('visible');
+  document.getElementById('searchRow').classList.add('visible');
+  document.getElementById('legend').classList.add('visible');
+  document.getElementById('resultTable').style.display = '';
+
+  renderTable();
+}
+
+// ── Render table ──────────────────────────────────────────────────────
+function renderTable() {
+  let rows = allRows;
+
+  if (currentFilter !== 'all') {
+    rows = rows.filter(r => r.status === currentFilter);
+  }
+  if (searchTerm) {
+    rows = rows.filter(r => r.name.includes(searchTerm));
+  }
+
+  const tbody = document.getElementById('resultBody');
+  tbody.innerHTML = '';
+
+  document.getElementById('emptyMsg').style.display = rows.length ? 'none' : 'block';
+
+  rows.forEach(r => {
+    const tr = document.createElement('tr');
+    if (r.status === 'err' || r.status === 'extra') tr.classList.add('row-error');
+    if (r.status === 'miss') tr.classList.add('row-missing');
+
+    const sourceLabel = r.source === 'mine' ? '我的名單' : '系統名單';
+
+    tr.innerHTML = `
+      <td><span style="font-size:.75rem;color:var(--text2)">${sourceLabel}</span></td>
+      <td>${r.classVal}</td>
+      <td>${r.seatVal}</td>
+      <td class="name">${r.name}</td>
+      <td>${subjectCell(r, 'chin', '國語文')}</td>
+      <td>${subjectCell(r, 'math', '數學')}</td>
+      <td>${subjectCell(r, 'eng', '英語')}</td>
+      <td>${badgeHtml(r.status)}</td>
+      <td style="font-size:.78rem;color:${r.issues.length?'var(--error)':'var(--text2)'}">
+        ${r.issues.length ? r.issues.join('<br>') : '—'}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function subjectCell(r, key, label) {
+  if (!r.s1 && !r.s2) return `<span class="tag skip">—</span>`;
+
+  const v1 = r.s1 ? r.s1[key] : null;
+  const v2 = r.s2 ? r.s2[key] : null;
+
+  if (v1 === null) {
+    // extra row from my list only
+    return `<span class="tag ${v2?'miss':'skip'}">${v2?'X (我的)':'不考'}</span>`;
+  }
+  if (v2 === null) {
+    // missing from my list
+    return `<span class="tag ${v1?'miss':'skip'}">${v1?'y (系統)':'不考'}</span>`;
+  }
+
+  const match = v1 === v2;
+  if (match) {
+    return v1
+      ? `<span class="tag ok">✓ 要考</span>`
+      : `<span class="tag skip">— 不考</span>`;
+  } else {
+    return `<span class="tag err">✗ 不符</span>
+            <span style="font-size:.7rem;color:var(--text2)">系統:${v1?'y':'n'} / 我:${v2?'X':'—'}</span>`;
+  }
+}
+
+function badgeHtml(status) {
+  const map = {
+    ok:    ['ok',   '✓ 正確'],
+    err:   ['err',  '✗ 考科不符'],
+    miss:  ['miss', '⚠ 名單缺少'],
+    extra: ['err',  '⚠ 多出的人'],
+  };
+  const [cls, label] = map[status] || ['ok',''];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+// ── Filter buttons ────────────────────────────────────────────────────
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderTable();
+  });
+});
+
+// ── Search ────────────────────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchTerm = e.target.value.trim();
+  renderTable();
+});
+</script>
+</body>
+</html>

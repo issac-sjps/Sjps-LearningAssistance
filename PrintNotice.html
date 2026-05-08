@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>學習扶助測驗系統 v57.5 (隱蔽授權版)</title>
+    <title>學習扶助測驗系統 v57.6 (隱蔽授權版)</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
@@ -346,7 +346,7 @@
 
     <div class="navbar">
         <div class="nav-left">
-            <h2 style="margin:0;">測驗系統 v57.5</h2>
+            <h2 style="margin:0;">測驗系統 v57.6</h2>
             <button class="active btn-import" onclick="switchTab('data')">1. 資料匯入</button>
         </div>
         
@@ -1454,7 +1454,12 @@
                 const wrapperStart = pageBreak ? '<div class="preview-page-wrapper">' : '';
                 const wrapperEnd = pageBreak ? '</div>' : '';
                 const style = pageBreak ? 'page-break-after:always; padding:10mm; background:white; width:210mm; min-height:297mm;' : 'margin-bottom:20px;';
-                html += `${wrapperStart}<div style="${style}"><div class="teacher-header" style="background:#333; color:white; padding:5px; font-weight:bold; display:flex; justify-content:space-between;"><span>${g}年${c}班 (導師留存)</span><span style="font-size:12pt;">國:${cnt.c} 數:${cnt.m} 英:${cnt.e}</span></div><table class="std-table teacher-table" style="font-size:10pt;"><tr><th style="width:5%">座號</th><th style="width:10%">姓名</th><th style="width:5%">國</th><th style="width:5%">數</th><th style="width:5%">英</th><th style="width:23%">國考資訊</th><th style="width:23%">數考資訊</th><th style="width:23%">英考資訊</th></tr>${stus.map(s=>`<tr><td>${s.seat}</td><td>${s.name}</td><td>${s.chi?'●':''}</td><td>${s.math?'●':''}</td><td>${s.eng?'●':''}</td><td class="info-cell">${s.chi?dC+'<br>'+lC:''}</td><td class="info-cell">${s.math?dM+'<br>'+lM:''}</td><td class="info-cell">${s.eng?dE+'<br>'+lE:''}</td></tr>`).join('')}</table>${!pageBreak?'<div class="teacher-break-line"></div>':''}</div>${wrapperEnd}`;
+                html += `${wrapperStart}<div style="${style}">
+                    <div style="text-align:center; font-size:16pt; font-weight:bold; font-family:'標楷體'; margin-bottom:6px; letter-spacing:2px;">學習扶助測驗班級總表</div>
+                    <div class="teacher-header" style="background:#333; color:white; padding:5px; font-weight:bold; display:flex; justify-content:space-between;"><span>${g}年${c}班 (導師留存)</span><span style="font-size:12pt;">國:${cnt.c} 數:${cnt.m} 英:${cnt.e}</span></div>
+                    <table class="std-table teacher-table" style="font-size:10pt;"><tr><th style="width:5%">座號</th><th style="width:10%">姓名</th><th style="width:5%">國</th><th style="width:5%">數</th><th style="width:5%">英</th><th style="width:23%">國考資訊</th><th style="width:23%">數考資訊</th><th style="width:23%">英考資訊</th></tr>${stus.map(s=>`<tr><td>${s.seat}</td><td>${s.name}</td><td>${s.chi?'●':''}</td><td>${s.math?'●':''}</td><td>${s.eng?'●':''}</td><td class="info-cell">${s.chi?dC+'<br>'+lC:''}</td><td class="info-cell">${s.math?dM+'<br>'+lM:''}</td><td class="info-cell">${s.eng?dE+'<br>'+lE:''}</td></tr>`).join('')}</table>
+                    ${!pageBreak?'<div class="teacher-break-line"></div>':''}
+                </div>${wrapperEnd}`;
             }
         });
         if(!pageBreak) html += '</div>';

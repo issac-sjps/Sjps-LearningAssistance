@@ -53,7 +53,14 @@ header{
   font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;
   transition:all .2s;white-space:nowrap;
 }
-.edit-mode-btn{
+.ext-link-btn{
+  padding:5px 13px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
+  background:rgba(16,185,129,.2);color:#6EE7B7;
+  font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
+  text-decoration:none;white-space:nowrap;margin-left:4px;
+  transition:all .2s;
+}
+.ext-link-btn:hover{background:rgba(16,185,129,.35);color:#FFF}
   padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
   background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);
   font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
@@ -295,6 +302,7 @@ tr.teacher-row.visible{display:table-row}
     <span id="saveStatus">已儲存</span>
   </div>
   <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">🔒 瀏覽模式</button>
+  <a class="ext-link-btn" href="https://issac-sjps.github.io/Sjps-LearningAssistance/ExamScheduleSTD" target="_blank">🎓 學生排班支援網</a>
 </header>
 
 <div class="layout">
@@ -317,7 +325,7 @@ tr.teacher-row.visible{display:table-row}
     </div>
 
     <div class="s-section">
-      <div class="s-title">各年級人數</div>
+      <div class="s-title" id="countTitle">各科人數</div>
       <div class="count-grid" id="countGrid"></div>
     </div>
 
@@ -335,28 +343,21 @@ tr.teacher-row.visible{display:table-row}
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-// 【無痕植入】：引入 Auth 模組，用於背景驗證
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc }
+                                   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
-  authDomain: "sjps-learningassistance.firebaseapp.com",
-  projectId: "sjps-learningassistance",
-  storageBucket: "sjps-learningassistance.firebasestorage.app",
-  messagingSenderId: "108951710153",
-  appId: "1:108951710153:web:434de73a24160fe3e2e018",
-  measurementId: "G-EGQ7BLK57Y"
+  apiKey:            "AIzaSyDqbYCxLjRSbEhrqNlTNl6GXx6a45LdFvQ",
+  authDomain:        "sjps-examschedule.firebaseapp.com",
+  projectId:         "sjps-examschedule",
+  storageBucket:     "sjps-examschedule.firebasestorage.app",
+  messagingSenderId: "164163436928",
+  appId:             "1:164163436928:web:4127c8585667a59941c165",
+  measurementId:     "G-84TREHND08"
 };
-
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const db  = getFirestore(app);
-// 【無痕植入】：啟動 Auth。這行程式碼會自動去瀏覽器 IndexedDB 尋找管理員鑰匙，並附加在未來的資料庫請求中
-const auth = getAuth(app);
-
 const DOC_REF = doc(db, 'schedule', 'main');
 
 // ─────────────────────────────────────────────────────────
@@ -374,12 +375,18 @@ let ST   = mkDefault();
 let drag = null;
 let saveTimer = null;
 
+function mkDefaultCounts(){
+  const r={'篩選':{},'成長':{}};
+  for(let g=1;g<=6;g++) for(const s of['國','數','英']) r['篩選'][`${g}-${s}`]=0;
+  for(let g=2;g<=6;g++) for(const s of['國','數','英']) r['成長'][`${g}-${s}`]=0;
+  return r;
+}
 const SUBJ_CYCLE=['國語','數學','英語','未定'];
 function mkDefault(){
   return {
     testType:'篩選',
     startDate:'',
-    counts:{1:0,2:0,3:0,4:0,5:0,6:0},
+    counts: mkDefaultCounts(),
     rooms:{morning:'3F-E化教室',lunch:'4F-電腦教室2'},
     sched:{'篩選':mkEmptySched(),'成長':mkEmptySched()},
     teachers:{'篩選':mkEmptyTeachers(),'成長':mkEmptyTeachers()},
@@ -410,8 +417,7 @@ function saveST(){
       await setDoc(DOC_REF, ST);
       setStatus('#10B981','已同步至雲端');
     }catch(e){
-      console.error("無權限或網路錯誤：", e);
-      // 如果沒有鑰匙的駭客觸發存檔，就會直接被捕獲到這裡，資料庫毫髮無傷
+      console.error(e);
       setStatus('#EF4444','同步失敗');
     }
   },600);
@@ -422,9 +428,17 @@ async function loadST(){
     const snap = await getDoc(DOC_REF);
     if(snap.exists()){
       const data = snap.data();
+      // merge to ensure all keys exist
       ST.testType  = data.testType  ?? ST.testType;
       ST.startDate = data.startDate ?? ST.startDate;
-      ST.counts    = Object.assign({...ST.counts},  data.counts    ?? {});
+      ST.counts    = Object.assign(mkDefaultCounts(), data.counts ?? {});
+      // migrate old flat counts format
+      if(data.counts && typeof Object.keys(data.counts)[0] === 'string' && !data.counts['篩選']){
+        ST.counts = mkDefaultCounts();
+      } else if(data.counts){
+        ST.counts['篩選'] = Object.assign(mkDefaultCounts()['篩選'], data.counts['篩選']||{});
+        ST.counts['成長'] = Object.assign(mkDefaultCounts()['成長'], data.counts['成長']||{});
+      }
       ST.rooms     = Object.assign({...ST.rooms},   data.rooms    ?? {});
       for(const tt of['篩選','成長']){
         if(data.sched?.[tt])    ST.sched[tt]    = Object.assign(mkEmptySched(),    data.sched[tt]);
@@ -487,6 +501,7 @@ function findInSched(id){
 function weekDates(wi){
   if(!ST.startDate) return Array(5).fill(null);
   const base=new Date(ST.startDate+'T00:00:00');
+  // Go to Monday of the week containing base (week starts Mon)
   const dow=base.getDay(); // 0=Sun,1=Mon...6=Sat
   const toMon=dow===0?-6:1-dow; // how many days to Monday
   base.setDate(base.getDate()+toMon);
@@ -511,34 +526,66 @@ function renderSettings(){
   document.getElementById('lunchRoom').value=ST.rooms.lunch;
   document.getElementById('tab-篩選').className='tab-btn'+(ST.testType==='篩選'?' active':'');
   document.getElementById('tab-成長').className='tab-btn'+(ST.testType==='成長'?' active':'');
+  const ct=document.getElementById('countTitle');
+  if(ct) ct.textContent=`各科人數（${ST.testType}）`;
   const btn=document.getElementById('teacherToggleBtn');
   if(btn){btn.textContent=ST.showTeacher?'👤 隱藏實習教師':'👤 顯示實習教師';btn.classList.toggle('on',ST.showTeacher);}
 }
 
 function renderCountGrid(){
   const g=document.getElementById('countGrid');
-  g.innerHTML='';
-  for(let i=1;i<=6;i++){
-    const dis=(ST.testType==='成長'&&i===1)?'disabled':'';
-    const item=document.createElement('div');
-    item.className='count-item';
-    item.innerHTML=`<span class="count-grade">${GRADES[i-1]}年級</span>
-      <input type="number" class="count-input" min="0" ${dis}
-        value="${ST.counts[i]||0}" onchange="onCount(${i},this.value)"
-        style="${dis?'opacity:.3':''}">`;
-    g.appendChild(item);
+  if(!g) return;
+  const tt=ST.testType;
+  const grades = tt==='篩選' ? [1,2,3,4,5,6] : [2,3,4,5,6];
+  const getSubjs = gr => {
+    if(tt==='篩選') return gr>=3?['國','數','英']:['國','數'];
+    else return gr>=4?['國','數','英']:['國','數'];
+  };
+  const SNAME={'國':'國語','數':'數學','英':'英語'};
+  const SCOL={'國':'var(--kuo)','數':'var(--shu)','英':'var(--ying)'};
+
+  let html=`<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr>
+      <th style="text-align:left;padding:3px 4px;color:var(--text-muted);font-weight:600">年級</th>
+      <th style="text-align:center;padding:3px 2px;color:var(--kuo)">國</th>
+      <th style="text-align:center;padding:3px 2px;color:var(--shu)">數</th>
+      <th style="text-align:center;padding:3px 2px;color:var(--ying)">英</th>
+    </tr></thead><tbody>`;
+  for(const gr of grades){
+    const subjs=getSubjs(gr);
+    html+=`<tr>
+      <td style="padding:2px 4px;color:var(--text-muted);font-weight:600;white-space:nowrap">${GRADES[gr-1]}年</td>`;
+    for(const s of['國','數','英']){
+      const key=`${gr}-${s}`;
+      const has=subjs.includes(s);
+      const val=has?(ST.counts[tt][key]||0):'';
+      html+=`<td style="padding:2px">
+        <input type="number" min="0" style="width:44px;padding:3px 4px;border:1px solid var(--border);
+          border-radius:4px;font-family:inherit;font-size:11px;text-align:center;
+          background:${has?'var(--bg)':'#F3F4F6'};color:${has?SCOL[s]:'#D1D5DB'};font-weight:700"
+          ${has?'':`disabled`}
+          value="${val}"
+          onchange="onCount('${tt}','${key}',this.value)">
+      </td>`;
+    }
+    html+=`</tr>`;
   }
+  html+=`</tbody></table>`;
+  g.innerHTML=html;
 }
 
+function getCount(tt, grade, subj){
+  return ST.counts?.[tt]?.[`${grade}-${subj}`] || 0;
+}
 function poolCardHTML(c){
-  const cn=ST.counts[c.grade]||0;
+  const cn=getCount(ST.testType, c.grade, c.subj);
   return `<div class="pool-card" data-s="${c.subj}" data-id="${c.id}"
     draggable="true"
     ondragstart="onDragStart(event,'${c.id}','pool')"
     ondragend="this.classList.remove('dragging')">
     <span>${GRADES[c.grade-1]}年 ${c.subj}</span>
-    ${cn?`<span class="pool-count">${cn}人</span>`:''}
     <span class="badge ${c.paper?'b-paper':'b-pc'}">${c.paper?'紙本':'電腦'}</span>
+    ${cn?`<span class="pool-count">${cn}人</span>`:''}
   </div>`;
 }
 
@@ -561,7 +608,8 @@ function renderPool(){
 }
 
 function placedCardHTML(c){
-  const cn=ST.counts[c.grade]||0;
+  const tt=c.id.split('-')[0];
+  const cn=getCount(tt, c.grade, c.subj);
   return `<div class="placed" data-s="${c.subj}" data-id="${c.id}"
     draggable="true"
     ondragstart="onDragStart(event,'${c.id}','placed')"
@@ -681,6 +729,9 @@ function renderSlots(w,sc,tc){
 }
 
 // ─────────────────────────────────────────────────────────
+//  Event handlers
+// ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────
 //  Event handlers  (exposed to window for inline HTML handlers)
 // ─────────────────────────────────────────────────────────
 window.toggleTeacherRows = ()=>{
@@ -733,7 +784,7 @@ window.switchTab = (tt)=>{ST.testType=tt;saveST();renderAll()};
 window.onStartDate = ()=>{ST.startDate=document.getElementById('startDate').value;saveST();renderSchedule()};
 window.onClassroom = ()=>{ST.rooms.morning=document.getElementById('morningRoom').value;ST.rooms.lunch=document.getElementById('lunchRoom').value;saveST();renderSchedule()};
 window.onRoom      = (field,val)=>{ST.rooms[field]=val;document.getElementById(field==='morning'?'morningRoom':'lunchRoom').value=val;saveST();renderSchedule()};
-window.onCount     = (g,v)=>{ST.counts[g]=parseInt(v)||0;saveST();renderPool();renderSchedule()};
+window.onCount = (tt,key,v)=>{ST.counts[tt][key]=parseInt(v)||0;saveST();renderPool();renderSchedule()};
 window.onTeacher   = (key,val)=>{ST.teachers[ST.testType][key]=val;saveST()};
 window.doReset     = ()=>{
   if(!confirm(`確定清除「${ST.testType}測驗」的全部排程？`))return;

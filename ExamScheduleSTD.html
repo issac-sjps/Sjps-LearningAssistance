@@ -371,18 +371,33 @@ const SUBJ_PILL={
 let examData={startDate:'',counts:{},sched:{'篩選':{},'成長':{}},
   weekSubjs:{'篩選':['未定','未定','未定','未定'],'成長':['未定','未定','未定','未定']}};
 
+// Parse subject from card id like '篩選-3-英' → '英語'
+const SUBJ_CHAR_MAP={'國':'國語','數':'數學','英':'英語'};
+function subjFromCardId(id){
+  if(!id) return null;
+  const char = id.split('-')[2];
+  return SUBJ_CHAR_MAP[char] || null;
+}
+function subjFromSlots(mCard, lCard){
+  const ms = mCard ? subjFromCardId(mCard.id) : null;
+  const ls = lCard ? subjFromCardId(lCard.id) : null;
+  if(ms && ls && ms !== ls) return ms + '/' + ls;
+  return ms || ls || '未定';
+}
+
 function buildExamInfo(tt){
   const info={};const sc=examData.sched[tt]||{};const cnt=examData.counts||{};
   const total=Object.values(cnt).reduce((a,b)=>a+(parseInt(b)||0),0);
-  const ws=examData.weekSubjs[tt]||[];
   for(let w=0;w<WEEKS;w++){
-    const weekSubj=ws[w]||'未定';
     for(let d=0;d<DAYS;d++){
-      const hM=!!sc[`${w}-${d}-morning`],hL=!!sc[`${w}-${d}-lunch`];
+      const mCard=sc[`${w}-${d}-morning`]||null;
+      const lCard=sc[`${w}-${d}-lunch`]||null;
+      const hM=!!mCard,hL=!!lCard;
       const has=hM||hL;
       let slot=null;
       if(hM&&hL)slot='both';else if(hM)slot='morning';else if(hL)slot='lunch';
-      info[`${w}-${d}`]={hasExam:has,slot,people:has?total:0,subj:weekSubj};
+      const subj=has?subjFromSlots(mCard,lCard):'未定';
+      info[`${w}-${d}`]={hasExam:has,slot,people:has?total:0,subj};
     }
   }
   return info;

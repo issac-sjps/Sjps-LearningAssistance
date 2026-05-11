@@ -391,6 +391,7 @@ function peopleFromCard(tt, cardObj){
   const grade = parts[1], subj = parts[2];
   const key = grade + '-' + subj;
   const cnt = examData.counts;
+  console.log('[peopleFromCard] tt='+tt+' id='+cardObj.id+' key='+key+' cnt[tt]='+JSON.stringify(cnt[tt]));
   // New per-subject format: counts['篩選']['3-英']
   if(cnt && cnt[tt] && cnt[tt][key] !== undefined) return parseInt(cnt[tt][key]) || 0;
   // Old flat grade format: counts[grade]
@@ -432,6 +433,11 @@ onSnapshot(EXAM_REF,snap=>{
     examData.counts=d.counts||{};
     if(d.weekSubjs)for(const tt of['篩選','成長'])if(d.weekSubjs[tt])examData.weekSubjs[tt]=d.weekSubjs[tt];
     for(const tt of['篩選','成長'])examData.sched[tt]=d.sched?.[tt]||{};
+    // Debug: log what we got
+    console.log('[ExamSync] startDate:', examData.startDate);
+    console.log('[ExamSync] counts:', JSON.stringify(examData.counts));
+    console.log('[ExamSync] sched 篩選 keys with values:', Object.entries(examData.sched['篩選']).filter(([,v])=>v).map(([k,v])=>k+':'+JSON.stringify(v)));
+    console.log('[ExamSync] sched 成長 keys with values:', Object.entries(examData.sched['成長']).filter(([,v])=>v).map(([k,v])=>k+':'+JSON.stringify(v)));
     setSyncStatus(true,'已同步考試排程');
   }else setSyncStatus(false,'考試排程無資料');
   renderSchedule();

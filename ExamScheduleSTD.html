@@ -303,7 +303,8 @@ import { getFirestore, doc, getDoc, setDoc, onSnapshot }
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
 
-const firebaseConfig = {
+// ── 考試排程（原專案，唯讀參考） ──────────────────────────
+const examConfig = {
   apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
   authDomain: "sjps-learningassistance.firebaseapp.com",
   projectId: "sjps-learningassistance",
@@ -312,16 +313,26 @@ const firebaseConfig = {
   appId: "1:108951710153:web:434de73a24160fe3e2e018",
   measurementId: "G-EGQ7BLK57Y"
 };
-// Use unique app name to avoid conflict when ExamSchedule.html is open simultaneously
-let app;
-try { app = initializeApp(firebaseConfig, 'student-scheduler'); }
-catch(e) { app = initializeApp(firebaseConfig, 'student-scheduler-'+Date.now()); }
-const db = getFirestore(app);
-try { getAuth(app); } catch(e) {}
-try { getAnalytics(app); } catch(e) {}
+// ── 學生排班（新專案，獨立讀寫） ──────────────────────────
+const studentConfig = {
+  apiKey: "AIzaSyDqbYCxLjRSbEhrqNlTNl6GXx6a45LdFvQ",
+  authDomain: "sjps-examschedule.firebaseapp.com",
+  projectId: "sjps-examschedule",
+  storageBucket: "sjps-examschedule.firebasestorage.app",
+  messagingSenderId: "164163436928",
+  appId: "1:164163436928:web:3764aa012e14dd5041c165",
+  measurementId: "G-CDJR67KG0Q"
+};
 
-const EXAM_REF    = doc(db, 'schedule',        'main');
-const STUDENT_REF = doc(db, 'student_schedule','main');
+const examApp    = initializeApp(examConfig,    'exam-ref');
+const studentApp = initializeApp(studentConfig, 'student-scheduler');
+const examDb    = getFirestore(examApp);
+const studentDb = getFirestore(studentApp);
+try { getAuth(studentApp); } catch(e) {}
+try { getAnalytics(studentApp); } catch(e) {}
+
+const EXAM_REF    = doc(examDb,    'schedule',        'main');
+const STUDENT_REF = doc(studentDb, 'student_schedule','main');
 
 // ─── Constants ─────────────────────────────────────────
 const WDAYS = ['一','二','三','四','五'];

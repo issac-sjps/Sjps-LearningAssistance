@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>學生排班系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F2EFE9;
+  --surface: #FFFFFF;
+  --border: #DDD8D0;
+  --text: #1C1917;
+  --text-muted: #78716C;
+  --guide-color: #7C3AED;
+  --reg-color: #0369A1;
+  --id-color: #B45309;
+  --morning-bg: #E8F4FC;
+  --lunch-bg: #FFF4E6;
+  --morning-row: #EAF5FD;
+  --lunch-row: #FFF8EF;
+  --shadow: 0 1px 3px rgba(0,0,0,.09),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 8px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+header{
+  background:#1C1917;color:#FFF;
+  padding:0 20px;height:56px;
+  display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;
+}
+.app-logo{font-size:20px;font-weight:900;letter-spacing:-.5px;white-space:nowrap}
+.app-logo span{color:#F59E0B}
+.tabs{display:flex;gap:3px;background:rgba(255,255,255,.12);padding:4px;border-radius:8px}
+.tab-btn{
+  padding:5px 18px;border-radius:6px;border:none;cursor:pointer;
+  font-family:inherit;font-size:13px;font-weight:600;transition:all .2s;
+  background:transparent;color:rgba(255,255,255,.6);
+}
+.tab-btn.active{background:#FFF;color:#1C1917}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.save-badge{font-size:11px;color:rgba(255,255,255,.55);display:flex;align-items:center;gap:5px}
+.save-dot{width:6px;height:6px;border-radius:50%;background:#10B981;transition:background .3s}
+.edit-mode-btn{
+  padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);
+  font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+}
+.edit-mode-btn.unlocked{background:#D97706;border-color:#F59E0B;color:#FFF}
+.roster-btn{
+  padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);
+  font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+}
+.roster-btn:hover{background:rgba(255,255,255,.18);color:#FFF}
+
+/* Layout */
+.layout{display:flex;align-items:flex-start}
+.sidebar{
+  width:220px;min-width:220px;
+  background:var(--surface);border-right:1px solid var(--border);
+  min-height:calc(100vh - 56px);
+  padding:16px 14px;
+  position:sticky;top:56px;overflow-y:auto;
+  max-height:calc(100vh - 56px);
+  display:none;
+}
+body.edit-mode .sidebar{display:flex;flex-direction:column}
+
+.s-section{margin-bottom:20px}
+.s-title{
+  font-size:10px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text-muted);margin-bottom:10px;
+  display:flex;align-items:center;gap:6px;
+}
+.s-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.s-row{display:grid;grid-template-columns:68px 1fr;align-items:center;margin-bottom:7px;gap:6px}
+.s-label{font-size:11px;color:var(--text-muted);white-space:nowrap}
+.s-input{
+  width:100%;padding:5px 8px;border:1px solid var(--border);
+  border-radius:5px;font-family:inherit;font-size:12px;
+  background:var(--bg);color:var(--text);
+}
+.s-input:focus{outline:none;border-color:#94A3B8}
+
+/* Pool */
+.pool-card{
+  display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  padding:6px 9px;border-radius:6px;cursor:grab;
+  border:1.5px solid #DDD8D0;background:#FFF;
+  transition:transform .15s,box-shadow .15s;
+  user-select:none;margin-bottom:4px;
+}
+.pool-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.pool-card.dragging{opacity:.35;cursor:grabbing}
+.pc-num{font-size:12px;font-weight:800;color:var(--text);font-family:'JetBrains Mono',monospace}
+.pc-name{font-size:11px;color:var(--text-muted);font-weight:500}
+.pool-empty{font-size:12px;color:#94A3B8;text-align:center;padding:14px;background:#F8FAFC;border-radius:6px}
+.reset-btn{
+  width:100%;padding:7px;border:1px solid var(--border);
+  background:var(--bg);border-radius:6px;cursor:pointer;
+  font-family:inherit;font-size:12px;color:var(--text-muted);
+  transition:all .15s;margin-top:4px;
+}
+.reset-btn:hover{border-color:#EF4444;color:#EF4444;background:#FEF2F2}
+
+/* Main */
+.main-content{flex:1;padding:10px 12px;overflow-x:auto;min-width:0}
+
+/* Week */
+.week-block{margin-bottom:12px}
+.week-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.week-label{font-size:13px;font-weight:800;color:var(--text)}
+.exam-size-badge{
+  font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;
+  background:#F3F4F6;border:1px solid #D1D5DB;color:#6B7280;
+}
+.exam-size-badge.big{background:#FEF3C7;border-color:#F59E0B;color:#92400E}
+
+table.sch{
+  border-collapse:collapse;
+  background:var(--surface);
+  border-radius:8px;overflow:hidden;
+  box-shadow:var(--shadow);
+  width:100%;table-layout:fixed;
+}
+table.sch th,table.sch td{border:1px solid var(--border)}
+.th-head{background:#292524;color:#FFF;font-size:11px;font-weight:700;padding:5px 7px;text-align:left;white-space:nowrap}
+.th-day{text-align:center;padding:4px 2px;background:#FAFAF8;vertical-align:middle}
+.th-date{font-weight:700;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.th-dow{font-size:9px;color:var(--text-muted)}
+
+.rl{font-size:10px;font-weight:700;padding:4px 5px;vertical-align:middle;white-space:normal;word-break:keep-all;width:60px;line-height:1.4;text-align:center}
+.rl-guide{background:#F3E8FF;color:var(--guide-color)}
+.rl-reg{background:#E0F2FE;color:var(--reg-color)}
+.rl-id{background:#FEF3C7;color:var(--id-color)}
+
+.dc{vertical-align:middle;padding:3px;transition:background .15s;min-height:50px}
+.dc-guide{background:#FAF5FF}
+.dc-reg{background:#F0F9FF}
+.dc-id{background:#FFFBEB}
+.dc.over{background:#BFDBFE !important;outline:2px dashed #3B82F6;outline-offset:-2px}
+
+.drop-empty{
+  height:50px;display:flex;align-items:center;justify-content:center;
+  color:#D1D5DB;font-size:10px;border:1.5px dashed #E5E7EB;border-radius:5px;
+  transition:border-color .15s;
+}
+.dc.over .drop-empty{border-color:#93C5FD;color:#93C5FD}
+
+/* Placed student card */
+.placed{
+  border-radius:5px;padding:5px 7px;border:1.5px solid;
+  cursor:grab;user-select:none;position:relative;min-height:50px;
+  display:flex;flex-direction:column;justify-content:center;gap:2px;
+}
+.placed.dragging{opacity:.35}
+.placed-guide{border-color:var(--guide-color);background:#F5F3FF}
+.placed-reg{border-color:var(--reg-color);background:#F0F9FF}
+.placed-id{border-color:var(--id-color);background:#FFFBEB}
+.placed-num{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.placed-name{font-size:12px;font-weight:800;color:var(--text)}
+.p-rm{
+  position:absolute;top:2px;right:3px;
+  cursor:pointer;font-size:10px;color:#D1D5DB;line-height:1;
+  padding:1px 3px;border-radius:2px;
+}
+.p-rm:hover{color:#EF4444;background:#FEE2E2}
+
+body:not(.edit-mode) .pool-card,
+body:not(.edit-mode) .placed{cursor:default;pointer-events:none}
+body:not(.edit-mode) .p-rm{display:none}
+body:not(.edit-mode) .drop-empty{pointer-events:none}
+
+/* Exam size row */
+.size-row{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+.size-label{font-size:11px;color:var(--text-muted)}
+.size-input{
+  width:56px;padding:3px 6px;border:1px solid var(--border);
+  border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;
+  background:var(--bg);
+}
+.size-input:disabled{opacity:.4}
+
+/* Modal */
+.modal-overlay{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,.45);backdrop-filter:blur(2px);
+  align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:#FFF;border-radius:12px;width:520px;max-height:80vh;
+  display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden;
+}
+.modal-head{
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-title{font-size:16px;font-weight:800}
+.modal-close{
+  background:none;border:none;cursor:pointer;
+  font-size:18px;color:var(--text-muted);padding:2px 6px;border-radius:4px;
+}
+.modal-close:hover{background:var(--bg);color:var(--text)}
+.modal-body{padding:16px 20px;overflow-y:auto;flex:1}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+
+.add-row{display:flex;gap:8px;margin-bottom:16px;align-items:flex-end}
+.field-group{display:flex;flex-direction:column;gap:3px;flex:1}
+.field-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.field-input{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:var(--bg)}
+.field-input:focus{outline:none;border-color:#94A3B8;background:#FFF}
+.add-btn{
+  padding:7px 16px;background:#1C1917;color:#FFF;border:none;
+  border-radius:6px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;
+  white-space:nowrap;
+}
+.add-btn:hover{background:#292524}
+
+.student-list{display:flex;flex-direction:column;gap:3px}
+.student-item{
+  display:flex;align-items:center;gap:10px;padding:8px 10px;
+  border:1px solid var(--border);border-radius:6px;background:var(--bg);
+}
+.stu-num{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);min-width:60px}
+.stu-name{font-size:13px;font-weight:600;flex:1}
+.stu-del{
+  margin-left:auto;background:none;border:none;cursor:pointer;
+  color:#D1D5DB;font-size:12px;padding:2px 6px;border-radius:4px;
+}
+.stu-del:hover{color:#EF4444;background:#FEF2F2}
+
+.search-input{
+  width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;
+  font-family:inherit;font-size:13px;background:var(--bg);margin-bottom:10px;
+}
+.search-input:focus{outline:none;border-color:#94A3B8;background:#FFF}
+
+.subj-tag-row{display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap}
+.subj-tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;border:1.5px solid;cursor:pointer}
+
+/* Week subject label */
+.week-subj{
+  font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;
+  background:#F3F4F6;color:#6B7280;border:1px solid #D1D5DB;
+}
+.week-info{font-size:10px;color:var(--text-muted);margin-left:auto}
+
+/* Slot sections for small/large exams */
+.slot-section-label{
+  background:#F8FAFC;font-size:9px;font-weight:700;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.08em;
+  padding:3px 6px;text-align:center;
+  border-bottom:1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="app-logo">學生<span>排班</span></div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('篩選')" id="tab-篩選">篩選測驗</button>
+    <button class="tab-btn" onclick="switchTab('成長')" id="tab-成長">成長測驗</button>
+  </div>
+  <div class="header-right">
+    <button class="roster-btn" onclick="openRoster()">👤 管理名單</button>
+    <div class="save-badge">
+      <div class="save-dot" id="saveDot"></div>
+      <span id="saveStatus">已儲存</span>
+    </div>
+    <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">🔒 瀏覽模式</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="s-section">
+      <div class="s-title">基本設定</div>
+      <div class="s-row">
+        <span class="s-label">起始日期</span>
+        <input type="date" class="s-input" id="startDate" onchange="onStartDate()">
+      </div>
+    </div>
+    <div class="s-section">
+      <div class="s-title">待排學生</div>
+      <input type="text" class="search-input" placeholder="搜尋姓名或班號…" id="poolSearch" oninput="renderPool()">
+      <div id="cardPool"></div>
+    </div>
+    <button class="reset-btn" onclick="doReset()">🗑 清除此測驗排班</button>
+  </aside>
+
+  <main class="main-content">
+    <div id="scheduleArea"></div>
+  </main>
+</div>
+
+<!-- Roster Modal -->
+<div class="modal-overlay" id="rosterModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">👤 學生名單管理</div>
+      <button class="modal-close" onclick="closeRoster()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="add-row">
+        <div class="field-group">
+          <label class="field-label">班級座號（如 60501）</label>
+          <input class="field-input" id="newNum" placeholder="60501" maxlength="10">
+        </div>
+        <div class="field-group">
+          <label class="field-label">姓名</label>
+          <input class="field-input" id="newName" placeholder="王曉明" onkeydown="if(event.key==='Enter')addStudent()">
+        </div>
+        <button class="add-btn" onclick="addStudent()">＋ 新增</button>
+      </div>
+      <input type="text" class="search-input" placeholder="搜尋名單…" id="rosterSearch" oninput="renderRosterList()">
+      <div class="student-list" id="rosterList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="add-btn" style="background:#6B7280" onclick="closeRoster()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDqOkKvL3k-snAYDs17fLsc1I156_xS-QI",
+  authDomain: "sjps-learningassistance.firebaseapp.com",
+  projectId: "sjps-learningassistance",
+  storageBucket: "sjps-learningassistance.firebasestorage.app",
+  messagingSenderId: "108951710153",
+  appId: "1:108951710153:web:434de73a24160fe3e2e018",
+  measurementId: "G-EGQ7BLK57Y"
+};
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Different collection from main exam scheduler
+const DOC_REF = doc(db, 'student_schedule', 'main');
+
+// ─── Constants ───────────────────────────────────────────
+const WDAYS = ['一','二','三','四','五'];
+const WNUM  = ['一','二','三','四'];
+const WEEKS = 4;
+const DAYS  = 5;
+
+// Roles: small exam (<=30): 引導人員×3 only shown in groups of 3
+// Large exam (>30): 引導人員×2, 報到人員×2, 發身分證條人員×2
+const SMALL_ROLES = [
+  { key:'guide', label:'引導人員', slots:3, color:'guide' },
+];
+const LARGE_ROLES = [
+  { key:'guide', label:'引導人員', slots:2, color:'guide' },
+  { key:'reg',   label:'報到人員',   slots:2, color:'reg' },
+  { key:'id',    label:'發身分證條', slots:2, color:'id' },
+];
+
+// ─── State ───────────────────────────────────────────────
+let ST = mkDefault();
+let drag = null;
+let saveTimer = null;
+let isEditMode = false;
+
+function mkDefault(){
+  return {
+    testType: '篩選',
+    startDate: '',
+    roster: [],           // [{id, num, name}]
+    sched: {
+      '篩選': mkEmptySched(),
+      '成長': mkEmptySched(),
+    },
+    examSizes: {
+      '篩選': mkExamSizes(),
+      '成長': mkExamSizes(),
+    },
+    weekSubjs: {
+      '篩選': ['未定','未定','未定','未定'],
+      '成長': ['未定','未定','未定','未定'],
+    },
+  };
+}
+
+function mkExamSizes(){
+  // w-d: number of examinees
+  const s = {};
+  for(let w=0;w<WEEKS;w++) for(let d=0;d<DAYS;d++) s[`${w}-${d}`] = 0;
+  return s;
+}
+
+function mkEmptySched(){
+  // key: `${w}-${d}-${role}-${slotIdx}`
+  const s = {};
+  for(let w=0;w<WEEKS;w++) for(let d=0;d<DAYS;d++){
+    for(const r of ['guide','reg','id']) for(let i=0;i<6;i++) s[`${w}-${d}-${r}-${i}`] = null;
+  }
+  return s;
+}
+
+// ─── Save / Load ─────────────────────────────────────────
+function setStatus(color, text){
+  const dot = document.getElementById('saveDot');
+  const lbl = document.getElementById('saveStatus');
+  if(dot){ dot.style.background = color; lbl.textContent = text; }
+}
+function saveST(){
+  clearTimeout(saveTimer);
+  setStatus('#F59E0B','同步中...');
+  saveTimer = setTimeout(async()=>{
+    try{
+      await setDoc(DOC_REF, ST);
+      setStatus('#10B981','已同步至雲端');
+    }catch(e){
+      console.error(e);
+      setStatus('#EF4444','同步失敗');
+    }
+  }, 600);
+}
+async function loadST(){
+  setStatus('#F59E0B','載入中...');
+  try{
+    const snap = await getDoc(DOC_REF);
+    if(snap.exists()){
+      const d = snap.data();
+      ST.testType  = d.testType  ?? ST.testType;
+      ST.startDate = d.startDate ?? ST.startDate;
+      ST.roster    = d.roster    ?? [];
+      for(const tt of ['篩選','成長']){
+        if(d.sched?.[tt])      ST.sched[tt]      = Object.assign(mkEmptySched(),    d.sched[tt]);
+        if(d.examSizes?.[tt])  ST.examSizes[tt]  = Object.assign(mkExamSizes(),     d.examSizes[tt]);
+        if(d.weekSubjs?.[tt])  ST.weekSubjs[tt]  = d.weekSubjs[tt];
+      }
+    }
+    setStatus('#10B981','已載入');
+  }catch(e){
+    console.error(e);
+    setStatus('#EF4444','載入失敗（離線模式）');
+  }
+  renderAll();
+}
+
+// ─── Roster Management ──────────────────────────────────
+window.openRoster = ()=>{
+  document.getElementById('rosterModal').classList.add('open');
+  renderRosterList();
+};
+window.closeRoster = ()=>{
+  document.getElementById('rosterModal').classList.remove('open');
+  renderPool();
+  renderSchedule();
+};
+window.addStudent = ()=>{
+  const num  = document.getElementById('newNum').value.trim();
+  const name = document.getElementById('newName').value.trim();
+  if(!num || !name){ alert('請填寫班級座號與姓名'); return; }
+  if(ST.roster.find(s=>s.num===num)){ alert('此班級座號已存在'); return; }
+  ST.roster.push({ id: num+'_'+Date.now(), num, name });
+  ST.roster.sort((a,b)=>a.num.localeCompare(b.num));
+  document.getElementById('newNum').value = '';
+  document.getElementById('newName').value = '';
+  saveST();
+  renderRosterList();
+};
+window.deleteStudent = (id)=>{
+  if(!confirm('確定刪除此學生？')) return;
+  ST.roster = ST.roster.filter(s=>s.id!==id);
+  // Remove from sched
+  for(const tt of ['篩選','成長']){
+    for(const k of Object.keys(ST.sched[tt])){
+      if(ST.sched[tt][k]===id) ST.sched[tt][k]=null;
+    }
+  }
+  saveST();
+  renderRosterList();
+};
+window.renderRosterList = ()=>{
+  const q = (document.getElementById('rosterSearch')?.value||'').toLowerCase();
+  const list = document.getElementById('rosterList');
+  const filtered = ST.roster.filter(s=>s.num.includes(q)||s.name.toLowerCase().includes(q));
+  if(!filtered.length){ list.innerHTML='<div style="text-align:center;color:#94A3B8;padding:16px;font-size:13px">尚無學生 / 無符合結果</div>'; return; }
+  list.innerHTML = filtered.map(s=>`
+    <div class="student-item">
+      <span class="stu-num">${s.num}</span>
+      <span class="stu-name">${s.name}</span>
+      <button class="stu-del" onclick="deleteStudent('${s.id}')">✕ 刪除</button>
+    </div>
+  `).join('');
+};
+
+// ─── Pool ────────────────────────────────────────────────
+function placedIds(){
+  const ids = new Set();
+  for(const k of Object.values(ST.sched[ST.testType])) if(k) ids.add(k);
+  return ids;
+}
+function poolStudents(){
+  const placed = placedIds();
+  const q = (document.getElementById('poolSearch')?.value||'').toLowerCase();
+  return ST.roster.filter(s=>!placed.has(s.id)&&(s.num.includes(q)||s.name.toLowerCase().includes(q)));
+}
+
+function renderPool(){
+  const el = document.getElementById('cardPool');
+  if(!el) return;
+  const cards = poolStudents();
+  if(!cards.length){
+    el.innerHTML='<div class="pool-empty">✓ 所有學生已排入<br>或名單為空</div>';
+    return;
+  }
+  el.innerHTML = cards.map(s=>`
+    <div class="pool-card" data-id="${s.id}" draggable="true"
+      ondragstart="onDragStart(event,'${s.id}','pool')"
+      ondragend="this.classList.remove('dragging')">
+      <span class="pc-num">${s.num}</span>
+      <span class="pc-name">${s.name}</span>
+    </div>
+  `).join('');
+}
+
+// ─── Date helpers ────────────────────────────────────────
+function weekDates(wi){
+  if(!ST.startDate) return Array(5).fill(null);
+  const base = new Date(ST.startDate+'T00:00:00');
+  const dow = base.getDay();
+  const toMon = dow===0?-6:1-dow;
+  base.setDate(base.getDate()+toMon+wi*7);
+  return Array.from({length:5},(_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return d;});
+}
+function fmt(d){ return d?`${d.getMonth()+1}/${d.getDate()}`:'—'; }
+
+// ─── Render All ───────────────────────────────────────────
+function renderAll(){
+  renderSettings();
+  renderPool();
+  renderSchedule();
+}
+function renderSettings(){
+  document.getElementById('startDate').value = ST.startDate||'';
+  document.getElementById('tab-篩選').className='tab-btn'+(ST.testType==='篩選'?' active':'');
+  document.getElementById('tab-成長').className='tab-btn'+(ST.testType==='成長'?' active':'');
+}
+
+// ─── Schedule Render ─────────────────────────────────────
+function renderSchedule(){
+  const area = document.getElementById('scheduleArea');
+  const sc   = ST.sched[ST.testType];
+  const sz   = ST.examSizes[ST.testType];
+  const ws   = ST.weekSubjs[ST.testType];
+  let html   = '';
+
+  for(let w=0;w<WEEKS;w++){
+    const dates = weekDates(w);
+    const subj  = ws[w]||'未定';
+
+    html+=`<div class="week-block">
+      <div class="week-head">
+        <div class="week-label">第${WNUM[w]}週</div>
+        <div class="week-subj" style="${subjStyle(subj)}">${subj==='未定'?'未定':'考'+subj}</div>
+        ${isEditMode?`<span class="week-info" style="font-size:10px;color:#94A3B8">點擊人數欄輸入考試人數</span>`:''}
+      </div>
+      <table class="sch">
+        <colgroup>
+          <col style="width:64px">
+          ${Array(DAYS).fill('<col>').join('')}
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="th-head">第${WNUM[w]}週</th>
+            ${dates.map((d,i)=>`
+              <th class="th-day">
+                <div class="th-date">${fmt(d)}</div>
+                <div class="th-dow">${d?'（'+WDAYS[i]+'）':''}</div>
+                <div style="margin-top:3px;display:flex;align-items:center;justify-content:center;gap:2px">
+                  <span style="font-size:9px;color:#94A3B8">人數：</span>
+                  <input type="number" min="0" style="width:40px;padding:2px 4px;border:1px solid #DDD8D0;border-radius:4px;font-size:10px;text-align:center;font-family:'JetBrains Mono',monospace;background:var(--bg);${isEditMode?'':'pointer-events:none;opacity:.7'}"
+                    value="${sz[`${w}-${i}`]||0}"
+                    onchange="onExamSize(${w},${i},this.value)"
+                    ${isEditMode?'':'disabled'}>
+                </div>
+              </th>
+            `).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${renderWeekRows(w, sc, sz)}
+        </tbody>
+      </table>
+    </div>`;
+  }
+  area.innerHTML = html;
+}
+
+function getRoles(w, d, sz){
+  const n = sz[`${w}-${d}`]||0;
+  return n>30 ? LARGE_ROLES : SMALL_ROLES;
+}
+
+function renderWeekRows(w, sc, sz){
+  let html = '';
+  // Find max slot count for this week for row display
+  // We render role rows that are relevant per column
+  // Approach: render LARGE_ROLES rows always; hide cells that don't apply
+  const allRoles = LARGE_ROLES;
+
+  for(const role of allRoles){
+    const rlClass = `rl-${role.color}`;
+    const dcClass = `dc-${role.color}`;
+
+    // Determine max slots for this role
+    const maxSlots = role.slots; // up to 2 for large, up to 3 for small guide
+    // For small exam, guide has 3 slots; render 3 rows for guide
+    const smallGuideSlots = 3;
+
+    // For each slot index
+    const maxSlotIdx = role.key==='guide' ? smallGuideSlots : role.slots;
+    for(let si=0;si<maxSlotIdx;si++){
+      html += `<tr>
+        <td class="rl ${rlClass}" style="font-size:10px">${role.label}<br><span style="font-size:8px;font-family:'JetBrains Mono',monospace;opacity:.6">#${si+1}</span></td>`;
+      for(let d=0;d<DAYS;d++){
+        const n    = (sz[`${w}-${d}`]||0);
+        const big  = n>30;
+        const roles = big ? LARGE_ROLES : SMALL_ROLES;
+        const hasRole = roles.some(r=>r.key===role.key);
+        const slotCount = hasRole ? (roles.find(r=>r.key===role.key)?.slots||0) : 0;
+        const isActive = hasRole && si < slotCount;
+        const key  = `${w}-${d}-${role.key}-${si}`;
+        const sid  = sc[key];
+        const stu  = sid ? ST.roster.find(s=>s.id===sid) : null;
+
+        if(!isActive){
+          html+=`<td class="dc" style="background:#F8FAFC;opacity:.35">
+            <div style="height:50px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#D1D5DB">—</div>
+          </td>`;
+        } else {
+          html+=`<td class="dc ${dcClass}" data-key="${key}"
+            ondragover="ev_over(event)"
+            ondrop="ev_drop(event,'${key}')"
+            ondragenter="this.classList.add('over')"
+            ondragleave="this.classList.remove('over')">
+            ${stu ? placedCardHTML(stu, role.color, key) : '<div class="drop-empty">拖放此處</div>'}
+          </td>`;
+        }
+      }
+      html += '</tr>';
+    }
+  }
+  return html;
+}
+
+function placedCardHTML(stu, color, key){
+  return `<div class="placed placed-${color}" data-id="${stu.id}" draggable="true"
+    ondragstart="onDragStart(event,'${stu.id}','placed')"
+    ondragend="this.classList.remove('dragging')">
+    <span class="p-rm" onclick="removeCard('${key}')">✕</span>
+    <div class="placed-num">${stu.num}</div>
+    <div class="placed-name">${stu.name}</div>
+  </div>`;
+}
+
+const SUBJ_CYCLE=['國語','數學','英語','未定'];
+function subjStyle(subj){
+  const map={'國語':'color:#D92B2B;border-color:#D92B2B;background:#FEF2F2','數學':'color:#1D55D4;border-color:#1D55D4;background:#EFF6FF','英語':'color:#158A45;border-color:#158A45;background:#F0FDF4'};
+  return map[subj]||'color:#9CA3AF;border-color:#D1D5DB;background:#F3F4F6';
+}
+
+// ─── Handlers ────────────────────────────────────────────
+window.switchTab     = (tt)=>{ ST.testType=tt; saveST(); renderAll(); };
+window.onStartDate   = ()=>{ ST.startDate=document.getElementById('startDate').value; saveST(); renderSchedule(); };
+window.onExamSize    = (w,d,v)=>{ ST.examSizes[ST.testType][`${w}-${d}`]=parseInt(v)||0; saveST(); renderSchedule(); };
+window.cycleWeekSubj = (w)=>{
+  const ws=ST.weekSubjs[ST.testType];
+  const cur=ws[w]||'未定';
+  const idx=SUBJ_CYCLE.indexOf(cur);
+  ws[w]=SUBJ_CYCLE[(idx+1)%SUBJ_CYCLE.length];
+  saveST(); renderSchedule();
+};
+window.doReset = ()=>{
+  if(!confirm(`確定清除「${ST.testType}測驗」的全部排班？`)) return;
+  ST.sched[ST.testType]=mkEmptySched();
+  saveST(); renderPool(); renderSchedule();
+};
+
+// Edit mode
+window.toggleEditMode = ()=>{
+  if(isEditMode){
+    isEditMode=false;
+    document.body.classList.remove('edit-mode');
+    document.getElementById('editModeBtn').textContent='🔒 瀏覽模式';
+    document.getElementById('editModeBtn').classList.remove('unlocked');
+    renderSchedule();
+  } else {
+    const pw=prompt('請輸入編輯密碼：');
+    if(pw==='admin'){
+      isEditMode=true;
+      document.body.classList.add('edit-mode');
+      document.getElementById('editModeBtn').textContent='🔓 編輯模式';
+      document.getElementById('editModeBtn').classList.add('unlocked');
+      renderSchedule();
+    } else if(pw!==null){ alert('密碼錯誤'); }
+  }
+};
+
+// Drag & Drop
+window.onDragStart = (ev,id,src)=>{
+  if(!isEditMode){ ev.preventDefault(); return; }
+  drag={id,src};
+  ev.dataTransfer.effectAllowed='move';
+  setTimeout(()=>{ const el=document.querySelector(`[data-id="${id}"]`); if(el)el.classList.add('dragging'); },0);
+};
+window.ev_over = (ev)=>{ ev.preventDefault(); ev.dataTransfer.dropEffect='move'; };
+window.ev_drop = (ev,targetKey)=>{
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('over');
+  if(!drag||!isEditMode) return;
+  const sc=ST.sched[ST.testType];
+  const existing=sc[targetKey];
+
+  if(drag.src==='pool'){
+    // If target occupied, send existing back to pool
+    sc[targetKey]=drag.id;
+  } else {
+    // Swap
+    const srcKey=Object.keys(sc).find(k=>sc[k]===drag.id);
+    if(srcKey){ sc[srcKey]=existing||null; sc[targetKey]=drag.id; }
+  }
+  drag=null;
+  saveST(); renderPool(); renderSchedule();
+};
+window.removeCard = (key)=>{
+  ST.sched[ST.testType][key]=null;
+  saveST(); renderPool(); renderSchedule();
+};
+
+// Boot
+loadST();
+</script>
+</body>
+</html>

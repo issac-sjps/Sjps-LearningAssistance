@@ -15,10 +15,6 @@
   --guide-color: #7C3AED;
   --reg-color: #0369A1;
   --id-color: #B45309;
-  --morning-bg: #E8F4FC;
-  --lunch-bg: #FFF4E6;
-  --morning-row: #EAF5FD;
-  --lunch-row: #FFF8EF;
   --shadow: 0 1px 3px rgba(0,0,0,.09),0 1px 2px rgba(0,0,0,.06);
   --shadow-md: 0 4px 8px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.05);
 }
@@ -27,148 +23,142 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 
 header{
   background:#1C1917;color:#FFF;
-  padding:0 20px;height:56px;
-  display:flex;align-items:center;gap:12px;
+  padding:0 16px;height:56px;
+  display:flex;align-items:center;gap:10px;
   position:sticky;top:0;z-index:200;
 }
 .app-logo{font-size:20px;font-weight:900;letter-spacing:-.5px;white-space:nowrap}
 .app-logo span{color:#F59E0B}
-.tabs{display:flex;gap:3px;background:rgba(255,255,255,.12);padding:4px;border-radius:8px}
+.tabs{display:flex;gap:3px;background:rgba(255,255,255,.12);padding:4px;border-radius:8px;flex-shrink:0}
 .tab-btn{
-  padding:5px 18px;border-radius:6px;border:none;cursor:pointer;
+  padding:5px 16px;border-radius:6px;border:none;cursor:pointer;
   font-family:inherit;font-size:13px;font-weight:600;transition:all .2s;
   background:transparent;color:rgba(255,255,255,.6);
 }
 .tab-btn.active{background:#FFF;color:#1C1917}
-.header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
-.save-badge{font-size:11px;color:rgba(255,255,255,.55);display:flex;align-items:center;gap:5px}
+.sync-badge{
+  display:flex;align-items:center;gap:5px;font-size:10px;
+  color:rgba(255,255,255,.5);white-space:nowrap;flex-shrink:0;
+  background:rgba(255,255,255,.07);padding:3px 9px;border-radius:5px;
+}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#6EE7B7;flex-shrink:0;transition:background .3s}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:7px;flex-shrink:0}
+.save-badge{font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px;white-space:nowrap}
 .save-dot{width:6px;height:6px;border-radius:50%;background:#10B981;transition:background .3s}
-.edit-mode-btn{
-  padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
-  background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);
+.icon-btn{
+  padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);
   font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
   transition:all .2s;white-space:nowrap;
 }
-.edit-mode-btn.unlocked{background:#D97706;border-color:#F59E0B;color:#FFF}
-.roster-btn{
-  padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
-  background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);
-  font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
-  transition:all .2s;white-space:nowrap;
-}
-.roster-btn:hover{background:rgba(255,255,255,.18);color:#FFF}
+.icon-btn:hover{background:rgba(255,255,255,.18);color:#FFF}
+.icon-btn.unlocked{background:#D97706;border-color:#F59E0B;color:#FFF}
 
-/* Layout */
 .layout{display:flex;align-items:flex-start}
 .sidebar{
-  width:220px;min-width:220px;
+  width:210px;min-width:210px;
   background:var(--surface);border-right:1px solid var(--border);
-  min-height:calc(100vh - 56px);
-  padding:16px 14px;
-  position:sticky;top:56px;overflow-y:auto;
-  max-height:calc(100vh - 56px);
-  display:none;
+  min-height:calc(100vh - 56px);padding:14px 12px;
+  position:sticky;top:56px;overflow-y:auto;max-height:calc(100vh - 56px);
+  display:none;flex-direction:column;
 }
-body.edit-mode .sidebar{display:flex;flex-direction:column}
+body.edit-mode .sidebar{display:flex}
 
-.s-section{margin-bottom:20px}
 .s-title{
-  font-size:10px;font-weight:800;
-  text-transform:uppercase;letter-spacing:.1em;
-  color:var(--text-muted);margin-bottom:10px;
+  font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--text-muted);margin-bottom:8px;margin-top:12px;
   display:flex;align-items:center;gap:6px;
 }
+.s-title:first-child{margin-top:0}
 .s-title::after{content:'';flex:1;height:1px;background:var(--border)}
-.s-row{display:grid;grid-template-columns:68px 1fr;align-items:center;margin-bottom:7px;gap:6px}
-.s-label{font-size:11px;color:var(--text-muted);white-space:nowrap}
-.s-input{
-  width:100%;padding:5px 8px;border:1px solid var(--border);
-  border-radius:5px;font-family:inherit;font-size:12px;
-  background:var(--bg);color:var(--text);
-}
-.s-input:focus{outline:none;border-color:#94A3B8}
 
-/* Pool */
+.search-input{
+  width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:6px;
+  font-family:inherit;font-size:12px;background:var(--bg);margin-bottom:8px;
+}
+.search-input:focus{outline:none;border-color:#94A3B8;background:#FFF}
+
 .pool-card{
-  display:flex;flex-direction:column;align-items:flex-start;gap:2px;
-  padding:6px 9px;border-radius:6px;cursor:grab;
+  display:flex;flex-direction:column;gap:1px;
+  padding:6px 8px;border-radius:6px;cursor:grab;
   border:1.5px solid #DDD8D0;background:#FFF;
   transition:transform .15s,box-shadow .15s;
-  user-select:none;margin-bottom:4px;
+  user-select:none;margin-bottom:3px;
 }
 .pool-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
-.pool-card.dragging{opacity:.35;cursor:grabbing}
+.pool-card.dragging{opacity:.3;cursor:grabbing}
 .pc-num{font-size:12px;font-weight:800;color:var(--text);font-family:'JetBrains Mono',monospace}
-.pc-name{font-size:11px;color:var(--text-muted);font-weight:500}
-.pool-empty{font-size:12px;color:#94A3B8;text-align:center;padding:14px;background:#F8FAFC;border-radius:6px}
+.pc-name{font-size:11px;color:var(--text-muted);font-weight:600}
+.pool-empty{font-size:11px;color:#94A3B8;text-align:center;padding:12px;background:#F8FAFC;border-radius:6px;line-height:1.6}
 .reset-btn{
-  width:100%;padding:7px;border:1px solid var(--border);
+  width:100%;padding:7px;border:1px solid var(--border);margin-top:auto;
   background:var(--bg);border-radius:6px;cursor:pointer;
-  font-family:inherit;font-size:12px;color:var(--text-muted);
-  transition:all .15s;margin-top:4px;
+  font-family:inherit;font-size:12px;color:var(--text-muted);transition:all .15s;
 }
 .reset-btn:hover{border-color:#EF4444;color:#EF4444;background:#FEF2F2}
 
-/* Main */
-.main-content{flex:1;padding:10px 12px;overflow-x:auto;min-width:0}
+.main-content{flex:1;padding:10px 14px;overflow-x:auto;min-width:0}
 
-/* Week */
-.week-block{margin-bottom:12px}
-.week-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-.week-label{font-size:13px;font-weight:800;color:var(--text)}
-.exam-size-badge{
-  font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;
-  background:#F3F4F6;border:1px solid #D1D5DB;color:#6B7280;
-}
-.exam-size-badge.big{background:#FEF3C7;border-color:#F59E0B;color:#92400E}
+.week-block{margin-bottom:14px}
+.week-head{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.week-label{font-size:13px;font-weight:900;color:var(--text)}
+.week-subj-pill{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:700;border:1.5px solid}
 
 table.sch{
-  border-collapse:collapse;
-  background:var(--surface);
-  border-radius:8px;overflow:hidden;
-  box-shadow:var(--shadow);
+  border-collapse:collapse;background:var(--surface);
+  border-radius:8px;overflow:hidden;box-shadow:var(--shadow);
   width:100%;table-layout:fixed;
 }
 table.sch th,table.sch td{border:1px solid var(--border)}
-.th-head{background:#292524;color:#FFF;font-size:11px;font-weight:700;padding:5px 7px;text-align:left;white-space:nowrap}
-.th-day{text-align:center;padding:4px 2px;background:#FAFAF8;vertical-align:middle}
+.th-corner{background:#292524;color:#FFF;font-size:11px;font-weight:700;padding:5px 7px;text-align:left;vertical-align:middle}
+.th-day{text-align:center;padding:5px 3px;background:#FAFAF8;vertical-align:top}
 .th-date{font-weight:700;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text)}
-.th-dow{font-size:9px;color:var(--text-muted)}
+.th-dow{font-size:9px;color:var(--text-muted);margin:1px 0 3px}
 
-.rl{font-size:10px;font-weight:700;padding:4px 5px;vertical-align:middle;white-space:normal;word-break:keep-all;width:60px;line-height:1.4;text-align:center}
+/* Exam chip in header cell */
+.exam-chip{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-top:2px;
+}
+.exam-chip.no-exam{background:#F3F4F6;color:#9CA3AF;border:1px dashed #D1D5DB}
+.exam-chip.morning{background:#EAF5FD;color:#0369A1;border:1px solid #BAE6FD}
+.exam-chip.lunch{background:#FFF8EF;color:#B45309;border:1px solid #FED7AA}
+.exam-chip.both{background:#F0FDF4;color:#15803D;border:1px solid #86EFAC}
+.exam-people{font-size:8px;font-family:'JetBrains Mono',monospace;padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.07);margin-left:1px}
+
+/* Role label col */
+.rl{font-size:9px;font-weight:700;padding:4px 3px;vertical-align:middle;word-break:keep-all;width:56px;line-height:1.4;text-align:center}
 .rl-guide{background:#F3E8FF;color:var(--guide-color)}
 .rl-reg{background:#E0F2FE;color:var(--reg-color)}
 .rl-id{background:#FEF3C7;color:var(--id-color)}
 
-.dc{vertical-align:middle;padding:3px;transition:background .15s;min-height:50px}
+.dc{vertical-align:middle;padding:3px;transition:background .15s}
 .dc-guide{background:#FAF5FF}
 .dc-reg{background:#F0F9FF}
 .dc-id{background:#FFFBEB}
 .dc.over{background:#BFDBFE !important;outline:2px dashed #3B82F6;outline-offset:-2px}
+.dc-inactive{background:#F9FAFB;opacity:.3}
 
 .drop-empty{
-  height:50px;display:flex;align-items:center;justify-content:center;
+  height:48px;display:flex;align-items:center;justify-content:center;
   color:#D1D5DB;font-size:10px;border:1.5px dashed #E5E7EB;border-radius:5px;
-  transition:border-color .15s;
 }
 .dc.over .drop-empty{border-color:#93C5FD;color:#93C5FD}
 
-/* Placed student card */
 .placed{
-  border-radius:5px;padding:5px 7px;border:1.5px solid;
-  cursor:grab;user-select:none;position:relative;min-height:50px;
-  display:flex;flex-direction:column;justify-content:center;gap:2px;
+  border-radius:5px;padding:4px 7px;border:1.5px solid;
+  cursor:grab;user-select:none;position:relative;min-height:48px;
+  display:flex;flex-direction:column;justify-content:center;gap:1px;
 }
-.placed.dragging{opacity:.35}
+.placed.dragging{opacity:.3}
 .placed-guide{border-color:var(--guide-color);background:#F5F3FF}
-.placed-reg{border-color:var(--reg-color);background:#F0F9FF}
+.placed-reg{border-color:var(--reg-color);background:#EFF9FF}
 .placed-id{border-color:var(--id-color);background:#FFFBEB}
 .placed-num{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text)}
 .placed-name{font-size:12px;font-weight:800;color:var(--text)}
 .p-rm{
-  position:absolute;top:2px;right:3px;
-  cursor:pointer;font-size:10px;color:#D1D5DB;line-height:1;
-  padding:1px 3px;border-radius:2px;
+  position:absolute;top:2px;right:3px;cursor:pointer;
+  font-size:10px;color:#D1D5DB;padding:1px 3px;border-radius:2px;
 }
 .p-rm:hover{color:#EF4444;background:#FEE2E2}
 
@@ -176,16 +166,6 @@ body:not(.edit-mode) .pool-card,
 body:not(.edit-mode) .placed{cursor:default;pointer-events:none}
 body:not(.edit-mode) .p-rm{display:none}
 body:not(.edit-mode) .drop-empty{pointer-events:none}
-
-/* Exam size row */
-.size-row{display:flex;align-items:center;gap:4px;margin-bottom:4px}
-.size-label{font-size:11px;color:var(--text-muted)}
-.size-input{
-  width:56px;padding:3px 6px;border:1px solid var(--border);
-  border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:center;
-  background:var(--bg);
-}
-.size-input:disabled{opacity:.4}
 
 /* Modal */
 .modal-overlay{
@@ -195,70 +175,30 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 }
 .modal-overlay.open{display:flex}
 .modal{
-  background:#FFF;border-radius:12px;width:520px;max-height:80vh;
+  background:#FFF;border-radius:12px;width:540px;max-height:82vh;
   display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden;
 }
-.modal-head{
-  padding:16px 20px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .modal-title{font-size:16px;font-weight:800}
-.modal-close{
-  background:none;border:none;cursor:pointer;
-  font-size:18px;color:var(--text-muted);padding:2px 6px;border-radius:4px;
-}
-.modal-close:hover{background:var(--bg);color:var(--text)}
+.modal-close{background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-muted);padding:2px 7px;border-radius:4px}
+.modal-close:hover{background:var(--bg)}
 .modal-body{padding:16px 20px;overflow-y:auto;flex:1}
 .modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
 
-.add-row{display:flex;gap:8px;margin-bottom:16px;align-items:flex-end}
+.add-row{display:flex;gap:8px;margin-bottom:14px;align-items:flex-end}
 .field-group{display:flex;flex-direction:column;gap:3px;flex:1}
 .field-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
 .field-input{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:var(--bg)}
 .field-input:focus{outline:none;border-color:#94A3B8;background:#FFF}
-.add-btn{
-  padding:7px 16px;background:#1C1917;color:#FFF;border:none;
-  border-radius:6px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;
-  white-space:nowrap;
-}
+.add-btn{padding:7px 16px;background:#1C1917;color:#FFF;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;white-space:nowrap}
 .add-btn:hover{background:#292524}
 
 .student-list{display:flex;flex-direction:column;gap:3px}
-.student-item{
-  display:flex;align-items:center;gap:10px;padding:8px 10px;
-  border:1px solid var(--border);border-radius:6px;background:var(--bg);
-}
-.stu-num{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text);min-width:60px}
+.student-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg)}
+.stu-num{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;min-width:64px}
 .stu-name{font-size:13px;font-weight:600;flex:1}
-.stu-del{
-  margin-left:auto;background:none;border:none;cursor:pointer;
-  color:#D1D5DB;font-size:12px;padding:2px 6px;border-radius:4px;
-}
+.stu-del{background:none;border:none;cursor:pointer;color:#D1D5DB;font-size:12px;padding:2px 7px;border-radius:4px}
 .stu-del:hover{color:#EF4444;background:#FEF2F2}
-
-.search-input{
-  width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;
-  font-family:inherit;font-size:13px;background:var(--bg);margin-bottom:10px;
-}
-.search-input:focus{outline:none;border-color:#94A3B8;background:#FFF}
-
-.subj-tag-row{display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap}
-.subj-tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;border:1.5px solid;cursor:pointer}
-
-/* Week subject label */
-.week-subj{
-  font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700;
-  background:#F3F4F6;color:#6B7280;border:1px solid #D1D5DB;
-}
-.week-info{font-size:10px;color:var(--text-muted);margin-left:auto}
-
-/* Slot sections for small/large exams */
-.slot-section-label{
-  background:#F8FAFC;font-size:9px;font-weight:700;color:var(--text-muted);
-  text-transform:uppercase;letter-spacing:.08em;
-  padding:3px 6px;text-align:center;
-  border-bottom:1px solid var(--border);
-}
 </style>
 </head>
 <body>
@@ -269,30 +209,25 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
     <button class="tab-btn active" onclick="switchTab('篩選')" id="tab-篩選">篩選測驗</button>
     <button class="tab-btn" onclick="switchTab('成長')" id="tab-成長">成長測驗</button>
   </div>
+  <div class="sync-badge">
+    <div class="sync-dot" id="syncDot"></div>
+    <span id="syncStatus">連線考試排程中…</span>
+  </div>
   <div class="header-right">
-    <button class="roster-btn" onclick="openRoster()">👤 管理名單</button>
+    <button class="icon-btn" onclick="openRoster()">👤 管理名單</button>
     <div class="save-badge">
       <div class="save-dot" id="saveDot"></div>
       <span id="saveStatus">已儲存</span>
     </div>
-    <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">🔒 瀏覽模式</button>
+    <button class="icon-btn" id="editModeBtn" onclick="toggleEditMode()">🔒 瀏覽</button>
   </div>
 </header>
 
 <div class="layout">
   <aside class="sidebar">
-    <div class="s-section">
-      <div class="s-title">基本設定</div>
-      <div class="s-row">
-        <span class="s-label">起始日期</span>
-        <input type="date" class="s-input" id="startDate" onchange="onStartDate()">
-      </div>
-    </div>
-    <div class="s-section">
-      <div class="s-title">待排學生</div>
-      <input type="text" class="search-input" placeholder="搜尋姓名或班號…" id="poolSearch" oninput="renderPool()">
-      <div id="cardPool"></div>
-    </div>
+    <div class="s-title">待排學生</div>
+    <input type="text" class="search-input" placeholder="搜尋姓名或班號…" id="poolSearch" oninput="renderPool()">
+    <div id="cardPool"></div>
     <button class="reset-btn" onclick="doReset()">🗑 清除此測驗排班</button>
   </aside>
 
@@ -331,7 +266,8 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
 
@@ -345,31 +281,60 @@ const firebaseConfig = {
   measurementId: "G-EGQ7BLK57Y"
 };
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const db = getFirestore(app);
-const auth = getAuth(app);
+const db  = getFirestore(app);
+getAuth(app);
+getAnalytics(app);
 
-// Different collection from main exam scheduler
-const DOC_REF = doc(db, 'student_schedule', 'main');
+// Two separate Firestore documents
+const EXAM_REF    = doc(db, 'schedule',        'main'); // 考試排程（唯讀參考）
+const STUDENT_REF = doc(db, 'student_schedule','main'); // 學生排班（讀寫）
 
 // ─── Constants ───────────────────────────────────────────
 const WDAYS = ['一','二','三','四','五'];
 const WNUM  = ['一','二','三','四'];
 const WEEKS = 4;
 const DAYS  = 5;
-
-// Roles: small exam (<=30): 引導人員×3 only shown in groups of 3
-// Large exam (>30): 引導人員×2, 報到人員×2, 發身分證條人員×2
-const SMALL_ROLES = [
-  { key:'guide', label:'引導人員', slots:3, color:'guide' },
+const ROLES = [
+  { key:'guide', label:'引導人員',   color:'guide' },
+  { key:'reg',   label:'報到人員',   color:'reg'   },
+  { key:'id',    label:'發身分證條', color:'id'    },
 ];
-const LARGE_ROLES = [
-  { key:'guide', label:'引導人員', slots:2, color:'guide' },
-  { key:'reg',   label:'報到人員',   slots:2, color:'reg' },
-  { key:'id',    label:'發身分證條', slots:2, color:'id' },
-];
+// ≤30 → 1 slot per role | >30 → 2 slots per role
+const slotCount = n => (n > 30 ? 2 : (n > 0 ? 1 : 0));
+const MAX_SLOTS = 2; // max rows rendered per role
 
-// ─── State ───────────────────────────────────────────────
+// ─── Exam reference data (from schedule/main, read-only) ─
+let examData = {
+  startDate: '',
+  counts: {},
+  sched: { '篩選':{}, '成長':{} },
+  weekSubjs: { '篩選':['未定','未定','未定','未定'], '成長':['未定','未定','未定','未定'] },
+};
+
+// Derived: per-cell exam info
+// examInfo[tt][`${w}-${d}`] = { hasExam, slot, people }
+function buildExamInfo(tt){
+  const info = {};
+  const sc   = examData.sched[tt] || {};
+  const cnt  = examData.counts || {};
+  // Total examinees = sum of all grade counts
+  const total = Object.values(cnt).reduce((a,b)=>a+(parseInt(b)||0),0);
+  for(let w=0;w<WEEKS;w++){
+    for(let d=0;d<DAYS;d++){
+      const hasMorning = !!sc[`${w}-${d}-morning`];
+      const hasLunch   = !!sc[`${w}-${d}-lunch`];
+      const hasExam    = hasMorning || hasLunch;
+      let slot = null;
+      if(hasMorning && hasLunch) slot='both';
+      else if(hasMorning) slot='morning';
+      else if(hasLunch)   slot='lunch';
+      info[`${w}-${d}`] = { hasExam, slot, people: hasExam ? total : 0 };
+    }
+  }
+  return info;
+}
+
+// ─── Student state ────────────────────────────────────────
 let ST = mkDefault();
 let drag = null;
 let saveTimer = null;
@@ -378,133 +343,124 @@ let isEditMode = false;
 function mkDefault(){
   return {
     testType: '篩選',
-    startDate: '',
-    roster: [],           // [{id, num, name}]
-    sched: {
-      '篩選': mkEmptySched(),
-      '成長': mkEmptySched(),
-    },
-    examSizes: {
-      '篩選': mkExamSizes(),
-      '成長': mkExamSizes(),
-    },
-    weekSubjs: {
-      '篩選': ['未定','未定','未定','未定'],
-      '成長': ['未定','未定','未定','未定'],
-    },
+    roster: [],
+    sched: { '篩選': mkEmptySched(), '成長': mkEmptySched() },
   };
 }
-
-function mkExamSizes(){
-  // w-d: number of examinees
-  const s = {};
-  for(let w=0;w<WEEKS;w++) for(let d=0;d<DAYS;d++) s[`${w}-${d}`] = 0;
-  return s;
-}
-
 function mkEmptySched(){
-  // key: `${w}-${d}-${role}-${slotIdx}`
   const s = {};
-  for(let w=0;w<WEEKS;w++) for(let d=0;d<DAYS;d++){
-    for(const r of ['guide','reg','id']) for(let i=0;i<6;i++) s[`${w}-${d}-${r}-${i}`] = null;
-  }
+  for(let w=0;w<WEEKS;w++) for(let d=0;d<DAYS;d++)
+    for(const r of ROLES) for(let i=0;i<MAX_SLOTS;i++)
+      s[`${w}-${d}-${r.key}-${i}`] = null;
   return s;
 }
 
-// ─── Save / Load ─────────────────────────────────────────
+// ─── Firebase: live listen to exam schedule ───────────────
+function setSyncStatus(ok, msg){
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncStatus');
+  if(dot){ dot.style.background = ok ? '#34D399':'#FCA5A5'; lbl.textContent = msg; }
+}
+onSnapshot(EXAM_REF, snap => {
+  if(snap.exists()){
+    const d = snap.data();
+    examData.startDate  = d.startDate  || '';
+    examData.counts     = d.counts     || {};
+    examData.weekSubjs  = d.weekSubjs  || examData.weekSubjs;
+    examData.sched['篩選'] = d.sched?.['篩選'] || {};
+    examData.sched['成長'] = d.sched?.['成長'] || {};
+    setSyncStatus(true, '已同步考試排程');
+  } else {
+    setSyncStatus(false, '考試排程無資料');
+  }
+  renderSchedule();
+}, err => {
+  console.error(err);
+  setSyncStatus(false, '無法讀取考試排程');
+});
+
+// ─── Firebase: load / save student schedule ───────────────
 function setStatus(color, text){
   const dot = document.getElementById('saveDot');
   const lbl = document.getElementById('saveStatus');
-  if(dot){ dot.style.background = color; lbl.textContent = text; }
+  if(dot){ dot.style.background=color; lbl.textContent=text; }
 }
 function saveST(){
   clearTimeout(saveTimer);
   setStatus('#F59E0B','同步中...');
   saveTimer = setTimeout(async()=>{
     try{
-      await setDoc(DOC_REF, ST);
-      setStatus('#10B981','已同步至雲端');
-    }catch(e){
+      await setDoc(STUDENT_REF, ST);
+      setStatus('#10B981','已同步');
+    } catch(e){
       console.error(e);
       setStatus('#EF4444','同步失敗');
     }
   }, 600);
 }
 async function loadST(){
-  setStatus('#F59E0B','載入中...');
   try{
-    const snap = await getDoc(DOC_REF);
+    const snap = await getDoc(STUDENT_REF);
     if(snap.exists()){
       const d = snap.data();
-      ST.testType  = d.testType  ?? ST.testType;
-      ST.startDate = d.startDate ?? ST.startDate;
-      ST.roster    = d.roster    ?? [];
-      for(const tt of ['篩選','成長']){
-        if(d.sched?.[tt])      ST.sched[tt]      = Object.assign(mkEmptySched(),    d.sched[tt]);
-        if(d.examSizes?.[tt])  ST.examSizes[tt]  = Object.assign(mkExamSizes(),     d.examSizes[tt]);
-        if(d.weekSubjs?.[tt])  ST.weekSubjs[tt]  = d.weekSubjs[tt];
-      }
+      ST.testType = d.testType ?? ST.testType;
+      ST.roster   = d.roster   ?? [];
+      for(const tt of ['篩選','成長'])
+        if(d.sched?.[tt]) ST.sched[tt] = Object.assign(mkEmptySched(), d.sched[tt]);
     }
     setStatus('#10B981','已載入');
-  }catch(e){
+  } catch(e){
     console.error(e);
-    setStatus('#EF4444','載入失敗（離線模式）');
+    setStatus('#EF4444','載入失敗');
   }
   renderAll();
 }
 
-// ─── Roster Management ──────────────────────────────────
+// ─── Roster management ───────────────────────────────────
 window.openRoster = ()=>{
   document.getElementById('rosterModal').classList.add('open');
   renderRosterList();
 };
 window.closeRoster = ()=>{
   document.getElementById('rosterModal').classList.remove('open');
-  renderPool();
-  renderSchedule();
+  renderPool(); renderSchedule();
 };
 window.addStudent = ()=>{
   const num  = document.getElementById('newNum').value.trim();
   const name = document.getElementById('newName').value.trim();
-  if(!num || !name){ alert('請填寫班級座號與姓名'); return; }
+  if(!num||!name){ alert('請填寫班級座號與姓名'); return; }
   if(ST.roster.find(s=>s.num===num)){ alert('此班級座號已存在'); return; }
   ST.roster.push({ id: num+'_'+Date.now(), num, name });
-  ST.roster.sort((a,b)=>a.num.localeCompare(b.num));
-  document.getElementById('newNum').value = '';
-  document.getElementById('newName').value = '';
-  saveST();
-  renderRosterList();
+  ST.roster.sort((a,b)=>a.num.localeCompare(b.num,'zh-TW',{numeric:true}));
+  document.getElementById('newNum').value='';
+  document.getElementById('newName').value='';
+  saveST(); renderRosterList();
 };
-window.deleteStudent = (id)=>{
+window.deleteStudent = id =>{
   if(!confirm('確定刪除此學生？')) return;
   ST.roster = ST.roster.filter(s=>s.id!==id);
-  // Remove from sched
-  for(const tt of ['篩選','成長']){
-    for(const k of Object.keys(ST.sched[tt])){
+  for(const tt of ['篩選','成長'])
+    for(const k of Object.keys(ST.sched[tt]))
       if(ST.sched[tt][k]===id) ST.sched[tt][k]=null;
-    }
-  }
-  saveST();
-  renderRosterList();
+  saveST(); renderRosterList();
 };
 window.renderRosterList = ()=>{
   const q = (document.getElementById('rosterSearch')?.value||'').toLowerCase();
-  const list = document.getElementById('rosterList');
-  const filtered = ST.roster.filter(s=>s.num.includes(q)||s.name.toLowerCase().includes(q));
-  if(!filtered.length){ list.innerHTML='<div style="text-align:center;color:#94A3B8;padding:16px;font-size:13px">尚無學生 / 無符合結果</div>'; return; }
-  list.innerHTML = filtered.map(s=>`
+  const el = document.getElementById('rosterList');
+  const list = ST.roster.filter(s=>s.num.includes(q)||s.name.toLowerCase().includes(q));
+  if(!list.length){ el.innerHTML='<div style="text-align:center;color:#94A3B8;padding:16px;font-size:13px">尚無學生或無符合結果</div>'; return; }
+  el.innerHTML = list.map(s=>`
     <div class="student-item">
       <span class="stu-num">${s.num}</span>
       <span class="stu-name">${s.name}</span>
       <button class="stu-del" onclick="deleteStudent('${s.id}')">✕ 刪除</button>
-    </div>
-  `).join('');
+    </div>`).join('');
 };
 
 // ─── Pool ────────────────────────────────────────────────
 function placedIds(){
   const ids = new Set();
-  for(const k of Object.values(ST.sched[ST.testType])) if(k) ids.add(k);
+  for(const v of Object.values(ST.sched[ST.testType])) if(v) ids.add(v);
   return ids;
 }
 function poolStudents(){
@@ -512,14 +468,12 @@ function poolStudents(){
   const q = (document.getElementById('poolSearch')?.value||'').toLowerCase();
   return ST.roster.filter(s=>!placed.has(s.id)&&(s.num.includes(q)||s.name.toLowerCase().includes(q)));
 }
-
 function renderPool(){
   const el = document.getElementById('cardPool');
   if(!el) return;
   const cards = poolStudents();
   if(!cards.length){
-    el.innerHTML='<div class="pool-empty">✓ 所有學生已排入<br>或名單為空</div>';
-    return;
+    el.innerHTML='<div class="pool-empty">✓ 所有學生已排入<br>或名單為空</div>'; return;
   }
   el.innerHTML = cards.map(s=>`
     <div class="pool-card" data-id="${s.id}" draggable="true"
@@ -527,131 +481,122 @@ function renderPool(){
       ondragend="this.classList.remove('dragging')">
       <span class="pc-num">${s.num}</span>
       <span class="pc-name">${s.name}</span>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 // ─── Date helpers ────────────────────────────────────────
 function weekDates(wi){
-  if(!ST.startDate) return Array(5).fill(null);
-  const base = new Date(ST.startDate+'T00:00:00');
+  const sd = examData.startDate || '';
+  if(!sd) return Array(5).fill(null);
+  const base = new Date(sd+'T00:00:00');
   const dow = base.getDay();
-  const toMon = dow===0?-6:1-dow;
-  base.setDate(base.getDate()+toMon+wi*7);
+  base.setDate(base.getDate()+(dow===0?-6:1-dow)+wi*7);
   return Array.from({length:5},(_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return d;});
 }
 function fmt(d){ return d?`${d.getMonth()+1}/${d.getDate()}`:'—'; }
 
-// ─── Render All ───────────────────────────────────────────
+// ─── Render ───────────────────────────────────────────────
 function renderAll(){
-  renderSettings();
+  document.getElementById('tab-篩選').className='tab-btn'+(ST.testType==='篩選'?' active':'');
+  document.getElementById('tab-成長').className='tab-btn'+(ST.testType==='成長'?' active':'');
   renderPool();
   renderSchedule();
 }
-function renderSettings(){
-  document.getElementById('startDate').value = ST.startDate||'';
-  document.getElementById('tab-篩選').className='tab-btn'+(ST.testType==='篩選'?' active':'');
-  document.getElementById('tab-成長').className='tab-btn'+(ST.testType==='成長'?' active':'');
-}
 
-// ─── Schedule Render ─────────────────────────────────────
+const SUBJ_PILL = {
+  '國語':'color:#D92B2B;border-color:#D92B2B;background:#FEF2F2',
+  '數學':'color:#1D55D4;border-color:#1D55D4;background:#EFF6FF',
+  '英語':'color:#158A45;border-color:#158A45;background:#F0FDF4',
+  '未定':'color:#9CA3AF;border-color:#D1D5DB;background:#F3F4F6',
+};
+
 function renderSchedule(){
   const area = document.getElementById('scheduleArea');
-  const sc   = ST.sched[ST.testType];
-  const sz   = ST.examSizes[ST.testType];
-  const ws   = ST.weekSubjs[ST.testType];
-  let html   = '';
+  if(!area) return;
+  const sc  = ST.sched[ST.testType];
+  const ei  = buildExamInfo(ST.testType);
+  const ws  = examData.weekSubjs[ST.testType] || ['未定','未定','未定','未定'];
+  let html  = '';
 
   for(let w=0;w<WEEKS;w++){
     const dates = weekDates(w);
     const subj  = ws[w]||'未定';
+    const ps    = SUBJ_PILL[subj]||SUBJ_PILL['未定'];
 
-    html+=`<div class="week-block">
+    html += `<div class="week-block">
       <div class="week-head">
         <div class="week-label">第${WNUM[w]}週</div>
-        <div class="week-subj" style="${subjStyle(subj)}">${subj==='未定'?'未定':'考'+subj}</div>
-        ${isEditMode?`<span class="week-info" style="font-size:10px;color:#94A3B8">點擊人數欄輸入考試人數</span>`:''}
+        <div class="week-subj-pill" style="${ps}">${subj==='未定'?'未定':'考'+subj}</div>
       </div>
       <table class="sch">
         <colgroup>
-          <col style="width:64px">
+          <col style="width:58px">
           ${Array(DAYS).fill('<col>').join('')}
         </colgroup>
-        <thead>
-          <tr>
-            <th class="th-head">第${WNUM[w]}週</th>
-            ${dates.map((d,i)=>`
-              <th class="th-day">
-                <div class="th-date">${fmt(d)}</div>
-                <div class="th-dow">${d?'（'+WDAYS[i]+'）':''}</div>
-                <div style="margin-top:3px;display:flex;align-items:center;justify-content:center;gap:2px">
-                  <span style="font-size:9px;color:#94A3B8">人數：</span>
-                  <input type="number" min="0" style="width:40px;padding:2px 4px;border:1px solid #DDD8D0;border-radius:4px;font-size:10px;text-align:center;font-family:'JetBrains Mono',monospace;background:var(--bg);${isEditMode?'':'pointer-events:none;opacity:.7'}"
-                    value="${sz[`${w}-${i}`]||0}"
-                    onchange="onExamSize(${w},${i},this.value)"
-                    ${isEditMode?'':'disabled'}>
-                </div>
-              </th>
-            `).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${renderWeekRows(w, sc, sz)}
-        </tbody>
+        <thead><tr>
+          <th class="th-corner">職位</th>
+          ${dates.map((d,di)=>{
+            const info = ei[`${w}-${di}`]||{};
+            const sc_label = info.slot==='both'?'早自修＋午休'
+                            :info.slot==='morning'?'早自修'
+                            :info.slot==='lunch'?'午休時間':'';
+            const chipClass = {'morning':'morning','lunch':'lunch','both':'both'}[info.slot]||'';
+            const slots = slotCount(info.people||0);
+            return `<th class="th-day">
+              <div class="th-date">${fmt(d)}</div>
+              <div class="th-dow">${d?'（'+WDAYS[di]+'）':''}</div>
+              ${info.hasExam
+                ? `<div class="exam-chip ${chipClass}">
+                     📋 ${sc_label}
+                     ${info.people?`<span class="exam-people">${info.people}人 → ${slots}位/職</span>`:''}
+                   </div>`
+                : `<div class="exam-chip no-exam">無考試</div>`}
+            </th>`;
+          }).join('')}
+        </tr></thead>
+        <tbody>${renderWeekRows(w, sc, ei)}</tbody>
       </table>
     </div>`;
   }
   area.innerHTML = html;
 }
 
-function getRoles(w, d, sz){
-  const n = sz[`${w}-${d}`]||0;
-  return n>30 ? LARGE_ROLES : SMALL_ROLES;
-}
-
-function renderWeekRows(w, sc, sz){
+function renderWeekRows(w, sc, ei){
   let html = '';
-  // Find max slot count for this week for row display
-  // We render role rows that are relevant per column
-  // Approach: render LARGE_ROLES rows always; hide cells that don't apply
-  const allRoles = LARGE_ROLES;
-
-  for(const role of allRoles){
-    const rlClass = `rl-${role.color}`;
-    const dcClass = `dc-${role.color}`;
-
-    // Determine max slots for this role
-    const maxSlots = role.slots; // up to 2 for large, up to 3 for small guide
-    // For small exam, guide has 3 slots; render 3 rows for guide
-    const smallGuideSlots = 3;
-
-    // For each slot index
-    const maxSlotIdx = role.key==='guide' ? smallGuideSlots : role.slots;
-    for(let si=0;si<maxSlotIdx;si++){
+  for(const role of ROLES){
+    for(let si=0;si<MAX_SLOTS;si++){
       html += `<tr>
-        <td class="rl ${rlClass}" style="font-size:10px">${role.label}<br><span style="font-size:8px;font-family:'JetBrains Mono',monospace;opacity:.6">#${si+1}</span></td>`;
+        <td class="rl rl-${role.color}">
+          ${role.label}<br>
+          <span style="font-size:8px;font-family:'JetBrains Mono',monospace;opacity:.5">#${si+1}</span>
+        </td>`;
       for(let d=0;d<DAYS;d++){
-        const n    = (sz[`${w}-${d}`]||0);
-        const big  = n>30;
-        const roles = big ? LARGE_ROLES : SMALL_ROLES;
-        const hasRole = roles.some(r=>r.key===role.key);
-        const slotCount = hasRole ? (roles.find(r=>r.key===role.key)?.slots||0) : 0;
-        const isActive = hasRole && si < slotCount;
-        const key  = `${w}-${d}-${role.key}-${si}`;
-        const sid  = sc[key];
-        const stu  = sid ? ST.roster.find(s=>s.id===sid) : null;
+        const info   = ei[`${w}-${d}`]||{hasExam:false,people:0};
+        const slots  = slotCount(info.people||0);
+        const active = info.hasExam && si < slots;
+        const key    = `${w}-${d}-${role.key}-${si}`;
+        const sid    = sc[key];
+        const stu    = sid ? ST.roster.find(s=>s.id===sid) : null;
 
-        if(!isActive){
-          html+=`<td class="dc" style="background:#F8FAFC;opacity:.35">
-            <div style="height:50px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#D1D5DB">—</div>
+        if(!active){
+          html += `<td class="dc dc-inactive">
+            <div style="height:48px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#D1D5DB">—</div>
           </td>`;
         } else {
-          html+=`<td class="dc ${dcClass}" data-key="${key}"
+          html += `<td class="dc dc-${role.color}" data-key="${key}"
             ondragover="ev_over(event)"
             ondrop="ev_drop(event,'${key}')"
             ondragenter="this.classList.add('over')"
             ondragleave="this.classList.remove('over')">
-            ${stu ? placedCardHTML(stu, role.color, key) : '<div class="drop-empty">拖放此處</div>'}
+            ${stu
+              ? `<div class="placed placed-${role.color}" data-id="${stu.id}" draggable="true"
+                   ondragstart="onDragStart(event,'${stu.id}','placed')"
+                   ondragend="this.classList.remove('dragging')">
+                   <span class="p-rm" onclick="removeCard('${key}')">✕</span>
+                   <div class="placed-num">${stu.num}</div>
+                   <div class="placed-name">${stu.name}</div>
+                 </div>`
+              : '<div class="drop-empty">拖放此處</div>'}
           </td>`;
         }
       }
@@ -661,45 +606,18 @@ function renderWeekRows(w, sc, sz){
   return html;
 }
 
-function placedCardHTML(stu, color, key){
-  return `<div class="placed placed-${color}" data-id="${stu.id}" draggable="true"
-    ondragstart="onDragStart(event,'${stu.id}','placed')"
-    ondragend="this.classList.remove('dragging')">
-    <span class="p-rm" onclick="removeCard('${key}')">✕</span>
-    <div class="placed-num">${stu.num}</div>
-    <div class="placed-name">${stu.name}</div>
-  </div>`;
-}
-
-const SUBJ_CYCLE=['國語','數學','英語','未定'];
-function subjStyle(subj){
-  const map={'國語':'color:#D92B2B;border-color:#D92B2B;background:#FEF2F2','數學':'color:#1D55D4;border-color:#1D55D4;background:#EFF6FF','英語':'color:#158A45;border-color:#158A45;background:#F0FDF4'};
-  return map[subj]||'color:#9CA3AF;border-color:#D1D5DB;background:#F3F4F6';
-}
-
 // ─── Handlers ────────────────────────────────────────────
-window.switchTab     = (tt)=>{ ST.testType=tt; saveST(); renderAll(); };
-window.onStartDate   = ()=>{ ST.startDate=document.getElementById('startDate').value; saveST(); renderSchedule(); };
-window.onExamSize    = (w,d,v)=>{ ST.examSizes[ST.testType][`${w}-${d}`]=parseInt(v)||0; saveST(); renderSchedule(); };
-window.cycleWeekSubj = (w)=>{
-  const ws=ST.weekSubjs[ST.testType];
-  const cur=ws[w]||'未定';
-  const idx=SUBJ_CYCLE.indexOf(cur);
-  ws[w]=SUBJ_CYCLE[(idx+1)%SUBJ_CYCLE.length];
-  saveST(); renderSchedule();
-};
+window.switchTab = tt=>{ ST.testType=tt; saveST(); renderAll(); };
 window.doReset = ()=>{
   if(!confirm(`確定清除「${ST.testType}測驗」的全部排班？`)) return;
   ST.sched[ST.testType]=mkEmptySched();
   saveST(); renderPool(); renderSchedule();
 };
-
-// Edit mode
 window.toggleEditMode = ()=>{
   if(isEditMode){
     isEditMode=false;
     document.body.classList.remove('edit-mode');
-    document.getElementById('editModeBtn').textContent='🔒 瀏覽模式';
+    document.getElementById('editModeBtn').textContent='🔒 瀏覽';
     document.getElementById('editModeBtn').classList.remove('unlocked');
     renderSchedule();
   } else {
@@ -707,10 +625,10 @@ window.toggleEditMode = ()=>{
     if(pw==='admin'){
       isEditMode=true;
       document.body.classList.add('edit-mode');
-      document.getElementById('editModeBtn').textContent='🔓 編輯模式';
+      document.getElementById('editModeBtn').textContent='🔓 編輯';
       document.getElementById('editModeBtn').classList.add('unlocked');
       renderSchedule();
-    } else if(pw!==null){ alert('密碼錯誤'); }
+    } else if(pw!==null) alert('密碼錯誤');
   }
 };
 
@@ -721,26 +639,23 @@ window.onDragStart = (ev,id,src)=>{
   ev.dataTransfer.effectAllowed='move';
   setTimeout(()=>{ const el=document.querySelector(`[data-id="${id}"]`); if(el)el.classList.add('dragging'); },0);
 };
-window.ev_over = (ev)=>{ ev.preventDefault(); ev.dataTransfer.dropEffect='move'; };
+window.ev_over = ev=>{ ev.preventDefault(); ev.dataTransfer.dropEffect='move'; };
 window.ev_drop = (ev,targetKey)=>{
   ev.preventDefault();
   ev.currentTarget.classList.remove('over');
   if(!drag||!isEditMode) return;
   const sc=ST.sched[ST.testType];
   const existing=sc[targetKey];
-
   if(drag.src==='pool'){
-    // If target occupied, send existing back to pool
     sc[targetKey]=drag.id;
   } else {
-    // Swap
     const srcKey=Object.keys(sc).find(k=>sc[k]===drag.id);
     if(srcKey){ sc[srcKey]=existing||null; sc[targetKey]=drag.id; }
   }
   drag=null;
   saveST(); renderPool(); renderSchedule();
 };
-window.removeCard = (key)=>{
+window.removeCard = key=>{
   ST.sched[ST.testType][key]=null;
   saveST(); renderPool(); renderSchedule();
 };

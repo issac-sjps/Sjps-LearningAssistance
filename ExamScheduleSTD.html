@@ -15,6 +15,9 @@
   --guide-color: #7C3AED;
   --reg-color: #0369A1;
   --id-color: #B45309;
+  --kuo: #D92B2B;
+  --shu: #1D55D4;
+  --ying: #158A45;
   --shadow: 0 1px 3px rgba(0,0,0,.09),0 1px 2px rgba(0,0,0,.06);
   --shadow-md: 0 4px 8px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.05);
 }
@@ -23,15 +26,15 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 
 header{
   background:#1C1917;color:#FFF;
-  padding:0 16px;height:56px;
+  padding:0 16px;height:48px;
   display:flex;align-items:center;gap:10px;
   position:sticky;top:0;z-index:200;
 }
-.app-logo{font-size:20px;font-weight:900;letter-spacing:-.5px;white-space:nowrap}
+.app-logo{font-size:19px;font-weight:900;letter-spacing:-.5px;white-space:nowrap}
 .app-logo span{color:#F59E0B}
-.tabs{display:flex;gap:3px;background:rgba(255,255,255,.12);padding:4px;border-radius:8px;flex-shrink:0}
+.tabs{display:flex;gap:3px;background:rgba(255,255,255,.12);padding:3px;border-radius:7px;flex-shrink:0}
 .tab-btn{
-  padding:5px 16px;border-radius:6px;border:none;cursor:pointer;
+  padding:4px 15px;border-radius:5px;border:none;cursor:pointer;
   font-family:inherit;font-size:13px;font-weight:600;transition:all .2s;
   background:transparent;color:rgba(255,255,255,.6);
 }
@@ -43,10 +46,10 @@ header{
 }
 .sync-dot{width:6px;height:6px;border-radius:50%;background:#6EE7B7;flex-shrink:0;transition:background .3s}
 .header-right{margin-left:auto;display:flex;align-items:center;gap:7px;flex-shrink:0}
-.save-badge{font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:5px;white-space:nowrap}
+.save-badge{font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:4px;white-space:nowrap}
 .save-dot{width:6px;height:6px;border-radius:50%;background:#10B981;transition:background .3s}
 .icon-btn{
-  padding:5px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.22);
+  padding:4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.22);
   background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);
   font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
   transition:all .2s;white-space:nowrap;
@@ -54,36 +57,32 @@ header{
 .icon-btn:hover{background:rgba(255,255,255,.18);color:#FFF}
 .icon-btn.unlocked{background:#D97706;border-color:#F59E0B;color:#FFF}
 
+/* Layout */
 .layout{display:flex;align-items:flex-start}
 .sidebar{
-  width:210px;min-width:210px;
+  width:206px;min-width:206px;
   background:var(--surface);border-right:1px solid var(--border);
-  min-height:calc(100vh - 56px);padding:14px 12px;
-  position:sticky;top:56px;overflow-y:auto;max-height:calc(100vh - 56px);
+  min-height:calc(100vh - 48px);padding:14px 12px;
+  position:sticky;top:48px;overflow-y:auto;max-height:calc(100vh - 48px);
   display:none;flex-direction:column;
 }
 body.edit-mode .sidebar{display:flex}
 
 .s-title{
   font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;
-  color:var(--text-muted);margin-bottom:8px;margin-top:12px;
+  color:var(--text-muted);margin-bottom:8px;
   display:flex;align-items:center;gap:6px;
 }
-.s-title:first-child{margin-top:0}
 .s-title::after{content:'';flex:1;height:1px;background:var(--border)}
-
 .search-input{
   width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:6px;
   font-family:inherit;font-size:12px;background:var(--bg);margin-bottom:8px;
 }
 .search-input:focus{outline:none;border-color:#94A3B8;background:#FFF}
-
 .pool-card{
-  display:flex;flex-direction:column;gap:1px;
-  padding:6px 8px;border-radius:6px;cursor:grab;
+  display:flex;flex-direction:column;gap:1px;padding:6px 8px;border-radius:6px;cursor:grab;
   border:1.5px solid #DDD8D0;background:#FFF;
-  transition:transform .15s,box-shadow .15s;
-  user-select:none;margin-bottom:3px;
+  transition:transform .15s,box-shadow .15s;user-select:none;margin-bottom:3px;
 }
 .pool-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}
 .pool-card.dragging{opacity:.3;cursor:grabbing}
@@ -91,14 +90,16 @@ body.edit-mode .sidebar{display:flex}
 .pc-name{font-size:11px;color:var(--text-muted);font-weight:600}
 .pool-empty{font-size:11px;color:#94A3B8;text-align:center;padding:12px;background:#F8FAFC;border-radius:6px;line-height:1.6}
 .reset-btn{
-  width:100%;padding:7px;border:1px solid var(--border);margin-top:auto;
+  width:100%;padding:7px;border:1px solid var(--border);margin-top:auto;padding-top:10px;
   background:var(--bg);border-radius:6px;cursor:pointer;
   font-family:inherit;font-size:12px;color:var(--text-muted);transition:all .15s;
 }
 .reset-btn:hover{border-color:#EF4444;color:#EF4444;background:#FEF2F2}
 
+/* Main */
 .main-content{flex:1;padding:10px 14px;overflow-x:auto;min-width:0}
 
+/* Week */
 .week-block{margin-bottom:14px}
 .week-head{display:flex;align-items:center;gap:8px;margin-bottom:5px}
 .week-label{font-size:13px;font-weight:900;color:var(--text)}
@@ -110,23 +111,42 @@ table.sch{
   width:100%;table-layout:fixed;
 }
 table.sch th,table.sch td{border:1px solid var(--border)}
-.th-corner{background:#292524;color:#FFF;font-size:11px;font-weight:700;padding:5px 7px;text-align:left;vertical-align:middle}
+.th-corner{
+  background:#292524;color:#FFF;font-size:11px;font-weight:700;
+  padding:5px 7px;text-align:left;vertical-align:middle;
+}
 .th-day{text-align:center;padding:5px 3px;background:#FAFAF8;vertical-align:top}
 .th-date{font-weight:700;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text)}
 .th-dow{font-size:9px;color:var(--text-muted);margin:1px 0 3px}
 
-/* Exam chip in header cell */
+/* Exam chips */
+.chip-wrap{display:flex;flex-direction:column;gap:2px;align-items:center;margin-top:3px}
 .exam-chip{
   display:inline-flex;align-items:center;gap:3px;
-  padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;margin-top:2px;
+  padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;
+  white-space:nowrap;
 }
-.exam-chip.no-exam{background:#F3F4F6;color:#9CA3AF;border:1px dashed #D1D5DB}
-.exam-chip.morning{background:#EAF5FD;color:#0369A1;border:1px solid #BAE6FD}
-.exam-chip.lunch{background:#FFF8EF;color:#B45309;border:1px solid #FED7AA}
-.exam-chip.both{background:#F0FDF4;color:#15803D;border:1px solid #86EFAC}
-.exam-people{font-size:8px;font-family:'JetBrains Mono',monospace;padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.07);margin-left:1px}
+.chip-no{background:#F3F4F6;color:#9CA3AF;border:1px dashed #D1D5DB}
+.chip-morning{background:#EAF5FD;color:#0369A1;border:1px solid #BAE6FD}
+.chip-lunch{background:#FFF8EF;color:#B45309;border:1px solid #FED7AA}
+.chip-both{background:#F0FDF4;color:#15803D;border:1px solid #86EFAC}
 
-/* Role label col */
+/* Subject coloured inline tag */
+.subj-inline{
+  display:inline-block;padding:1px 5px;border-radius:3px;
+  font-size:9px;font-weight:800;margin-left:2px;
+}
+.subj-國語{background:#FEE2E2;color:#D92B2B}
+.subj-數學{background:#DBEAFE;color:#1D55D4}
+.subj-英語{background:#DCFCE7;color:#158A45}
+.subj-未定{background:#F3F4F6;color:#9CA3AF}
+
+.people-tag{
+  font-size:8px;font-family:'JetBrains Mono',monospace;
+  padding:1px 4px;border-radius:3px;background:rgba(0,0,0,.07);
+}
+
+/* Role rows */
 .rl{font-size:9px;font-weight:700;padding:4px 3px;vertical-align:middle;word-break:keep-all;width:56px;line-height:1.4;text-align:center}
 .rl-guide{background:#F3E8FF;color:var(--guide-color)}
 .rl-reg{background:#E0F2FE;color:var(--reg-color)}
@@ -137,7 +157,7 @@ table.sch th,table.sch td{border:1px solid var(--border)}
 .dc-reg{background:#F0F9FF}
 .dc-id{background:#FFFBEB}
 .dc.over{background:#BFDBFE !important;outline:2px dashed #3B82F6;outline-offset:-2px}
-.dc-inactive{background:#F9FAFB;opacity:.3}
+.dc-inactive{background:#F9FAFB;opacity:.28}
 
 .drop-empty{
   height:48px;display:flex;align-items:center;justify-content:center;
@@ -184,7 +204,6 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 .modal-close:hover{background:var(--bg)}
 .modal-body{padding:16px 20px;overflow-y:auto;flex:1}
 .modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
-
 .add-row{display:flex;gap:8px;margin-bottom:14px;align-items:flex-end}
 .field-group{display:flex;flex-direction:column;gap:3px;flex:1}
 .field-label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
@@ -192,13 +211,21 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 .field-input:focus{outline:none;border-color:#94A3B8;background:#FFF}
 .add-btn{padding:7px 16px;background:#1C1917;color:#FFF;border:none;border-radius:6px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;white-space:nowrap}
 .add-btn:hover{background:#292524}
-
 .student-list{display:flex;flex-direction:column;gap:3px}
 .student-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg)}
 .stu-num{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;min-width:64px}
 .stu-name{font-size:13px;font-weight:600;flex:1}
 .stu-del{background:none;border:none;cursor:pointer;color:#D1D5DB;font-size:12px;padding:2px 7px;border-radius:4px}
 .stu-del:hover{color:#EF4444;background:#FEF2F2}
+
+/* Permission error banner */
+.perm-banner{
+  display:none;margin:8px 0;padding:10px 14px;
+  background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;
+  font-size:12px;color:#991B1B;line-height:1.6;
+}
+.perm-banner.show{display:block}
+.perm-banner code{background:#FEE2E2;padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:11px}
 </style>
 </head>
 <body>
@@ -217,7 +244,7 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
     <button class="icon-btn" onclick="openRoster()">👤 管理名單</button>
     <div class="save-badge">
       <div class="save-dot" id="saveDot"></div>
-      <span id="saveStatus">已儲存</span>
+      <span id="saveStatus">載入中…</span>
     </div>
     <button class="icon-btn" id="editModeBtn" onclick="toggleEditMode()">🔒 瀏覽</button>
   </div>
@@ -232,6 +259,11 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
   </aside>
 
   <main class="main-content">
+    <div class="perm-banner" id="permBanner">
+      ⚠️ <strong>Firebase 權限不足（Missing or insufficient permissions）</strong><br>
+      請前往 Firebase Console → Firestore → Rules，加入以下規則後發布：<br><br>
+      <code>match /student_schedule/{doc} { allow read, write: if true; }</code>
+    </div>
     <div id="scheduleArea"></div>
   </main>
 </div>
@@ -285,11 +317,10 @@ const db  = getFirestore(app);
 getAuth(app);
 getAnalytics(app);
 
-// Two separate Firestore documents
-const EXAM_REF    = doc(db, 'schedule',        'main'); // 考試排程（唯讀參考）
-const STUDENT_REF = doc(db, 'student_schedule','main'); // 學生排班（讀寫）
+const EXAM_REF    = doc(db, 'schedule',        'main');
+const STUDENT_REF = doc(db, 'student_schedule','main');
 
-// ─── Constants ───────────────────────────────────────────
+// ─── Constants ─────────────────────────────────────────
 const WDAYS = ['一','二','三','四','五'];
 const WNUM  = ['一','二','三','四'];
 const WEEKS = 4;
@@ -299,11 +330,19 @@ const ROLES = [
   { key:'reg',   label:'報到人員',   color:'reg'   },
   { key:'id',    label:'發身分證條', color:'id'    },
 ];
-// ≤30 → 1 slot per role | >30 → 2 slots per role
-const slotCount = n => (n > 30 ? 2 : (n > 0 ? 1 : 0));
-const MAX_SLOTS = 2; // max rows rendered per role
+const MAX_SLOTS  = 2;
+const slotCount  = n => n > 30 ? 2 : (n > 0 ? 1 : 0);
 
-// ─── Exam reference data (from schedule/main, read-only) ─
+const SUBJ_PILL = {
+  '國語':`color:#D92B2B;border-color:#D92B2B;background:#FEF2F2`,
+  '數學':`color:#1D55D4;border-color:#1D55D4;background:#EFF6FF`,
+  '英語':`color:#158A45;border-color:#158A45;background:#F0FDF4`,
+  '未定':`color:#9CA3AF;border-color:#D1D5DB;background:#F3F4F6`,
+};
+// Subject tag for inside the chip
+const SUBJ_TAG_MAP = {'國語':'國語','數學':'數學','英語':'英語','未定':'未定'};
+
+// ─── Exam reference data ────────────────────────────────
 let examData = {
   startDate: '',
   counts: {},
@@ -311,15 +350,15 @@ let examData = {
   weekSubjs: { '篩選':['未定','未定','未定','未定'], '成長':['未定','未定','未定','未定'] },
 };
 
-// Derived: per-cell exam info
-// examInfo[tt][`${w}-${d}`] = { hasExam, slot, people }
 function buildExamInfo(tt){
-  const info = {};
-  const sc   = examData.sched[tt] || {};
-  const cnt  = examData.counts || {};
-  // Total examinees = sum of all grade counts
-  const total = Object.values(cnt).reduce((a,b)=>a+(parseInt(b)||0),0);
+  const info  = {};
+  const sc    = examData.sched[tt] || {};
+  const cnt   = examData.counts || {};
+  const total = Object.values(cnt).reduce((a,b)=>a+(parseInt(b)||0), 0);
+  const ws    = examData.weekSubjs[tt] || [];
+
   for(let w=0;w<WEEKS;w++){
+    const weekSubj = ws[w] || '未定';
     for(let d=0;d<DAYS;d++){
       const hasMorning = !!sc[`${w}-${d}-morning`];
       const hasLunch   = !!sc[`${w}-${d}-lunch`];
@@ -328,73 +367,82 @@ function buildExamInfo(tt){
       if(hasMorning && hasLunch) slot='both';
       else if(hasMorning) slot='morning';
       else if(hasLunch)   slot='lunch';
-      info[`${w}-${d}`] = { hasExam, slot, people: hasExam ? total : 0 };
+      info[`${w}-${d}`] = { hasExam, slot, people: hasExam ? total : 0, subj: weekSubj };
     }
   }
   return info;
 }
 
-// ─── Student state ────────────────────────────────────────
-let ST = mkDefault();
-let drag = null;
-let saveTimer = null;
-let isEditMode = false;
-
-function mkDefault(){
-  return {
-    testType: '篩選',
-    roster: [],
-    sched: { '篩選': mkEmptySched(), '成長': mkEmptySched() },
-  };
-}
-function mkEmptySched(){
-  const s = {};
-  for(let w=0;w<WEEKS;w++) for(let d=0;d<DAYS;d++)
-    for(const r of ROLES) for(let i=0;i<MAX_SLOTS;i++)
-      s[`${w}-${d}-${r.key}-${i}`] = null;
-  return s;
-}
-
-// ─── Firebase: live listen to exam schedule ───────────────
 function setSyncStatus(ok, msg){
   const dot = document.getElementById('syncDot');
   const lbl = document.getElementById('syncStatus');
   if(dot){ dot.style.background = ok ? '#34D399':'#FCA5A5'; lbl.textContent = msg; }
 }
+
+// Live-listen to exam schedule (read-only)
 onSnapshot(EXAM_REF, snap => {
   if(snap.exists()){
     const d = snap.data();
-    examData.startDate  = d.startDate  || '';
-    examData.counts     = d.counts     || {};
-    examData.weekSubjs  = d.weekSubjs  || examData.weekSubjs;
-    examData.sched['篩選'] = d.sched?.['篩選'] || {};
-    examData.sched['成長'] = d.sched?.['成長'] || {};
+    examData.startDate = d.startDate || '';
+    examData.counts    = d.counts    || {};
+    if(d.weekSubjs){
+      for(const tt of ['篩選','成長'])
+        if(d.weekSubjs[tt]) examData.weekSubjs[tt] = d.weekSubjs[tt];
+    }
+    for(const tt of ['篩選','成長'])
+      examData.sched[tt] = d.sched?.[tt] || {};
     setSyncStatus(true, '已同步考試排程');
   } else {
     setSyncStatus(false, '考試排程無資料');
   }
   renderSchedule();
 }, err => {
-  console.error(err);
+  console.error('Exam read error:', err);
   setSyncStatus(false, '無法讀取考試排程');
 });
 
-// ─── Firebase: load / save student schedule ───────────────
+// ─── Student state ──────────────────────────────────────
+let ST = mkDefault();
+let drag = null;
+let saveTimer = null;
+let isEditMode = false;
+
+function mkDefault(){
+  return { testType:'篩選', roster:[], sched:{'篩選':mkEmptySched(),'成長':mkEmptySched()} };
+}
+function mkEmptySched(){
+  const s={};
+  for(let w=0;w<WEEKS;w++) for(let d=0;d<DAYS;d++)
+    for(const r of ROLES) for(let i=0;i<MAX_SLOTS;i++)
+      s[`${w}-${d}-${r.key}-${i}`]=null;
+  return s;
+}
+
+// ─── Save / Load ────────────────────────────────────────
 function setStatus(color, text){
-  const dot = document.getElementById('saveDot');
-  const lbl = document.getElementById('saveStatus');
-  if(dot){ dot.style.background=color; lbl.textContent=text; }
+  const dot=document.getElementById('saveDot');
+  const lbl=document.getElementById('saveStatus');
+  if(dot){dot.style.background=color; lbl.textContent=text;}
+}
+function showPermError(show){
+  document.getElementById('permBanner').classList.toggle('show', show);
 }
 function saveST(){
   clearTimeout(saveTimer);
   setStatus('#F59E0B','同步中...');
-  saveTimer = setTimeout(async()=>{
+  saveTimer=setTimeout(async()=>{
     try{
       await setDoc(STUDENT_REF, ST);
       setStatus('#10B981','已同步');
-    } catch(e){
-      console.error(e);
-      setStatus('#EF4444','同步失敗');
+      showPermError(false);
+    }catch(e){
+      console.error('Student write error:', e);
+      if(e.code==='permission-denied'||e.message?.includes('permissions')){
+        showPermError(true);
+        setStatus('#EF4444','權限不足');
+      } else {
+        setStatus('#EF4444','同步失敗');
+      }
     }
   }, 600);
 }
@@ -406,17 +454,23 @@ async function loadST(){
       ST.testType = d.testType ?? ST.testType;
       ST.roster   = d.roster   ?? [];
       for(const tt of ['篩選','成長'])
-        if(d.sched?.[tt]) ST.sched[tt] = Object.assign(mkEmptySched(), d.sched[tt]);
+        if(d.sched?.[tt]) ST.sched[tt]=Object.assign(mkEmptySched(), d.sched[tt]);
     }
     setStatus('#10B981','已載入');
-  } catch(e){
-    console.error(e);
-    setStatus('#EF4444','載入失敗');
+    showPermError(false);
+  }catch(e){
+    console.error('Student read error:', e);
+    if(e.code==='permission-denied'||e.message?.includes('permissions')){
+      showPermError(true);
+      setStatus('#EF4444','權限不足');
+    } else {
+      setStatus('#EF4444','載入失敗');
+    }
   }
   renderAll();
 }
 
-// ─── Roster management ───────────────────────────────────
+// ─── Roster ─────────────────────────────────────────────
 window.openRoster = ()=>{
   document.getElementById('rosterModal').classList.add('open');
   renderRosterList();
@@ -428,28 +482,28 @@ window.closeRoster = ()=>{
 window.addStudent = ()=>{
   const num  = document.getElementById('newNum').value.trim();
   const name = document.getElementById('newName').value.trim();
-  if(!num||!name){ alert('請填寫班級座號與姓名'); return; }
-  if(ST.roster.find(s=>s.num===num)){ alert('此班級座號已存在'); return; }
-  ST.roster.push({ id: num+'_'+Date.now(), num, name });
+  if(!num||!name){alert('請填寫班級座號與姓名');return;}
+  if(ST.roster.find(s=>s.num===num)){alert('此班級座號已存在');return;}
+  ST.roster.push({id:num+'_'+Date.now(), num, name});
   ST.roster.sort((a,b)=>a.num.localeCompare(b.num,'zh-TW',{numeric:true}));
   document.getElementById('newNum').value='';
   document.getElementById('newName').value='';
   saveST(); renderRosterList();
 };
-window.deleteStudent = id =>{
-  if(!confirm('確定刪除此學生？')) return;
-  ST.roster = ST.roster.filter(s=>s.id!==id);
+window.deleteStudent = id=>{
+  if(!confirm('確定刪除此學生？'))return;
+  ST.roster=ST.roster.filter(s=>s.id!==id);
   for(const tt of ['篩選','成長'])
     for(const k of Object.keys(ST.sched[tt]))
       if(ST.sched[tt][k]===id) ST.sched[tt][k]=null;
   saveST(); renderRosterList();
 };
 window.renderRosterList = ()=>{
-  const q = (document.getElementById('rosterSearch')?.value||'').toLowerCase();
-  const el = document.getElementById('rosterList');
-  const list = ST.roster.filter(s=>s.num.includes(q)||s.name.toLowerCase().includes(q));
-  if(!list.length){ el.innerHTML='<div style="text-align:center;color:#94A3B8;padding:16px;font-size:13px">尚無學生或無符合結果</div>'; return; }
-  el.innerHTML = list.map(s=>`
+  const q=(document.getElementById('rosterSearch')?.value||'').toLowerCase();
+  const el=document.getElementById('rosterList');
+  const list=ST.roster.filter(s=>s.num.includes(q)||s.name.toLowerCase().includes(q));
+  if(!list.length){el.innerHTML='<div style="text-align:center;color:#94A3B8;padding:16px;font-size:13px">尚無學生或無符合結果</div>';return;}
+  el.innerHTML=list.map(s=>`
     <div class="student-item">
       <span class="stu-num">${s.num}</span>
       <span class="stu-name">${s.name}</span>
@@ -459,23 +513,21 @@ window.renderRosterList = ()=>{
 
 // ─── Pool ────────────────────────────────────────────────
 function placedIds(){
-  const ids = new Set();
+  const ids=new Set();
   for(const v of Object.values(ST.sched[ST.testType])) if(v) ids.add(v);
   return ids;
 }
 function poolStudents(){
-  const placed = placedIds();
-  const q = (document.getElementById('poolSearch')?.value||'').toLowerCase();
+  const placed=placedIds();
+  const q=(document.getElementById('poolSearch')?.value||'').toLowerCase();
   return ST.roster.filter(s=>!placed.has(s.id)&&(s.num.includes(q)||s.name.toLowerCase().includes(q)));
 }
 function renderPool(){
-  const el = document.getElementById('cardPool');
-  if(!el) return;
-  const cards = poolStudents();
-  if(!cards.length){
-    el.innerHTML='<div class="pool-empty">✓ 所有學生已排入<br>或名單為空</div>'; return;
-  }
-  el.innerHTML = cards.map(s=>`
+  const el=document.getElementById('cardPool');
+  if(!el)return;
+  const cards=poolStudents();
+  if(!cards.length){el.innerHTML='<div class="pool-empty">✓ 所有學生已排入<br>或名單為空</div>';return;}
+  el.innerHTML=cards.map(s=>`
     <div class="pool-card" data-id="${s.id}" draggable="true"
       ondragstart="onDragStart(event,'${s.id}','pool')"
       ondragend="this.classList.remove('dragging')">
@@ -484,136 +536,137 @@ function renderPool(){
     </div>`).join('');
 }
 
-// ─── Date helpers ────────────────────────────────────────
+// ─── Dates ──────────────────────────────────────────────
 function weekDates(wi){
-  const sd = examData.startDate || '';
-  if(!sd) return Array(5).fill(null);
-  const base = new Date(sd+'T00:00:00');
-  const dow = base.getDay();
+  const sd=examData.startDate||'';
+  if(!sd)return Array(5).fill(null);
+  const base=new Date(sd+'T00:00:00');
+  const dow=base.getDay();
   base.setDate(base.getDate()+(dow===0?-6:1-dow)+wi*7);
   return Array.from({length:5},(_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return d;});
 }
-function fmt(d){ return d?`${d.getMonth()+1}/${d.getDate()}`:'—'; }
+function fmt(d){return d?`${d.getMonth()+1}/${d.getDate()}`:'—';}
 
-// ─── Render ───────────────────────────────────────────────
+// ─── Render ─────────────────────────────────────────────
 function renderAll(){
   document.getElementById('tab-篩選').className='tab-btn'+(ST.testType==='篩選'?' active':'');
   document.getElementById('tab-成長').className='tab-btn'+(ST.testType==='成長'?' active':'');
-  renderPool();
-  renderSchedule();
+  renderPool(); renderSchedule();
 }
 
-const SUBJ_PILL = {
-  '國語':'color:#D92B2B;border-color:#D92B2B;background:#FEF2F2',
-  '數學':'color:#1D55D4;border-color:#1D55D4;background:#EFF6FF',
-  '英語':'color:#158A45;border-color:#158A45;background:#F0FDF4',
-  '未定':'color:#9CA3AF;border-color:#D1D5DB;background:#F3F4F6',
-};
-
 function renderSchedule(){
-  const area = document.getElementById('scheduleArea');
-  if(!area) return;
-  const sc  = ST.sched[ST.testType];
-  const ei  = buildExamInfo(ST.testType);
-  const ws  = examData.weekSubjs[ST.testType] || ['未定','未定','未定','未定'];
-  let html  = '';
+  const area=document.getElementById('scheduleArea');
+  if(!area)return;
+  const sc=ST.sched[ST.testType];
+  const ei=buildExamInfo(ST.testType);
+  const ws=examData.weekSubjs[ST.testType]||['未定','未定','未定','未定'];
+  let html='';
 
   for(let w=0;w<WEEKS;w++){
-    const dates = weekDates(w);
-    const subj  = ws[w]||'未定';
-    const ps    = SUBJ_PILL[subj]||SUBJ_PILL['未定'];
+    const dates=weekDates(w);
+    const subj=ws[w]||'未定';
+    const ps=SUBJ_PILL[subj]||SUBJ_PILL['未定'];
 
-    html += `<div class="week-block">
+    html+=`<div class="week-block">
       <div class="week-head">
         <div class="week-label">第${WNUM[w]}週</div>
         <div class="week-subj-pill" style="${ps}">${subj==='未定'?'未定':'考'+subj}</div>
       </div>
       <table class="sch">
         <colgroup>
-          <col style="width:58px">
+          <col style="width:56px">
           ${Array(DAYS).fill('<col>').join('')}
         </colgroup>
         <thead><tr>
           <th class="th-corner">職位</th>
           ${dates.map((d,di)=>{
-            const info = ei[`${w}-${di}`]||{};
-            const sc_label = info.slot==='both'?'早自修＋午休'
-                            :info.slot==='morning'?'早自修'
-                            :info.slot==='lunch'?'午休時間':'';
-            const chipClass = {'morning':'morning','lunch':'lunch','both':'both'}[info.slot]||'';
-            const slots = slotCount(info.people||0);
+            const info=ei[`${w}-${di}`]||{};
+            const slots=slotCount(info.people||0);
+            // slot type chip
+            const slotLabel=info.slot==='both'?'早自修＋午休'
+                           :info.slot==='morning'?'早自修'
+                           :info.slot==='lunch'?'午休時間':'';
+            const chipCls={'morning':'chip-morning','lunch':'chip-lunch','both':'chip-both'}[info.slot]||'chip-no';
+            // subject tag inside chip
+            const sj=info.subj||'未定';
+            const subjTagCls=`subj-${sj}`;
             return `<th class="th-day">
               <div class="th-date">${fmt(d)}</div>
               <div class="th-dow">${d?'（'+WDAYS[di]+'）':''}</div>
-              ${info.hasExam
-                ? `<div class="exam-chip ${chipClass}">
-                     📋 ${sc_label}
-                     ${info.people?`<span class="exam-people">${info.people}人 → ${slots}位/職</span>`:''}
-                   </div>`
-                : `<div class="exam-chip no-exam">無考試</div>`}
+              <div class="chip-wrap">
+                ${info.hasExam
+                  ? `<div class="exam-chip ${chipCls}">
+                       📋 ${slotLabel}
+                       <span class="${subjTagCls} subj-inline">${sj}</span>
+                     </div>
+                     <div style="font-size:8px;color:#9CA3AF;font-family:'JetBrains Mono',monospace">
+                       ${info.people}人 → 各${slots}位
+                     </div>`
+                  : `<div class="exam-chip chip-no">無考試</div>`}
+              </div>
             </th>`;
           }).join('')}
         </tr></thead>
-        <tbody>${renderWeekRows(w, sc, ei)}</tbody>
+        <tbody>${renderWeekRows(w,sc,ei)}</tbody>
       </table>
     </div>`;
   }
-  area.innerHTML = html;
+  area.innerHTML=html;
 }
 
 function renderWeekRows(w, sc, ei){
-  let html = '';
+  let html='';
   for(const role of ROLES){
     for(let si=0;si<MAX_SLOTS;si++){
-      html += `<tr>
+      html+=`<tr>
         <td class="rl rl-${role.color}">
           ${role.label}<br>
           <span style="font-size:8px;font-family:'JetBrains Mono',monospace;opacity:.5">#${si+1}</span>
         </td>`;
       for(let d=0;d<DAYS;d++){
-        const info   = ei[`${w}-${d}`]||{hasExam:false,people:0};
-        const slots  = slotCount(info.people||0);
-        const active = info.hasExam && si < slots;
-        const key    = `${w}-${d}-${role.key}-${si}`;
-        const sid    = sc[key];
-        const stu    = sid ? ST.roster.find(s=>s.id===sid) : null;
+        const info=ei[`${w}-${d}`]||{hasExam:false,people:0};
+        const slots=slotCount(info.people||0);
+        const active=info.hasExam && si<slots;
+        const key=`${w}-${d}-${role.key}-${si}`;
+        const sid=sc[key];
+        const stu=sid?ST.roster.find(s=>s.id===sid):null;
 
         if(!active){
-          html += `<td class="dc dc-inactive">
-            <div style="height:48px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#D1D5DB">—</div>
+          html+=`<td class="dc dc-inactive">
+            <div style="height:48px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#D1D5DB">—</div>
           </td>`;
         } else {
-          html += `<td class="dc dc-${role.color}" data-key="${key}"
+          html+=`<td class="dc dc-${role.color}" data-key="${key}"
             ondragover="ev_over(event)"
             ondrop="ev_drop(event,'${key}')"
             ondragenter="this.classList.add('over')"
             ondragleave="this.classList.remove('over')">
             ${stu
-              ? `<div class="placed placed-${role.color}" data-id="${stu.id}" draggable="true"
+              ?`<div class="placed placed-${role.color}" data-id="${stu.id}" draggable="true"
                    ondragstart="onDragStart(event,'${stu.id}','placed')"
                    ondragend="this.classList.remove('dragging')">
                    <span class="p-rm" onclick="removeCard('${key}')">✕</span>
                    <div class="placed-num">${stu.num}</div>
                    <div class="placed-name">${stu.name}</div>
                  </div>`
-              : '<div class="drop-empty">拖放此處</div>'}
+              :'<div class="drop-empty">拖放此處</div>'}
           </td>`;
         }
       }
-      html += '</tr>';
+      html+='</tr>';
     }
   }
   return html;
 }
 
-// ─── Handlers ────────────────────────────────────────────
-window.switchTab = tt=>{ ST.testType=tt; saveST(); renderAll(); };
-window.doReset = ()=>{
-  if(!confirm(`確定清除「${ST.testType}測驗」的全部排班？`)) return;
+// ─── Handlers ───────────────────────────────────────────
+window.switchTab=tt=>{ST.testType=tt;saveST();renderAll();};
+window.doReset=()=>{
+  if(!confirm(`確定清除「${ST.testType}測驗」的全部排班？`))return;
   ST.sched[ST.testType]=mkEmptySched();
-  saveST(); renderPool(); renderSchedule();
+  saveST();renderPool();renderSchedule();
 };
-window.toggleEditMode = ()=>{
+window.toggleEditMode=()=>{
   if(isEditMode){
     isEditMode=false;
     document.body.classList.remove('edit-mode');
@@ -631,36 +684,33 @@ window.toggleEditMode = ()=>{
     } else if(pw!==null) alert('密碼錯誤');
   }
 };
-
-// Drag & Drop
-window.onDragStart = (ev,id,src)=>{
-  if(!isEditMode){ ev.preventDefault(); return; }
+window.onDragStart=(ev,id,src)=>{
+  if(!isEditMode){ev.preventDefault();return;}
   drag={id,src};
   ev.dataTransfer.effectAllowed='move';
-  setTimeout(()=>{ const el=document.querySelector(`[data-id="${id}"]`); if(el)el.classList.add('dragging'); },0);
+  setTimeout(()=>{const el=document.querySelector(`[data-id="${id}"]`);if(el)el.classList.add('dragging');},0);
 };
-window.ev_over = ev=>{ ev.preventDefault(); ev.dataTransfer.dropEffect='move'; };
-window.ev_drop = (ev,targetKey)=>{
+window.ev_over=ev=>{ev.preventDefault();ev.dataTransfer.dropEffect='move';};
+window.ev_drop=(ev,targetKey)=>{
   ev.preventDefault();
   ev.currentTarget.classList.remove('over');
-  if(!drag||!isEditMode) return;
+  if(!drag||!isEditMode)return;
   const sc=ST.sched[ST.testType];
   const existing=sc[targetKey];
   if(drag.src==='pool'){
     sc[targetKey]=drag.id;
   } else {
     const srcKey=Object.keys(sc).find(k=>sc[k]===drag.id);
-    if(srcKey){ sc[srcKey]=existing||null; sc[targetKey]=drag.id; }
+    if(srcKey){sc[srcKey]=existing||null;sc[targetKey]=drag.id;}
   }
   drag=null;
-  saveST(); renderPool(); renderSchedule();
+  saveST();renderPool();renderSchedule();
 };
-window.removeCard = key=>{
+window.removeCard=key=>{
   ST.sched[ST.testType][key]=null;
-  saveST(); renderPool(); renderSchedule();
+  saveST();renderPool();renderSchedule();
 };
 
-// Boot
 loadST();
 </script>
 </body>

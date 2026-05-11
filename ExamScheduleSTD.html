@@ -312,10 +312,13 @@ const firebaseConfig = {
   appId: "1:108951710153:web:434de73a24160fe3e2e018",
   measurementId: "G-EGQ7BLK57Y"
 };
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
-getAuth(app);
-getAnalytics(app);
+// Use unique app name to avoid conflict when ExamSchedule.html is open simultaneously
+let app;
+try { app = initializeApp(firebaseConfig, 'student-scheduler'); }
+catch(e) { app = initializeApp(firebaseConfig, 'student-scheduler-'+Date.now()); }
+const db = getFirestore(app);
+try { getAuth(app); } catch(e) {}
+try { getAnalytics(app); } catch(e) {}
 
 const EXAM_REF    = doc(db, 'schedule',        'main');
 const STUDENT_REF = doc(db, 'student_schedule','main');

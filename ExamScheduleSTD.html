@@ -385,9 +385,27 @@ function subjFromSlots(mCard, lCard){
   return ms || ls || '未定';
 }
 
+function peopleFromCard(tt, cardObj){
+  if(!cardObj) return 0;
+  const parts = cardObj.id.split('-');
+  const grade = parts[1], subj = parts[2];
+  const key = grade + '-' + subj;
+  const cnt = examData.counts;
+  // New per-subject format: counts['篩選']['3-英']
+  if(cnt && cnt[tt] && cnt[tt][key] !== undefined) return parseInt(cnt[tt][key]) || 0;
+  // Old flat grade format: counts[grade]
+  if(cnt && cnt[grade] !== undefined) return parseInt(cnt[grade]) || 0;
+  return 0;
+}
+function peopleForDay(tt, mCard, lCard){
+  const mp = peopleFromCard(tt, mCard);
+  const lp = peopleFromCard(tt, lCard);
+  if(mCard && lCard && mCard.id === lCard.id) return mp;
+  return mp + lp;
+}
+
 function buildExamInfo(tt){
-  const info={};const sc=examData.sched[tt]||{};const cnt=examData.counts||{};
-  const total=Object.values(cnt).reduce((a,b)=>a+(parseInt(b)||0),0);
+  const info={};const sc=examData.sched[tt]||{};
   for(let w=0;w<WEEKS;w++){
     for(let d=0;d<DAYS;d++){
       const mCard=sc[`${w}-${d}-morning`]||null;
@@ -397,7 +415,8 @@ function buildExamInfo(tt){
       let slot=null;
       if(hM&&hL)slot='both';else if(hM)slot='morning';else if(hL)slot='lunch';
       const subj=has?subjFromSlots(mCard,lCard):'未定';
-      info[`${w}-${d}`]={hasExam:has,slot,people:has?total:0,subj};
+      const people=has?peopleForDay(tt,mCard,lCard):0;
+      info[`${w}-${d}`]={hasExam:has,slot,people,subj};
     }
   }
   return info;

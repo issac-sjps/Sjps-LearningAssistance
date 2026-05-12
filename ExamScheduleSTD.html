@@ -16,7 +16,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-/* ── Header ── */
 header{background:#1C1917;color:#FFF;padding:0 16px;height:48px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:200}
 .app-logo{font-size:19px;font-weight:900;letter-spacing:-.5px;white-space:nowrap}
 .app-logo span{color:#F59E0B}
@@ -28,13 +27,12 @@ header{background:#1C1917;color:#FFF;padding:0 16px;height:48px;display:flex;ali
 .header-right{margin-left:auto;display:flex;align-items:center;gap:7px;flex-shrink:0}
 .save-badge{font-size:11px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:4px;white-space:nowrap}
 .save-dot{width:6px;height:6px;border-radius:50%;background:#10B981;transition:background .3s}
-.icon-btn{padding:4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.icon-btn{padding:4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center}
 .icon-btn:hover{background:rgba(255,255,255,.18);color:#FFF}
 .icon-btn.unlocked{background:#D97706;border-color:#F59E0B;color:#FFF}
 .print-btn{padding:4px 12px;border-radius:6px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:rgba(255,255,255,.72);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
 .print-btn:hover{background:#059669;border-color:#34D399;color:#FFF}
 
-/* ── Layout ── */
 .layout{display:flex;align-items:flex-start}
 .sidebar{width:206px;min-width:206px;background:var(--surface);border-right:1px solid var(--border);min-height:calc(100vh - 48px);padding:14px 12px;position:sticky;top:48px;overflow-y:auto;max-height:calc(100vh - 48px);display:none;flex-direction:column}
 body.edit-mode .sidebar{display:flex}
@@ -51,57 +49,67 @@ body.edit-mode .sidebar{display:flex}
 .reset-btn{width:100%;padding:7px;border:1px solid var(--border);margin-top:auto;background:var(--bg);border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;color:var(--text-muted);transition:all .15s}
 .reset-btn:hover{border-color:#EF4444;color:#EF4444;background:#FEF2F2}
 
-/* ── Main ── */
 .main-content{flex:1;padding:10px 14px;overflow-x:auto;min-width:0}
 
-/* ── Week ── */
+/* Week */
 .week-block{margin-bottom:14px}
 .week-head{display:flex;align-items:center;gap:8px;margin-bottom:5px}
 .week-label{font-size:13px;font-weight:900;color:var(--text)}
 .week-subj-pill{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:700;border:1.5px solid}
 
-table.sch{border-collapse:collapse;background:var(--surface);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);width:100%;table-layout:fixed}
+table.sch{border-collapse:collapse;background:var(--surface);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);width:100%;table-layout:auto}
 table.sch th,table.sch td{border:1px solid var(--border)}
-.th-corner{background:#292524;color:#FFF;font-size:11px;font-weight:700;padding:5px 7px;text-align:left;vertical-align:middle}
-.th-day{text-align:center;padding:5px 3px;background:#FAFAF8;vertical-align:top}
-.th-date{font-weight:700;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text)}
-.th-dow{font-size:9px;color:var(--text-muted);margin:1px 0 3px}
 
-.chip-wrap{display:flex;flex-direction:column;gap:2px;align-items:center;margin-top:3px}
-.exam-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;white-space:nowrap}
-.chip-no{background:#F3F4F6;color:#9CA3AF;border:1px dashed #D1D5DB}
-.chip-morning{background:#EAF5FD;color:#0369A1;border:1px solid #BAE6FD}
-.chip-lunch{background:#FFF8EF;color:#B45309;border:1px solid #FED7AA}
-.chip-both{background:#F0FDF4;color:#15803D;border:1px solid #86EFAC}
-.subj-inline{display:inline-block;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:800;margin-left:2px}
+/* Corner & day header */
+.th-corner{background:#292524;color:#FFF;font-size:11px;font-weight:700;padding:5px 7px;text-align:left;vertical-align:middle;white-space:nowrap}
+/* Day group header spans 2 sub-cols */
+.th-day-group{text-align:center;padding:4px 3px;background:#FAFAF8;vertical-align:top}
+.th-date{font-weight:700;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.th-dow{font-size:9px;color:var(--text-muted);margin:1px 0 2px}
+/* Sub-column header: 早 / 午 */
+.th-sub{text-align:center;padding:3px 2px;font-size:9px;font-weight:700;vertical-align:top}
+.th-sub-morning{background:#EAF5FD;color:#0369A1}
+.th-sub-lunch{background:#FFF8EF;color:#B45309}
+.th-sub-none{background:#F3F4F6;color:#C4C4C4}
+
+/* Exam chip inside sub-header */
+.sub-chip{display:inline-flex;align-items:center;gap:2px;padding:1px 4px;border-radius:3px;font-size:8px;font-weight:700;margin-top:2px;white-space:nowrap}
+.sub-chip-no{background:#F3F4F6;color:#C4C4C4;border:1px dashed #DDD}
+.sub-chip-has{background:rgba(0,0,0,.05)}
 .subj-國語{background:#FEE2E2;color:#D92B2B}
 .subj-數學{background:#DBEAFE;color:#1D55D4}
 .subj-英語{background:#DCFCE7;color:#158A45}
 .subj-未定{background:#F3F4F6;color:#9CA3AF}
+.subj-inline{display:inline-block;padding:0 4px;border-radius:2px;font-size:8px;font-weight:800}
 
-.rl{font-size:9px;font-weight:700;padding:4px 3px;vertical-align:middle;word-break:keep-all;width:56px;line-height:1.4;text-align:center}
+/* Role label */
+.rl{font-size:9px;font-weight:700;padding:4px 3px;vertical-align:middle;word-break:keep-all;width:52px;line-height:1.4;text-align:center}
 .rl-guide{background:#F3E8FF;color:var(--guide)}
 .rl-reg{background:#E0F2FE;color:var(--reg)}
 .rl-id{background:#FEF3C7;color:var(--id)}
 
-.dc{vertical-align:middle;padding:3px;transition:background .15s}
-.dc-guide{background:#FAF5FF}
-.dc-reg{background:#F0F9FF}
-.dc-id{background:#FFFBEB}
+/* Drop cells */
+.dc{vertical-align:middle;padding:3px;transition:background .15s;width:80px;min-width:70px}
+.dc-morning-guide{background:#F9F5FF}
+.dc-morning-reg  {background:#F0F8FF}
+.dc-morning-id   {background:#FFFCF0}
+.dc-lunch-guide  {background:#F3E8FF55}
+.dc-lunch-reg    {background:#E0F2FE55}
+.dc-lunch-id     {background:#FEF3C755}
 .dc.over{background:#BFDBFE !important;outline:2px dashed #3B82F6;outline-offset:-2px}
-.dc-inactive{background:#F9FAFB;opacity:.28}
+.dc-inactive{background:#F5F5F5;opacity:.22}
 
-.drop-empty{height:48px;display:flex;align-items:center;justify-content:center;color:#D1D5DB;font-size:10px;border:1.5px dashed #E5E7EB;border-radius:5px}
+.drop-empty{height:44px;display:flex;align-items:center;justify-content:center;color:#D1D5DB;font-size:9px;border:1.5px dashed #E5E7EB;border-radius:4px}
 .dc.over .drop-empty{border-color:#93C5FD;color:#93C5FD}
 
-.placed{border-radius:5px;padding:4px 7px;border:1.5px solid;cursor:grab;user-select:none;position:relative;min-height:48px;display:flex;flex-direction:column;justify-content:center;gap:1px}
+.placed{border-radius:4px;padding:3px 6px;border:1.5px solid;cursor:grab;user-select:none;position:relative;min-height:44px;display:flex;flex-direction:column;justify-content:center;gap:1px}
 .placed.dragging{opacity:.3}
 .placed-guide{border-color:var(--guide);background:#F5F3FF}
-.placed-reg{border-color:var(--reg);background:#EFF9FF}
-.placed-id{border-color:var(--id);background:#FFFBEB}
-.placed-num{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text)}
-.placed-name{font-size:12px;font-weight:800;color:var(--text)}
-.p-rm{position:absolute;top:2px;right:3px;cursor:pointer;font-size:10px;color:#D1D5DB;padding:1px 3px;border-radius:2px}
+.placed-reg  {border-color:var(--reg);background:#EFF9FF}
+.placed-id   {border-color:var(--id);background:#FFFBEB}
+.placed-num{font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--text)}
+.placed-name{font-size:11px;font-weight:800;color:var(--text)}
+.p-rm{position:absolute;top:2px;right:2px;cursor:pointer;font-size:9px;color:#D1D5DB;padding:1px 2px;border-radius:2px}
 .p-rm:hover{color:#EF4444;background:#FEE2E2}
 
 body:not(.edit-mode) .pool-card,
@@ -109,7 +117,7 @@ body:not(.edit-mode) .placed{cursor:default;pointer-events:none}
 body:not(.edit-mode) .p-rm{display:none}
 body:not(.edit-mode) .drop-empty{pointer-events:none}
 
-/* ── Modal ── */
+/* Modal */
 .modal-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
 .modal{background:#FFF;border-radius:12px;width:540px;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden}
@@ -133,114 +141,54 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 .stu-del{background:none;border:none;cursor:pointer;color:#D1D5DB;font-size:12px;padding:2px 7px;border-radius:4px}
 .stu-del:hover{color:#EF4444;background:#FEF2F2}
 
-/* ── Permission banner ── */
 .perm-banner{display:none;margin:8px 0;padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:12px;color:#991B1B;line-height:1.6}
 .perm-banner.show{display:block}
-.perm-banner code{background:#FEE2E2;padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:11px}
 
-/* ── Print header (hidden on screen) ── */
+/* Print */
 .print-page-header{display:none}
-
-/* ════════════════════════════════════════
-   PRINT STYLES  —  A4 橫向，每頁兩週
-   ════════════════════════════════════════ */
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   @page{size:A4 landscape;margin:8mm 7mm}
-
-  header,.sidebar,.perm-banner,.no-print,
-  .pool-card,.pool-empty,.reset-btn,.search-input,.s-title,
-  .p-rm,.drop-empty .text{display:none!important}
-
+  header,.sidebar,.perm-banner,.no-print,.pool-card,.pool-empty,.reset-btn,.search-input,.s-title,.p-rm{display:none!important}
   body{background:#FFF!important}
   .layout{display:block!important}
   .main-content{padding:0!important;overflow:visible!important}
-
-  /* Page break: after week 2 */
   .week-block:nth-child(2){margin-bottom:0;page-break-after:always}
   .week-block{break-inside:avoid;margin-bottom:5pt}
-
-  /* Per-page print header */
-  .print-page-header{
-    display:flex!important;align-items:baseline;justify-content:space-between;
-    padding-bottom:4pt;margin-bottom:5pt;
-    border-bottom:2pt solid #1C1917;
-  }
-  .print-page-header:nth-of-type(2){margin-top:0}
-  .pph-title{font-size:13pt;font-weight:900;letter-spacing:-.3pt}
-  .pph-title span{color:#D97706}
+  .print-page-header{display:flex!important;align-items:baseline;justify-content:space-between;padding-bottom:4pt;margin-bottom:5pt;border-bottom:2pt solid #1C1917}
+  .pph-title{font-size:13pt;font-weight:900}.pph-title span{color:#D97706}
   .pph-sub{font-size:8pt;color:#555}
   .pph-type{font-size:8pt;font-weight:700;padding:1pt 6pt;border-radius:3pt;background:#F3F4F6;border:1pt solid #CCC}
-
-  /* Week head */
   .week-head{margin-bottom:3pt!important}
   .week-label{font-size:10pt!important;font-weight:900!important}
-  .week-subj-pill{font-size:7.5pt!important;padding:1pt 6pt!important}
-
-  /* Table */
-  table.sch{
-    border-collapse:collapse!important;box-shadow:none!important;
-    border-radius:0!important;border:1.5pt solid #666!important;
-    width:100%!important;table-layout:fixed!important
-  }
+  .week-subj-pill{font-size:7pt!important;padding:1pt 5pt!important}
+  table.sch{border-collapse:collapse!important;box-shadow:none!important;border-radius:0!important;border:1.5pt solid #666!important;width:100%!important}
   table.sch th,table.sch td{border:1pt solid #AAA!important}
-
-  .th-corner{
-    background:#1C1917!important;color:#FFF!important;
-    font-size:7pt!important;padding:3pt 4pt!important;
-    width:38pt!important;vertical-align:middle!important
-  }
-  .th-day{background:#F0F0EE!important;padding:3pt 2pt!important;vertical-align:top!important}
-  .th-date{font-size:9pt!important;font-weight:800!important}
-  .th-dow{font-size:7pt!important;margin:0 0 2pt!important}
-  .chip-wrap{margin-top:2pt!important;gap:1pt!important}
-  .exam-chip{font-size:6.5pt!important;padding:1pt 3pt!important;border-radius:2pt!important}
-  .subj-inline{font-size:6pt!important;padding:0 3pt!important}
-  .chip-wrap>div:last-child{font-size:6.5pt!important}
-
-  /* Role label */
-  .rl{font-size:7pt!important;width:38pt!important;padding:2pt!important;line-height:1.3!important}
+  .th-corner{background:#1C1917!important;color:#FFF!important;font-size:7pt!important;padding:3pt 4pt!important}
+  .th-day-group{background:#F0F0EE!important;padding:2pt!important}
+  .th-date{font-size:8pt!important}
+  .th-dow{font-size:6pt!important;margin:0!important}
+  .th-sub{font-size:7pt!important;padding:2pt 1pt!important}
+  .th-sub-morning{background:#EAF5FD!important}
+  .th-sub-lunch{background:#FFF8EF!important}
+  .th-sub-none{background:#F3F4F6!important}
+  .sub-chip{font-size:6pt!important;padding:0 3pt!important}
+  .rl{font-size:7pt!important;width:36pt!important;padding:2pt!important}
   .rl-guide{background:#F3E8FF!important;color:#7C3AED!important}
   .rl-reg  {background:#E0F2FE!important;color:#0369A1!important}
   .rl-id   {background:#FEF3C7!important;color:#B45309!important}
-  .rl span {font-size:6pt!important}
-
-  /* Drop cells — become handwrite boxes */
-  .dc{padding:2pt!important;vertical-align:middle!important}
-  .dc-guide{background:#FAF5FF!important}
-  .dc-reg  {background:#F0F9FF!important}
-  .dc-id   {background:#FFFBEB!important}
-  .dc-inactive{background:#F5F5F5!important;opacity:.22!important}
-
-  .drop-empty{
-    height:30pt!important;
-    border:1pt dashed #BBB!important;border-radius:2pt!important;
-    background:#FAFAFA!important;
-    /* hide "拖放此處" text */
-    font-size:0!important;color:transparent!important
-  }
-
-  /* Placed card */
-  .placed{
-    min-height:30pt!important;border-width:1pt!important;
-    padding:2pt 5pt!important;border-radius:2pt!important;gap:0!important
-  }
+  .dc{padding:2pt!important}
+  .dc-inactive{opacity:.2!important;background:#F5F5F5!important}
+  .drop-empty{height:26pt!important;border:1pt dashed #CCC!important;font-size:0!important;color:transparent!important;background:#FAFAFA!important}
+  .placed{min-height:26pt!important;border-width:1pt!important;padding:2pt 4pt!important;border-radius:2pt!important;gap:0!important}
   .placed-guide{border-color:#7C3AED!important;background:#F5F3FF!important}
   .placed-reg  {border-color:#0369A1!important;background:#EFF9FF!important}
   .placed-id   {border-color:#B45309!important;background:#FFFBEB!important}
-  .placed-num {font-size:7.5pt!important;line-height:1.3!important}
-  .placed-name{font-size:9pt!important;font-weight:900!important;line-height:1.3!important}
+  .placed-num{font-size:7pt!important}.placed-name{font-size:8.5pt!important;font-weight:900!important}
   .p-rm{display:none!important}
-
-  /* Chip colours */
-  .chip-no     {background:#F3F4F6!important;border:1pt dashed #CCC!important}
-  .chip-morning{background:#EAF5FD!important}
-  .chip-lunch  {background:#FFF8EF!important}
-  .chip-both   {background:#F0FDF4!important}
   .subj-國語{background:#FEE2E2!important;color:#D92B2B!important}
   .subj-數學{background:#DBEAFE!important;color:#1D55D4!important}
   .subj-英語{background:#DCFCE7!important;color:#158A45!important}
-  .subj-未定{background:#F3F4F6!important;color:#9CA3AF!important}
 }
 </style>
 </head>
@@ -257,7 +205,7 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
     <span id="syncStatus">連線考試排程中…</span>
   </div>
   <div class="header-right">
-    <a href="https://issac-sjps.github.io/Sjps-LearningAssistance/ExamSchedule.html" target="_blank" class="icon-btn" style="text-decoration:none">📋 考試排程</a>
+    <a href="https://issac-sjps.github.io/Sjps-LearningAssistance/ExamSchedule.html" target="_blank" class="icon-btn">📋 考試排程</a>
     <button class="icon-btn" onclick="openRoster()">👤 管理名單</button>
     <button class="print-btn no-print" onclick="doPrint()">🖨 列印</button>
     <div class="save-badge">
@@ -275,18 +223,14 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
     <div id="cardPool"></div>
     <button class="reset-btn" onclick="doReset()">🗑 清除此測驗排班</button>
   </aside>
-
   <main class="main-content">
     <div class="perm-banner" id="permBanner">
-      ⚠️ <strong>Firebase 權限不足（Missing or insufficient permissions）</strong><br>
-      請前往 Firebase Console → Firestore → Rules，確認規則已開放 student_schedule 的讀寫。
+      ⚠️ <strong>Firebase 權限不足</strong> — 請確認 Firestore Rules 已開放 student_schedule 讀寫。
     </div>
-    <!-- scheduleArea 由 JS 動態產生，並在前面插入 print-page-header -->
     <div id="scheduleArea"></div>
   </main>
 </div>
 
-<!-- Roster Modal -->
 <div class="modal-overlay" id="rosterModal">
   <div class="modal">
     <div class="modal-head">
@@ -321,7 +265,6 @@ import { getFirestore, doc, getDoc, setDoc, onSnapshot }
 import { getAuth }      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
 
-// 考試排程與學生排班現在都在同一個專案 sjps-examschedule
 const examConfig = {
   apiKey:"AIzaSyDqbYCxLjRSbEhrqNlTNl6GXx6a45LdFvQ",
   authDomain:"sjps-examschedule.firebaseapp.com",
@@ -354,12 +297,14 @@ const STUDENT_REF = doc(studentDb, 'student_schedule','main');
 const WDAYS=['一','二','三','四','五'];
 const WNUM =['一','二','三','四'];
 const WEEKS=4; const DAYS=5;
+const SLOTS=['morning','lunch']; // two sub-columns per day
 const ROLES=[
   {key:'guide',label:'引導人員',  color:'guide'},
   {key:'reg',  label:'報到人員',  color:'reg'  },
   {key:'id',   label:'發身分證條',color:'id'   },
 ];
-const MAX_SLOTS=2;
+const MAX_SLOTS_PER_ROLE=2; // max 2 rows per role
+// ≤0 → 0 slots (no exam), 1-30 → 1 slot, >30 → 2 slots
 const slotCount=n=>n>30?2:(n>0?1:0);
 const SUBJ_PILL={
   '國語':'color:#D92B2B;border-color:#D92B2B;background:#FEF2F2',
@@ -367,62 +312,33 @@ const SUBJ_PILL={
   '英語':'color:#158A45;border-color:#158A45;background:#F0FDF4',
   '未定':'color:#9CA3AF;border-color:#D1D5DB;background:#F3F4F6',
 };
+const SUBJ_CHAR={'國':'國語','數':'數學','英':'英語'};
 
-// ─── Exam reference data ─────────────────────────────────
-let examData={startDate:'',counts:{},sched:{'篩選':{},'成長':{}},
-  weekSubjs:{'篩選':['未定','未定','未定','未定'],'成長':['未定','未定','未定','未定']}};
+// ─── Exam data (read-only from schedule/main) ────────────
+let examData={startDate:'',counts:{},sched:{'篩選':{},'成長':{}}};
 
-// Parse subject from card id like '篩選-3-英' → '英語'
-const SUBJ_CHAR_MAP={'國':'國語','數':'數學','英':'英語'};
-function subjFromCardId(id){
-  if(!id) return null;
-  const char = id.split('-')[2];
-  return SUBJ_CHAR_MAP[char] || null;
+function subjFromId(id){
+  if(!id)return null;
+  return SUBJ_CHAR[id.split('-')[2]]||null;
 }
-function subjFromSlots(mCard, lCard){
-  const ms = mCard ? subjFromCardId(mCard.id) : null;
-  const ls = lCard ? subjFromCardId(lCard.id) : null;
-  if(ms && ls && ms !== ls) return ms + '/' + ls;
-  return ms || ls || '未定';
-}
-
-function peopleFromCard(tt, cardObj){
-  if(!cardObj) return 0;
-  const parts = cardObj.id.split('-');
-  const grade = parts[1], subj = parts[2];
-  const key = grade + '-' + subj;
-  const cnt = examData.counts;
-  console.log('[peopleFromCard] tt='+tt+' id='+cardObj.id+' key='+key+' cnt[tt]='+JSON.stringify(cnt[tt]));
-  // New per-subject format: counts['篩選']['3-英']
-  if(cnt && cnt[tt] && cnt[tt][key] !== undefined) return parseInt(cnt[tt][key]) || 0;
-  // Old flat grade format: counts[grade]
-  if(cnt && cnt[grade] !== undefined) return parseInt(cnt[grade]) || 0;
+function peopleFromCard(tt,cardObj){
+  if(!cardObj)return 0;
+  const parts=cardObj.id.split('-');
+  const key=parts[1]+'-'+parts[2];
+  const cnt=examData.counts;
+  if(cnt&&cnt[tt]&&cnt[tt][key]!==undefined)return parseInt(cnt[tt][key])||0;
+  if(cnt&&cnt[parts[1]]!==undefined)return parseInt(cnt[parts[1]])||0;
   return 0;
 }
-function peopleForDay(tt, mCard, lCard){
-  const mp = peopleFromCard(tt, mCard);
-  const lp = peopleFromCard(tt, lCard);
-  if(mCard && lCard && mCard.id === lCard.id) return mp;
-  return mp + lp;
+
+// Per-slot info: {hasExam, people, subj}
+function slotInfo(tt,w,d,slot){
+  const sc=examData.sched[tt]||{};
+  const card=sc[`${w}-${d}-${slot}`]||null;
+  if(!card)return{hasExam:false,people:0,subj:'未定'};
+  return{hasExam:true,people:peopleFromCard(tt,card),subj:subjFromId(card.id)||'未定'};
 }
 
-function buildExamInfo(tt){
-  const info={};const sc=examData.sched[tt]||{};
-  for(let w=0;w<WEEKS;w++){
-    for(let d=0;d<DAYS;d++){
-      const mCard=sc[`${w}-${d}-morning`]||null;
-      const lCard=sc[`${w}-${d}-lunch`]||null;
-      const hM=!!mCard,hL=!!lCard;
-      const has=hM||hL;
-      let slot=null;
-      if(hM&&hL)slot='both';else if(hM)slot='morning';else if(hL)slot='lunch';
-      const subj=has?subjFromSlots(mCard,lCard):'未定';
-      const people=has?peopleForDay(tt,mCard,lCard):0;
-      info[`${w}-${d}`]={hasExam:has,slot,people,subj};
-    }
-  }
-  return info;
-}
 function setSyncStatus(ok,msg){
   const dot=document.getElementById('syncDot'),lbl=document.getElementById('syncStatus');
   if(dot){dot.style.background=ok?'#34D399':'#FCA5A5';lbl.textContent=msg;}
@@ -432,25 +348,22 @@ onSnapshot(EXAM_REF,snap=>{
     const d=snap.data();
     examData.startDate=d.startDate||'';
     examData.counts=d.counts||{};
-    if(d.weekSubjs)for(const tt of['篩選','成長'])if(d.weekSubjs[tt])examData.weekSubjs[tt]=d.weekSubjs[tt];
     for(const tt of['篩選','成長'])examData.sched[tt]=d.sched?.[tt]||{};
-    // Debug: log what we got
-    console.log('[ExamSync] startDate:', examData.startDate);
-    console.log('[ExamSync] counts:', JSON.stringify(examData.counts));
-    console.log('[ExamSync] sched 篩選 keys with values:', Object.entries(examData.sched['篩選']).filter(([,v])=>v).map(([k,v])=>k+':'+JSON.stringify(v)));
-    console.log('[ExamSync] sched 成長 keys with values:', Object.entries(examData.sched['成長']).filter(([,v])=>v).map(([k,v])=>k+':'+JSON.stringify(v)));
     setSyncStatus(true,'已同步考試排程');
   }else setSyncStatus(false,'考試排程無資料');
   renderSchedule();
 },err=>{console.error(err);setSyncStatus(false,'無法讀取考試排程');});
 
 // ─── Student state ────────────────────────────────────────
+// Key format: `${w}-${d}-${slot}-${role}-${si}`
+// slot = 'morning' | 'lunch'
 let ST=mkDefault(),drag=null,saveTimer=null,isEditMode=false;
 function mkDefault(){return{testType:'篩選',roster:[],sched:{'篩選':mkEmptySched(),'成長':mkEmptySched()}};}
 function mkEmptySched(){
   const s={};
   for(let w=0;w<WEEKS;w++)for(let d=0;d<DAYS;d++)
-    for(const r of ROLES)for(let i=0;i<MAX_SLOTS;i++)s[`${w}-${d}-${r.key}-${i}`]=null;
+    for(const slot of SLOTS)for(const r of ROLES)for(let i=0;i<MAX_SLOTS_PER_ROLE;i++)
+      s[`${w}-${d}-${slot}-${r.key}-${i}`]=null;
   return s;
 }
 
@@ -462,7 +375,7 @@ function saveST(){
   saveTimer=setTimeout(async()=>{
     try{await setDoc(STUDENT_REF,ST);setStatus('#10B981','已同步');showPermError(false);}
     catch(e){
-      console.error('Student write error:',e);
+      console.error(e);
       if(e.code==='permission-denied'||e.message?.includes('permissions')){showPermError(true);setStatus('#EF4444','權限不足');}
       else setStatus('#EF4444','同步失敗');
     }
@@ -477,7 +390,7 @@ async function loadST(){
     }
     setStatus('#10B981','已載入');showPermError(false);
   }catch(e){
-    console.error('Student read error:',e);
+    console.error(e);
     if(e.code==='permission-denied'||e.message?.includes('permissions')){showPermError(true);setStatus('#EF4444','權限不足');}
     else setStatus('#EF4444','載入失敗');
   }
@@ -532,7 +445,6 @@ function weekDates(wi){
   return Array.from({length:5},(_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return d;});
 }
 function fmt(d){return d?`${d.getMonth()+1}/${d.getDate()}`:'—';}
-function fmtFull(d){return d?`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`:'—';}
 
 // ─── Render ───────────────────────────────────────────────
 function renderAll(){
@@ -541,49 +453,86 @@ function renderAll(){
   renderPool();renderSchedule();
 }
 
-function weekTableHTML(w, sc, ei, ws){
+function weekTableHTML(w,sc,ws){
   const dates=weekDates(w);
+  const tt=ST.testType;
   const subj=ws[w]||'未定';
   const ps=SUBJ_PILL[subj]||SUBJ_PILL['未定'];
 
-  // header row
-  const headerCells=dates.map((d,di)=>{
-    const info=ei[`${w}-${di}`]||{};
-    const slots=slotCount(info.people||0);
-    const slotLabel=info.slot==='both'?'早自修＋午休':info.slot==='morning'?'早自修':info.slot==='lunch'?'午休時間':'';
-    const chipCls={'morning':'chip-morning','lunch':'chip-lunch','both':'chip-both'}[info.slot]||'chip-no';
-    const sj=info.subj||'未定';
-    return `<th class="th-day">
+  // For each day, get per-slot info
+  const dayInfos=dates.map((_,di)=>({
+    morning:slotInfo(tt,w,di,'morning'),
+    lunch:  slotInfo(tt,w,di,'lunch'),
+  }));
+
+  // Determine which sub-cols to show for each day
+  // If neither slot has exam → show 1 merged "無考試" cell (colspan=2? or just 2 empty)
+  // We always render 2 sub-cols per day for consistent layout
+
+  // Row 1: day group header (colspan=2)
+  const dayGroupHeaders=dates.map((d,di)=>{
+    const hasMorning=dayInfos[di].morning.hasExam;
+    const hasLunch=dayInfos[di].lunch.hasExam;
+    const hasAny=hasMorning||hasLunch;
+    return `<th class="th-day-group" colspan="2">
       <div class="th-date">${fmt(d)}</div>
       <div class="th-dow">${d?'（'+WDAYS[di]+'）':''}</div>
-      <div class="chip-wrap">
-        ${info.hasExam
-          ?`<div class="exam-chip ${chipCls}">📋 ${slotLabel}<span class="subj-${sj} subj-inline">${sj}</span></div>
-            <div style="font-size:8px;color:#9CA3AF;font-family:'JetBrains Mono',monospace">${info.people}人 → 各${slots}位</div>`
-          :`<div class="exam-chip chip-no">無考試</div>`}
-      </div>
+      ${!hasAny?'<div style="font-size:8px;color:#C4C4C4;margin-top:2px">無考試</div>':''}
     </th>`;
   }).join('');
 
-  // role rows
+  // Row 2: sub-column headers (早 / 午) per day
+  const subHeaders=dates.map((_,di)=>{
+    const mi=dayInfos[di].morning;
+    const li=dayInfos[di].lunch;
+    const mSlots=slotCount(mi.people);
+    const lSlots=slotCount(li.people);
+    const mSubjTag=mi.hasExam?`<span class="subj-${mi.subj} subj-inline">${mi.subj}</span>`:'';
+    const lSubjTag=li.hasExam?`<span class="subj-${li.subj} subj-inline">${li.subj}</span>`:'';
+    return `
+      <th class="th-sub ${mi.hasExam?'th-sub-morning':'th-sub-none'}">
+        早自修${mSubjTag}
+        ${mi.hasExam?`<div style="font-size:7px;font-family:'JetBrains Mono',monospace;color:#888;margin-top:1px">${mi.people}人→各${mSlots}位</div>`:''}
+      </th>
+      <th class="th-sub ${li.hasExam?'th-sub-lunch':'th-sub-none'}">
+        午休${lSubjTag}
+        ${li.hasExam?`<div style="font-size:7px;font-family:'JetBrains Mono',monospace;color:#888;margin-top:1px">${li.people}人→各${lSlots}位</div>`:''}
+      </th>`;
+  }).join('');
+
+  // Role rows: for each role × slot index, render 2 sub-cols per day
   let roleRows='';
   for(const role of ROLES){
-    for(let si=0;si<MAX_SLOTS;si++){
+    for(let si=0;si<MAX_SLOTS_PER_ROLE;si++){
       roleRows+=`<tr><td class="rl rl-${role.color}">${role.label}<br><span style="font-size:8px;font-family:'JetBrains Mono',monospace;opacity:.5">#${si+1}</span></td>`;
       for(let d=0;d<DAYS;d++){
-        const info=ei[`${w}-${d}`]||{hasExam:false,people:0};
-        const slots=slotCount(info.people||0);
-        const active=info.hasExam&&si<slots;
-        const key=`${w}-${d}-${role.key}-${si}`;
-        const sid=sc[key];const stu=sid?ST.roster.find(s=>s.id===sid):null;
-        if(!active){
-          roleRows+=`<td class="dc dc-inactive"><div style="height:48px;display:flex;align-items:center;justify-content:center;font-size:12px;color:#D1D5DB">—</div></td>`;
-        }else{
-          roleRows+=`<td class="dc dc-${role.color}" data-key="${key}" ondragover="ev_over(event)" ondrop="ev_drop(event,'${key}')" ondragenter="this.classList.add('over')" ondragleave="this.classList.remove('over')">
-            ${stu
-              ?`<div class="placed placed-${role.color}" data-id="${stu.id}" draggable="true" ondragstart="onDragStart(event,'${stu.id}','placed')" ondragend="this.classList.remove('dragging')"><span class="p-rm" onclick="removeCard('${key}')">✕</span><div class="placed-num">${stu.num}</div><div class="placed-name">${stu.name}</div></div>`
-              :'<div class="drop-empty">拖放此處</div>'}
-          </td>`;
+        for(const slot of SLOTS){
+          const info=slotInfo(tt,w,d,slot);
+          const slots=slotCount(info.people);
+          const active=info.hasExam&&si<slots;
+          const key=`${w}-${d}-${slot}-${role.key}-${si}`;
+          const sid=sc[key];
+          const stu=sid?ST.roster.find(s=>s.id===sid):null;
+          const slotColorSuffix=slot==='morning'?'morning':'lunch';
+          if(!active){
+            roleRows+=`<td class="dc dc-inactive"><div style="height:44px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#D1D5DB">—</div></td>`;
+          }else{
+            roleRows+=`<td class="dc dc-${slotColorSuffix}-${role.color}" data-key="${key}"
+              ondragover="ev_over(event)"
+              ondrop="ev_drop(event,'${key}')"
+              ondragenter="this.classList.add('over')"
+              ondragleave="this.classList.remove('over')">
+              ${stu
+                ?`<div class="placed placed-${role.color}" data-id="${stu.id}" draggable="true"
+                    ondragstart="onDragStart(event,'${stu.id}','placed')"
+                    ondragend="this.classList.remove('dragging')">
+                    <span class="p-rm" onclick="removeCard('${key}')">✕</span>
+                    <div class="placed-num">${stu.num}</div>
+                    <div class="placed-name">${stu.name}</div>
+                  </div>`
+                :'<div class="drop-empty">拖放</div>'}
+            </td>`;
+          }
         }
       }
       roleRows+='</tr>';
@@ -596,8 +545,14 @@ function weekTableHTML(w, sc, ei, ws){
       <div class="week-subj-pill" style="${ps}">${subj==='未定'?'未定':'考'+subj}</div>
     </div>
     <table class="sch">
-      <colgroup><col style="width:56px">${Array(DAYS).fill('<col>').join('')}</colgroup>
-      <thead><tr><th class="th-corner">職位</th>${headerCells}</tr></thead>
+      <colgroup>
+        <col style="width:52px">
+        ${Array(DAYS*2).fill('<col style="min-width:72px">').join('')}
+      </colgroup>
+      <thead>
+        <tr><th class="th-corner" rowspan="2">職位</th>${dayGroupHeaders}</tr>
+        <tr>${subHeaders}</tr>
+      </thead>
       <tbody>${roleRows}</tbody>
     </table>
   </div>`;
@@ -606,34 +561,28 @@ function weekTableHTML(w, sc, ei, ws){
 function renderSchedule(){
   const area=document.getElementById('scheduleArea');if(!area)return;
   const sc=ST.sched[ST.testType];
-  const ei=buildExamInfo(ST.testType);
-  const ws=examData.weekSubjs[ST.testType]||['未定','未定','未定','未定'];
+  const ws=examData.weekSubjs||{'篩選':['未定','未定','未定','未定'],'成長':['未定','未定','未定','未定']};
+  const wsT=ws[ST.testType]||['未定','未定','未定','未定'];
   const tt=ST.testType;
   const today=new Date();
   const dateStr=`${today.getFullYear()}/${today.getMonth()+1}/${today.getDate()}`;
 
-  // Page 1: weeks 0,1  |  Page 2: weeks 2,3
-  // Each page has a print-page-header
-  const page1header=`<div class="print-page-header">
+  const mkPageHeader=(weeks)=>`<div class="print-page-header">
     <div><div class="pph-title">學生<span>排班</span>表</div><div class="pph-sub">列印日期：${dateStr}</div></div>
-    <div class="pph-type">${tt}測驗 ・ 第一週 ～ 第二週</div>
-  </div>`;
-  const page2header=`<div class="print-page-header">
-    <div><div class="pph-title">學生<span>排班</span>表</div><div class="pph-sub">列印日期：${dateStr}</div></div>
-    <div class="pph-type">${tt}測驗 ・ 第三週 ～ 第四週</div>
+    <div class="pph-type">${tt}測驗・${weeks}</div>
   </div>`;
 
   area.innerHTML=
-    page1header +
-    weekTableHTML(0,sc,ei,ws) +
-    weekTableHTML(1,sc,ei,ws) +
-    page2header +
-    weekTableHTML(2,sc,ei,ws) +
-    weekTableHTML(3,sc,ei,ws);
+    mkPageHeader('第一週～第二週')+
+    weekTableHTML(0,sc,wsT)+
+    weekTableHTML(1,sc,wsT)+
+    mkPageHeader('第三週～第四週')+
+    weekTableHTML(2,sc,wsT)+
+    weekTableHTML(3,sc,wsT);
 }
 
 // ─── Print ────────────────────────────────────────────────
-window.doPrint=()=>{ window.print(); };
+window.doPrint=()=>window.print();
 
 // ─── Handlers ─────────────────────────────────────────────
 window.switchTab=tt=>{ST.testType=tt;saveST();renderAll();};
@@ -668,7 +617,10 @@ window.ev_drop=(ev,targetKey)=>{
   if(!drag||!isEditMode)return;
   const sc=ST.sched[ST.testType];const existing=sc[targetKey];
   if(drag.src==='pool'){sc[targetKey]=drag.id;}
-  else{const srcKey=Object.keys(sc).find(k=>sc[k]===drag.id);if(srcKey){sc[srcKey]=existing||null;sc[targetKey]=drag.id;}}
+  else{
+    const srcKey=Object.keys(sc).find(k=>sc[k]===drag.id);
+    if(srcKey){sc[srcKey]=existing||null;sc[targetKey]=drag.id;}
+  }
   drag=null;saveST();renderPool();renderSchedule();
 };
 window.removeCard=key=>{ST.sched[ST.testType][key]=null;saveST();renderPool();renderSchedule();};

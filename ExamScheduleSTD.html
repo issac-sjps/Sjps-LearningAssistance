@@ -425,10 +425,10 @@ window.renderRosterList=()=>{
 };
 
 // ─── Pool ─────────────────────────────────────────────────
-function placedIds(){const ids=new Set();for(const v of Object.values(ST.sched[ST.testType]))if(v)ids.add(v);return ids;}
+function placedIds(){return new Set();} // Students can be reused across slots
 function poolStudents(){
-  const placed=placedIds();const q=(document.getElementById('poolSearch')?.value||'').toLowerCase();
-  return ST.roster.filter(s=>!placed.has(s.id)&&(s.num.includes(q)||s.name.toLowerCase().includes(q)));
+  const q=(document.getElementById('poolSearch')?.value||'').toLowerCase();
+  return ST.roster.filter(s=>s.num.includes(q)||s.name.toLowerCase().includes(q));
 }
 function renderPool(){
   const el=document.getElementById('cardPool');if(!el)return;
@@ -616,10 +616,14 @@ window.ev_drop=(ev,targetKey)=>{
   ev.preventDefault();ev.currentTarget.classList.remove('over');
   if(!drag||!isEditMode)return;
   const sc=ST.sched[ST.testType];const existing=sc[targetKey];
-  if(drag.src==='pool'){sc[targetKey]=drag.id;}
-  else{
-    const srcKey=Object.keys(sc).find(k=>sc[k]===drag.id);
-    if(srcKey){sc[srcKey]=existing||null;sc[targetKey]=drag.id;}
+  if(drag.src==='pool'){
+    // Copy from pool — student can appear in multiple slots
+    sc[targetKey]=drag.id;
+  }else{
+    // Move within placed cells — swap with existing
+    const srcKey=Object.keys(sc).find(k=>sc[k]===drag.id&&k!==targetKey);
+    if(srcKey){sc[srcKey]=existing||null;}
+    sc[targetKey]=drag.id;
   }
   drag=null;saveST();renderPool();renderSchedule();
 };

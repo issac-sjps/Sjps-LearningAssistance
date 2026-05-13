@@ -61,13 +61,15 @@ header{
   transition:all .2s;
 }
 .ext-link-btn:hover{background:rgba(16,185,129,.35);color:#FFF}
-  padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.25);
-  background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);
-  font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
-  transition:all .2s;white-space:nowrap;margin-left:8px;
+.edit-mode-btn{
+  padding:4px 13px;border-radius:20px;
+  border:1.5px solid rgba(255,255,255,.22);
+  background:transparent;color:rgba(255,255,255,.5);
+  font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;
+  transition:all .2s;white-space:nowrap;margin-left:8px;letter-spacing:.01em;
 }
-.edit-mode-btn:hover{background:rgba(255,255,255,.18);color:#FFF}
-.edit-mode-btn.unlocked{background:#D97706;border-color:#F59E0B;color:#FFF}
+.edit-mode-btn:hover{border-color:rgba(255,255,255,.55);color:rgba(255,255,255,.85)}
+.edit-mode-btn.unlocked{background:#F59E0B;border-color:#F59E0B;color:#1C1917;font-weight:700}
 
 /* Edit-only elements hidden in view mode */
 .edit-only{display:none}
@@ -301,7 +303,7 @@ tr.teacher-row.visible{display:table-row}
     <div class="save-dot" id="saveDot"></div>
     <span id="saveStatus">已儲存</span>
   </div>
-  <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">🔒 瀏覽模式</button>
+  <button class="edit-mode-btn" id="editModeBtn" onclick="toggleEditMode()">瀏覽模式</button>
   <a class="ext-link-btn" href="https://issac-sjps.github.io/Sjps-LearningAssistance/ExamScheduleSTD" target="_blank">🎓 學生排班支援網</a>
 </header>
 
@@ -756,7 +758,7 @@ window.toggleEditMode = ()=>{
     // Lock
     isEditMode = false;
     document.body.classList.remove('edit-mode');
-    document.getElementById('editModeBtn').textContent='🔒 瀏覽模式';
+    document.getElementById('editModeBtn').textContent='瀏覽模式';
     document.getElementById('editModeBtn').classList.remove('unlocked');
     renderSchedule();
   } else {
@@ -765,7 +767,7 @@ window.toggleEditMode = ()=>{
     if(pw === 'admin'){
       isEditMode = true;
       document.body.classList.add('edit-mode');
-      document.getElementById('editModeBtn').textContent='🔓 編輯模式';
+      document.getElementById('editModeBtn').textContent='✏️ 編輯中';
       document.getElementById('editModeBtn').classList.add('unlocked');
       renderSchedule();
     } else if(pw !== null){

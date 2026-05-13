@@ -455,6 +455,14 @@
             <label>身分證欄位 <span style="color:var(--danger)">*</span>（將被填入）</label>
             <select id="exam-id-col"></select>
           </div>
+          <div class="col-group">
+            <label>年級欄位 <span style="color:var(--text-muted);font-weight:400;">（選填，用於輔助比對）</span></label>
+            <select id="exam-grade-col"><option value="">— 不使用 —</option></select>
+          </div>
+          <div class="col-group">
+            <label>班級欄位 <span style="color:var(--text-muted);font-weight:400;">（選填，用於輔助比對）</span></label>
+            <select id="exam-class-col"><option value="">— 不使用 —</option></select>
+          </div>
         </div>
       </div>
     </div>
@@ -489,6 +497,14 @@
             <label>身分證欄位 <span style="color:var(--danger)">*</span></label>
             <select id="school-id-col"></select>
           </div>
+          <div class="col-group">
+            <label>年級欄位 <span style="color:var(--text-muted);font-weight:400;">（選填，用於輔助比對）</span></label>
+            <select id="school-grade-col"><option value="">— 不使用 —</option></select>
+          </div>
+          <div class="col-group">
+            <label>班級欄位 <span style="color:var(--text-muted);font-weight:400;">（選填，用於輔助比對）</span></label>
+            <select id="school-class-col"><option value="">— 不使用 —</option></select>
+          </div>
         </div>
       </div>
     </div>
@@ -514,6 +530,7 @@
 
       <div id="merge-alerts" style="margin-top:18px;"></div>
       <div id="stats-row" class="hidden stat-row"></div>
+      <div id="manual-select-section" class="hidden"></div>
       <div id="missing-section" class="hidden"></div>
       <div id="dup-source-section" class="hidden"></div>
       <div id="preview-wrap" class="hidden">
@@ -537,39 +554,43 @@
 // ═══════════════════════════════════════════════════════════
 // 狀態
 // ═══════════════════════════════════════════════════════════
-let examWorkbook   = null;   // 原始 workbook（保留格式用）
-let examRows       = [];     // 考試名單 rows（JSON）
-let schoolRows     = [];     // 全校名單 rows
-let examHeaders    = [];
-let schoolHeaders  = [];
-let outputData     = [];     // 處理後的資料（與 examRows 對應，已填入身分證）
-let missingNames   = [];     // 找不到身分證的學生
+let examWorkbook  = null;
+let examRows      = [];
+let schoolRows    = [];
+let examHeaders   = [];
+let schoolHeaders = [];
+let outputData    = [];
+let missingNames  = [];
+// 需要手動選擇的項目：{ name, examRow, all: schoolRows[], autoChosen: row|null }
+let manualItems   = [];
 
 // ═══════════════════════════════════════════════════════════
 // 工具
 // ═══════════════════════════════════════════════════════════
-const NAME_ALIASES = ['姓名', '學生姓名', '名字', 'name'];
-const ID_ALIASES   = ['身分證號', '身分證', '身分證字號', '身分證統一編號', '證號', '身份證', '統一編號'];
+const NAME_ALIASES  = ['姓名', '學生姓名', '名字', 'name'];
+const ID_ALIASES    = ['身分證號', '身分證', '身分證字號', '身分證統一編號', '證號', '身份證', '統一編號'];
+const GRADE_ALIASES = ['年級', '目前年級', 'grade'];
+const CLASS_ALIASES = ['班級', '班', 'class'];
 
-function guessCol(headers, aliases) {
-  // 完全符合優先
+function guessCol(headers, aliases, allowEmpty) {
   for (const a of aliases) {
     const h = headers.find(h => String(h).trim() === a);
     if (h !== undefined) return h;
   }
-  // 包含次之
   for (const a of aliases) {
     const h = headers.find(h => String(h).includes(a));
     if (h !== undefined) return h;
   }
-  return headers[0] || '';
+  return allowEmpty ? '' : (headers[0] || '');
 }
 
-function populateSelect(selectId, headers, guessed) {
+function populateSelect(selectId, headers, guessed, withEmpty) {
   const sel = document.getElementById(selectId);
-  sel.innerHTML = headers.map(h =>
+  const emptyOpt = withEmpty ? `<option value="">— 不使用 —</option>` : '';
+  sel.innerHTML = emptyOpt + headers.map(h =>
     `<option value="${h}" ${h === guessed ? 'selected' : ''}>${h}</option>`
   ).join('');
+  if (withEmpty && !guessed) sel.value = '';
 }
 
 function setupZone(zoneId, inputId, cb) {
@@ -578,8 +599,7 @@ function setupZone(zoneId, inputId, cb) {
   zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('dragover'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
   zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('dragover');
+    e.preventDefault(); zone.classList.remove('dragover');
     if (e.dataTransfer.files[0]) { input.files = e.dataTransfer.files; readFile(input, cb); }
   });
   input.addEventListener('change', () => readFile(input, cb));
@@ -596,29 +616,47 @@ function readFile(input, cb) {
   reader.readAsArrayBuffer(f);
 }
 
+// 把班級名稱（如 "204", "02"）+ 年級（如 2）拆出班號
+// 全校名單：班級名稱 "204" → grade=2, classNum=4
+// 考試名單：目前年級=2, 班級=4（或 04）→ grade=2, classNum=4
+function parseSchoolClass(clsStr, gradeStr) {
+  const cls = String(clsStr || '').trim();
+  const grd = String(gradeStr || '').trim();
+  // 若有獨立年級欄
+  if (grd && cls) {
+    return { grade: parseInt(grd), classNum: parseInt(cls) };
+  }
+  // 從班級名稱解析（e.g. "204"→grade2,class4; "102"→grade1,class2）
+  if (cls.length === 3) return { grade: parseInt(cls[0]), classNum: parseInt(cls.slice(1)) };
+  if (cls.length === 4) return { grade: parseInt(cls.slice(0,2)), classNum: parseInt(cls.slice(2)) };
+  return { grade: NaN, classNum: NaN };
+}
+
+function gradeClassMatch(examGrade, examClass, schoolCls, schoolGrd) {
+  const eg = parseInt(examGrade), ec = parseInt(examClass);
+  if (isNaN(eg) || isNaN(ec)) return false;
+  const { grade: sg, classNum: sc } = parseSchoolClass(schoolCls, schoolGrd);
+  return sg === eg && sc === ec;
+}
+
 // ═══════════════════════════════════════════════════════════
 // 考試名單上傳
 // ═══════════════════════════════════════════════════════════
 setupZone('zone1', 'file1', (fname, wb) => {
   examWorkbook = wb;
-  const ws   = wb.Sheets[wb.SheetNames[0]];
-  examRows   = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  const ws  = wb.Sheets[wb.SheetNames[0]];
+  examRows  = XLSX.utils.sheet_to_json(ws, { defval: '' });
   if (!examRows.length) return;
-
   examHeaders = Object.keys(examRows[0]);
-  const guessName = guessCol(examHeaders, NAME_ALIASES);
-  const guessId   = guessCol(examHeaders, ID_ALIASES);
 
-  populateSelect('exam-name-col', examHeaders, guessName);
-  populateSelect('exam-id-col',   examHeaders, guessId);
+  populateSelect('exam-name-col',  examHeaders, guessCol(examHeaders, NAME_ALIASES),  false);
+  populateSelect('exam-id-col',    examHeaders, guessCol(examHeaders, ID_ALIASES),    false);
+  populateSelect('exam-grade-col', examHeaders, guessCol(examHeaders, GRADE_ALIASES, true), true);
+  populateSelect('exam-class-col', examHeaders, guessCol(examHeaders, CLASS_ALIASES, true), true);
 
   const info = document.getElementById('file1-info');
   info.className = 'file-pill';
-  info.innerHTML =
-    `<span>📄</span>` +
-    `<span class="fname">${fname}</span>` +
-    `<span class="fcount">${examRows.length} 筆</span>`;
-
+  info.innerHTML = `<span>📄</span><span class="fname">${fname}</span><span class="fcount">${examRows.length} 筆</span>`;
   document.getElementById('col-config-exam').className = '';
   document.getElementById('dot1').className = 'ready-dot on';
   checkReady();
@@ -628,24 +666,19 @@ setupZone('zone1', 'file1', (fname, wb) => {
 // 全校名單上傳
 // ═══════════════════════════════════════════════════════════
 setupZone('zone2', 'file2', (fname, wb) => {
-  const ws    = wb.Sheets[wb.SheetNames[0]];
-  schoolRows  = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  const ws  = wb.Sheets[wb.SheetNames[0]];
+  schoolRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
   if (!schoolRows.length) return;
-
   schoolHeaders = Object.keys(schoolRows[0]);
-  const guessName = guessCol(schoolHeaders, NAME_ALIASES);
-  const guessId   = guessCol(schoolHeaders, ID_ALIASES);
 
-  populateSelect('school-name-col', schoolHeaders, guessName);
-  populateSelect('school-id-col',   schoolHeaders, guessId);
+  populateSelect('school-name-col',  schoolHeaders, guessCol(schoolHeaders, NAME_ALIASES),  false);
+  populateSelect('school-id-col',    schoolHeaders, guessCol(schoolHeaders, ID_ALIASES),    false);
+  populateSelect('school-grade-col', schoolHeaders, guessCol(schoolHeaders, GRADE_ALIASES, true), true);
+  populateSelect('school-class-col', schoolHeaders, guessCol(schoolHeaders, CLASS_ALIASES, true), true);
 
   const info = document.getElementById('file2-info');
   info.className = 'file-pill';
-  info.innerHTML =
-    `<span>🏫</span>` +
-    `<span class="fname">${fname}</span>` +
-    `<span class="fcount">${schoolRows.length} 筆</span>`;
-
+  info.innerHTML = `<span>🏫</span><span class="fname">${fname}</span><span class="fcount">${schoolRows.length} 筆</span>`;
   document.getElementById('col-config-school').className = '';
   document.getElementById('dot2').className = 'ready-dot on';
   checkReady();
@@ -656,283 +689,389 @@ function checkReady() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 比對邏輯
+// 核心比對（供首次 & 重新整合共用）
 // ═══════════════════════════════════════════════════════════
-document.getElementById('btn-merge').addEventListener('click', doMerge);
+function runMatch(cols, manualChoices) {
+  // manualChoices: Map<name_rowIndex_string, schoolRow|null>
+  const { examNameCol, examIdCol, examGradeCol, examClassCol,
+          schoolNameCol, schoolIdCol, schoolGradeCol, schoolClassCol } = cols;
 
-function doMerge() {
-  const alertsEl = document.getElementById('merge-alerts');
-  alertsEl.innerHTML = '';
+  const useGradeClass = examGradeCol && examClassCol && schoolGradeCol && schoolClassCol;
 
-  const examNameCol   = document.getElementById('exam-name-col').value;
-  const examIdCol     = document.getElementById('exam-id-col').value;
-  const schoolNameCol = document.getElementById('school-name-col').value;
-  const schoolIdCol   = document.getElementById('school-id-col').value;
-
-  if (!examNameCol || !examIdCol || !schoolNameCol || !schoolIdCol) {
-    alertsEl.innerHTML =
-      `<div class="alert alert-danger"><span class="alert-icon">❌</span>請確認所有欄位已正確選擇。</div>`;
-    return;
-  }
-
-  // 建立全校姓名 → 所有符合 row 的陣列（保留全部，用來偵測同名多筆）
+  // 全校名單：姓名 → 所有 rows
   const schoolAllMap = {};
   schoolRows.forEach(r => {
-    const name = String(r[schoolNameCol] || '').trim();
-    if (!name) return;
-    if (!schoolAllMap[name]) schoolAllMap[name] = [];
-    schoolAllMap[name].push(r);
+    const n = String(r[schoolNameCol] || '').trim();
+    if (!n) return;
+    if (!schoolAllMap[n]) schoolAllMap[n] = [];
+    schoolAllMap[n].push(r);
   });
 
-  // 找出同名多筆（且身分證欄不同）→ 用來顯示警告
-  const dupSourceList = [];  // [{ name, chosen: row, all: rows[] }]
-
-  missingNames = [];
-  let filled     = 0;
+  const newMissing  = [];
+  const newManual   = [];
+  let filled    = 0;
   let alreadyHad = 0;
+  let autoByGC  = 0;  // 靠年級班級精確比對成功筆數
 
-  // 複製考試名單（深複製每一 row），只更新身分證欄
-  outputData = examRows.map(r => {
+  const newOutput = examRows.map((r, rowIdx) => {
     const row  = { ...r };
     const name = String(r[examNameCol] || '').trim();
     const existingId = String(r[examIdCol] || '').trim();
-
     if (!name) return row;
-
-    if (existingId) {
-      alreadyHad++;
-      return row;  // 已有身分證，不覆蓋
-    }
+    if (existingId) { alreadyHad++; return row; }
 
     const allMatches = schoolAllMap[name] || [];
-    // 取第一筆有身分證的
-    const chosen = allMatches.find(sr => String(sr[schoolIdCol] || '').trim());
 
-    if (chosen) {
-      row[examIdCol] = String(chosen[schoolIdCol]).trim();
-      filled++;
-      // 若有多筆（且 id 不全相同），記錄供顯示
-      const uniqueIds = [...new Set(allMatches.map(sr => String(sr[schoolIdCol] || '').trim()).filter(Boolean))];
-      if (allMatches.length > 1 || uniqueIds.length > 1) {
-        // 避免同一學生重複推入
-        if (!dupSourceList.find(d => d.name === name)) {
-          dupSourceList.push({ name, chosen, all: allMatches });
-        }
-      }
-    } else {
-      missingNames.push({ name, row: r });
+    if (!allMatches.length) {
+      newMissing.push({ name, row: r });
+      return row;
     }
 
+    // ── 嘗試年級+班級精確比對 ──
+    let candidates = allMatches;
+    if (useGradeClass) {
+      const eg = String(r[examGradeCol] || '').trim();
+      const ec = String(r[examClassCol] || '').trim();
+      if (eg && ec) {
+        const filtered = allMatches.filter(sr =>
+          gradeClassMatch(eg, ec, sr[schoolClassCol], sr[schoolGradeCol])
+        );
+        if (filtered.length > 0) {
+          candidates = filtered;
+          if (filtered.length === 1) autoByGC++;
+        }
+      }
+    }
+
+    // 唯一 → 自動填
+    if (candidates.length === 1) {
+      const id = String(candidates[0][schoolIdCol] || '').trim();
+      if (id) { row[examIdCol] = id; filled++; }
+      else    { newMissing.push({ name, row: r }); }
+      return row;
+    }
+
+    // 多筆 → 檢查手動選擇
+    const key = `${name}__${rowIdx}`;
+    if (manualChoices && manualChoices.has(key)) {
+      const chosen = manualChoices.get(key);
+      if (chosen) {
+        const id = String(chosen[schoolIdCol] || '').trim();
+        if (id) { row[examIdCol] = id; filled++; }
+        else    { newMissing.push({ name, row: r }); }
+      } else {
+        newMissing.push({ name, row: r, manualSkipped: true });
+      }
+      return row;
+    }
+
+    // 沒有手動選擇 → 暫取第一筆有身分證的作預設，並列入 manualItems
+    const autoChosen = candidates.find(sr => String(sr[schoolIdCol] || '').trim()) || null;
+    newManual.push({ name, examRow: r, rowIdx, all: candidates, autoChosen });
+    if (autoChosen) {
+      row[examIdCol] = String(autoChosen[schoolIdCol]).trim();
+      filled++;
+    } else {
+      newMissing.push({ name, row: r });
+    }
     return row;
   });
 
-  // ── 顯示統計 ──
+  return { newOutput, newMissing, newManual, filled, alreadyHad, autoByGC };
+}
+
+// ═══════════════════════════════════════════════════════════
+// 首次整合
+// ═══════════════════════════════════════════════════════════
+document.getElementById('btn-merge').addEventListener('click', () => doMerge(null));
+
+function getCols() {
+  return {
+    examNameCol:   document.getElementById('exam-name-col').value,
+    examIdCol:     document.getElementById('exam-id-col').value,
+    examGradeCol:  document.getElementById('exam-grade-col').value,
+    examClassCol:  document.getElementById('exam-class-col').value,
+    schoolNameCol: document.getElementById('school-name-col').value,
+    schoolIdCol:   document.getElementById('school-id-col').value,
+    schoolGradeCol:document.getElementById('school-grade-col').value,
+    schoolClassCol:document.getElementById('school-class-col').value,
+  };
+}
+
+function doMerge(manualChoices) {
+  const alertsEl = document.getElementById('merge-alerts');
+  alertsEl.innerHTML = '';
+  const cols = getCols();
+  if (!cols.examNameCol || !cols.examIdCol || !cols.schoolNameCol || !cols.schoolIdCol) {
+    alertsEl.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">❌</span>請確認必要欄位（姓名、身分證）已選擇。</div>`;
+    return;
+  }
+
+  const { newOutput, newMissing, newManual, filled, alreadyHad, autoByGC } =
+    runMatch(cols, manualChoices);
+
+  outputData   = newOutput;
+  missingNames = newMissing;
+  manualItems  = newManual;
+
+  // ── 統計 ──
   const statsEl = document.getElementById('stats-row');
   statsEl.className = 'stat-row';
+  const useGC = cols.examGradeCol && cols.examClassCol;
   statsEl.innerHTML =
-    `<div class="stat">
-      <div class="stat-num">${examRows.length}</div>
-      <div class="stat-label">考試名單總人數</div>
-    </div>` +
-    `<div class="stat">
-      <div class="stat-num">${filled}</div>
-      <div class="stat-label">成功填入身分證</div>
-    </div>` +
-    `<div class="stat">
-      <div class="stat-num ${alreadyHad > 0 ? '' : ''}">${alreadyHad}</div>
-      <div class="stat-label">原已有身分證（保留）</div>
-    </div>` +
-    `<div class="stat">
-      <div class="stat-num ${missingNames.length > 0 ? 'warn' : ''}">${missingNames.length}</div>
-      <div class="stat-label">找不到身分證（需手動補）</div>
-    </div>`;
+    `<div class="stat"><div class="stat-num">${examRows.length}</div><div class="stat-label">考試名單總人數</div></div>` +
+    `<div class="stat"><div class="stat-num">${filled}</div><div class="stat-label">成功填入身分證</div></div>` +
+    `<div class="stat"><div class="stat-num">${alreadyHad}</div><div class="stat-label">原已有（保留）</div></div>` +
+    (useGC ? `<div class="stat"><div class="stat-num">${autoByGC}</div><div class="stat-label">年級班級精確比對</div></div>` : '') +
+    `<div class="stat"><div class="stat-num ${missingNames.length > 0 ? 'warn' : ''}">${missingNames.length}</div><div class="stat-label">查無（需手動補）</div></div>` +
+    `<div class="stat"><div class="stat-num ${manualItems.length > 0 ? 'warn' : ''}">${manualItems.length}</div><div class="stat-label">需手動確認選擇</div></div>`;
+
+  // ── 手動選擇區 ──
+  renderManualSection(cols);
 
   // ── 找不到的清單 ──
-  const missingEl = document.getElementById('missing-section');
-  if (missingNames.length > 0) {
-    // 顯示考試名單原有欄位（最多8欄）
-    const showCols = examHeaders.slice(0, Math.min(8, examHeaders.length));
+  renderMissingSection();
 
-    const thead = showCols.map(k => `<th>${k}</th>`).join('');
-    const tbody = missingNames.map(({ row }) =>
-      `<tr>${showCols.map(k => `<td>${row[k] !== undefined ? row[k] : ''}</td>`).join('')}</tr>`
-    ).join('');
-
-    missingEl.className = '';
-    missingEl.innerHTML =
-      `<div class="alert alert-warn" style="flex-direction:column;gap:10px;margin-top:16px;">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span class="alert-icon">⚠️</span>
-          <strong>以下 ${missingNames.length} 位學生在全校名單中查無身分證，請手動補齊：</strong>
-        </div>
-        <div style="font-size:0.79rem;color:#7a3800;">
-          💡 可能原因：轉學生尚未建檔、姓名有異體字差異、或名字打錯
-        </div>
-        <div class="missing-table-wrap">
-          <table class="missing-table">
-            <thead><tr>${thead}</tr></thead>
-            <tbody>${tbody}</tbody>
-          </table>
-        </div>
-      </div>`;
-  } else {
-    missingEl.className = 'hidden';
-    missingEl.innerHTML = '';
-  }
-
-  // ── 同名多筆警告（顯示取的是哪一筆） ──
-  const dupEl = document.getElementById('dup-source-section');
-  if (dupSourceList.length > 0) {
-    const SCHOOL_SHOW_PRIORITY = ['年級','班級','學生姓名','姓名','座號','身分證號','身分證','身分證字號','性別','出生年月日','班級名稱'];
-    const dupShowCols = [];
-    for (const p of SCHOOL_SHOW_PRIORITY) {
-      const f = schoolHeaders.find(h => h === p || h.includes(p));
-      if (f && !dupShowCols.includes(f)) dupShowCols.push(f);
-    }
-    for (const h of schoolHeaders) {
-      if (dupShowCols.length >= 8) break;
-      if (!dupShowCols.includes(h)) dupShowCols.push(h);
-    }
-
-    const blocks = dupSourceList.map(({ name, chosen, all }) => {
-      const chosenId = String(chosen[schoolIdCol] || '').trim();
-      const rowsHtml = all.map(r => {
-        const isChosen = r === chosen;
-        const rowBg = isChosen ? 'background:#e8f4ed;' : 'background:#fffaf4;';
-        const fontW = isChosen ? 'font-weight:600;' : '';
-        return `<tr style="${rowBg}${fontW}">` +
-          `<td style="padding:6px 10px;border:1px solid #c8dece;text-align:center;white-space:nowrap;">` +
-            `${isChosen ? '<span style="color:#1a5c3a;font-size:0.82rem;">✅ 採用</span>' : '<span style="color:#aaa;font-size:0.82rem;">—</span>'}` +
-          `</td>` +
-          dupShowCols.map(k =>
-            `<td style="padding:6px 10px;border:1px solid #c8dece;white-space:nowrap;">${r[k] !== undefined ? r[k] : ''}</td>`
-          ).join('') +
-          `</tr>`;
-      }).join('');
-
-      return `<div style="margin-bottom:18px;">
-        <div style="font-size:0.88rem;font-weight:600;color:#1a5c3a;margin-bottom:6px;">
-          「${name}」全校名單有 ${all.length} 筆 →
-          採用身分證：<span style="font-family:'JetBrains Mono',monospace;background:#e8f4ed;border:1px solid #86c9a3;padding:2px 10px;border-radius:5px;color:#1a5c3a;">${chosenId}</span>
-        </div>
-        <div style="overflow-x:auto;">
-          <table style="border-collapse:collapse;font-size:0.81rem;width:100%;">
-            <thead>
-              <tr style="background:#c8e6d4;">
-                <th style="padding:7px 10px;border:1px solid #a8d4b9;text-align:left;white-space:nowrap;">狀態</th>
-                ${dupShowCols.map(k => `<th style="padding:7px 10px;border:1px solid #a8d4b9;text-align:left;white-space:nowrap;">${k}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>${rowsHtml}</tbody>
-          </table>
-        </div>
-      </div>`;
-    }).join('');
-
-    dupEl.className = '';
-    dupEl.innerHTML =
-      `<div class="alert alert-warn" style="flex-direction:column;gap:10px;margin-top:16px;">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <span class="alert-icon">🔍</span>
-          <strong>以下 ${dupSourceList.length} 位學生在全校名單有多筆資料，自動取第一筆有身分證的（✅），請確認是否正確：</strong>
-        </div>
-        <div style="font-size:0.79rem;color:#7a3800;">
-          💡 若採用的那一筆不對，請在匯出的 Excel 中手動修正身分證欄位
-        </div>
-        <div style="margin-top:6px;">${blocks}</div>
-      </div>`;
-  } else {
-    dupEl.className = 'hidden';
-    dupEl.innerHTML = '';
-  }
+  // ── 舊的 dup-source-section 清空（已由 manual 取代） ──
+  document.getElementById('dup-source-section').className = 'hidden';
+  document.getElementById('dup-source-section').innerHTML = '';
 
   // ── 成功提示 ──
   let html = '';
-  if (missingNames.length === 0 && filled > 0) {
+  if (manualItems.length > 0) {
+    html += `<div class="alert alert-warn"><span class="alert-icon">🔍</span>
+      <strong>${manualItems.length} 位學生有多筆比對結果，請在下方手動選擇後點「套用選擇」。</strong></div>`;
+  }
+  if (missingNames.filter(m => !m.manualSkipped).length === 0 && manualItems.length === 0 && filled > 0) {
     html += `<div class="alert alert-success"><span class="alert-icon">✅</span>
-      <strong>全部比對成功！共填入 ${filled} 筆身分證，請匯出檔案。</strong></div>`;
+      <strong>全部比對完成！共填入 ${filled} 筆身分證。</strong></div>`;
   } else if (filled > 0 || alreadyHad > 0) {
     html += `<div class="alert alert-success"><span class="alert-icon">✅</span>
-      成功填入 ${filled} 筆身分證${alreadyHad > 0 ? `，${alreadyHad} 筆原本已有` : ''}。
-      ${missingNames.length > 0 ? `<strong>仍有 ${missingNames.length} 筆需手動補充，見下方清單。</strong>` : ''}
-    </div>`;
-  } else if (filled === 0 && alreadyHad === 0) {
+      已填入 ${filled} 筆${alreadyHad > 0 ? `，${alreadyHad} 筆原已有` : ''}。
+      ${missingNames.length > 0 ? `<strong>仍有 ${missingNames.length} 筆查無需手動補。</strong>` : ''}</div>`;
+  } else if (filled === 0 && alreadyHad === 0 && manualItems.length === 0) {
     html += `<div class="alert alert-danger"><span class="alert-icon">❌</span>
-      沒有任何姓名可以比對成功，請確認兩個檔案的姓名欄位是否選擇正確。</div>`;
+      沒有任何姓名比對成功，請確認欄位選擇是否正確。</div>`;
   }
-
   alertsEl.innerHTML = html;
 
-  // ── 預覽 ──
-  renderPreview(outputData, examNameCol, examIdCol);
+  renderPreview(outputData, cols.examNameCol, cols.examIdCol);
   document.getElementById('btn-export').disabled = outputData.length === 0;
 }
 
 // ═══════════════════════════════════════════════════════════
-// 預覽（只顯示姓名 + 身分證 + 其他前幾欄）
+// 手動選擇區：顯示考試名單欄位 + 全校選項讓用戶 radio 選
+// ═══════════════════════════════════════════════════════════
+function renderManualSection(cols) {
+  const el = document.getElementById('manual-select-section');
+  if (!manualItems.length) { el.className = 'hidden'; el.innerHTML = ''; return; }
+
+  const { schoolIdCol } = cols;
+
+  // 考試名單顯示欄（全部，最多10欄）
+  const examShowCols = examHeaders.slice(0, Math.min(10, examHeaders.length));
+
+  // 全校名單顯示欄
+  const S_PRIORITY = ['年級','班級','學生姓名','姓名','座號','身分證號','身分證','身分證字號','性別','出生年月日','班級名稱'];
+  const schoolShowCols = [];
+  for (const p of S_PRIORITY) {
+    const f = schoolHeaders.find(h => h === p || h.includes(p));
+    if (f && !schoolShowCols.includes(f)) schoolShowCols.push(f);
+  }
+  for (const h of schoolHeaders) {
+    if (schoolShowCols.length >= 9) break;
+    if (!schoolShowCols.includes(h)) schoolShowCols.push(h);
+  }
+
+  const blocks = manualItems.map(({ name, examRow, rowIdx, all, autoChosen }) => {
+    const key = `${name}__${rowIdx}`.replace(/[^a-zA-Z0-9\u4e00-\u9fff_]/g, '_');
+
+    // 考試名單原始資料列
+    const examInfoHtml = `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:0.78rem;color:#555;font-weight:600;margin-bottom:4px;">📄 考試名單中的資料：</div>
+        <div style="overflow-x:auto;">
+          <table style="border-collapse:collapse;font-size:0.81rem;">
+            <thead><tr style="background:#e8f0fe;">
+              ${examShowCols.map(k => `<th style="padding:5px 10px;border:1px solid #c5d1e8;white-space:nowrap;">${k}</th>`).join('')}
+            </tr></thead>
+            <tbody><tr style="background:#f5f8ff;">
+              ${examShowCols.map(k => `<td style="padding:5px 10px;border:1px solid #c5d1e8;white-space:nowrap;">${examRow[k] !== undefined ? examRow[k] : ''}</td>`).join('')}
+            </tr></tbody>
+          </table>
+        </div>
+      </div>`;
+
+    // 全校選項 radio
+    const schoolOptionsHtml = all.map((sr, i) => {
+      const sid = String(sr[schoolIdCol] || '').trim();
+      const isAuto = sr === autoChosen;
+      const radioId = `r_${key}_${i}`;
+      return `<tr style="background:${isAuto ? '#e8f4ed' : '#fffaf4'};" id="tr_${radioId}">
+        <td style="padding:6px 10px;border:1px solid #c8dece;text-align:center;">
+          <input type="radio" name="manual_${key}" id="${radioId}" value="${i}"
+            ${isAuto ? 'checked' : ''}
+            onchange="highlightRadio('${key}', ${all.length})"
+            style="accent-color:#1a5c3a;width:16px;height:16px;cursor:pointer;">
+        </td>
+        ${schoolShowCols.map(k =>
+          `<td style="padding:6px 10px;border:1px solid #c8dece;white-space:nowrap;">${sr[k] !== undefined ? sr[k] : ''}</td>`
+        ).join('')}
+      </tr>`;
+    }).join('');
+
+    // 「跳過」選項
+    const skipId = `r_${key}_skip`;
+    const skipHtml = `<tr style="background:#faf5f5;" id="tr_${skipId}">
+      <td style="padding:6px 10px;border:1px solid #e0b0b0;text-align:center;">
+        <input type="radio" name="manual_${key}" id="${skipId}" value="skip"
+          onchange="highlightRadio('${key}', ${all.length})"
+          style="accent-color:#b91c1c;width:16px;height:16px;cursor:pointer;">
+      </td>
+      <td colspan="${schoolShowCols.length}" style="padding:6px 10px;border:1px solid #e0b0b0;color:#b91c1c;font-style:italic;font-size:0.82rem;">
+        ⛔ 跳過此學生（不填入身分證）
+      </td>
+    </tr>`;
+
+    return `<div style="background:#fff;border:1px solid #d0dfc8;border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:0.95rem;font-weight:700;color:#1a5c3a;margin-bottom:12px;">
+        「${name}」— 全校名單找到 ${all.length} 筆，請選擇正確的一筆：
+      </div>
+      ${examInfoHtml}
+      <div style="font-size:0.78rem;color:#555;font-weight:600;margin-bottom:4px;">🏫 全校名單選項（請點選）：</div>
+      <div style="overflow-x:auto;">
+        <table style="border-collapse:collapse;font-size:0.81rem;width:100%;" id="tbl_${key}">
+          <thead><tr style="background:#c8e6d4;">
+            <th style="padding:7px 10px;border:1px solid #a8d4b9;white-space:nowrap;">選擇</th>
+            ${schoolShowCols.map(k => `<th style="padding:7px 10px;border:1px solid #a8d4b9;white-space:nowrap;">${k}</th>`).join('')}
+          </tr></thead>
+          <tbody>${schoolOptionsHtml}${skipHtml}</tbody>
+        </table>
+      </div>
+      <input type="hidden" id="hid_${key}" value="${all.indexOf(autoChosen)}">
+    </div>`;
+  }).join('');
+
+  el.className = '';
+  el.innerHTML = `
+    <div style="border:2px solid #d4830a;border-radius:12px;overflow:hidden;margin-top:16px;">
+      <div style="background:#d4830a;color:#fff;padding:12px 20px;font-weight:700;font-size:0.95rem;display:flex;align-items:center;gap:8px;">
+        <span>🔍</span> 以下 ${manualItems.length} 位學生有多筆比對結果，請逐一確認後套用
+      </div>
+      <div style="padding:18px;background:#fffcf7;">
+        ${blocks}
+        <div style="margin-top:8px;">
+          <button class="btn btn-primary" onclick="applyManualChoices()" style="background:#d4830a;">
+            ✅ 套用選擇並重新整合
+          </button>
+        </div>
+      </div>
+    </div>`;
+
+  // 初始化 highlight
+  manualItems.forEach(({ name, rowIdx, all, autoChosen }) => {
+    const key = `${name}__${rowIdx}`.replace(/[^a-zA-Z0-9\u4e00-\u9fff_]/g, '_');
+    highlightRadio(key, all.length);
+  });
+}
+
+function highlightRadio(key, count) {
+  for (let i = 0; i < count; i++) {
+    const rid = `r_${key}_${i}`;
+    const tr  = document.getElementById(`tr_${rid}`);
+    const inp = document.getElementById(rid);
+    if (tr && inp) tr.style.background = inp.checked ? '#e8f4ed' : '#fffaf4';
+  }
+  const skipTr  = document.getElementById(`tr_r_${key}_skip`);
+  const skipInp = document.getElementById(`r_${key}_skip`);
+  if (skipTr && skipInp) skipTr.style.background = skipInp.checked ? '#fef2f2' : '#faf5f5';
+}
+
+function applyManualChoices() {
+  const cols = getCols();
+  const choices = new Map();
+  manualItems.forEach(({ name, rowIdx, all }) => {
+    const key = `${name}__${rowIdx}`.replace(/[^a-zA-Z0-9\u4e00-\u9fff_]/g, '_');
+    const selected = document.querySelector(`input[name="manual_${key}"]:checked`);
+    if (!selected) return;
+    const val = selected.value;
+    choices.set(`${name}__${rowIdx}`, val === 'skip' ? null : all[parseInt(val)]);
+  });
+  doMerge(choices);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 找不到的清單
+// ═══════════════════════════════════════════════════════════
+function renderMissingSection() {
+  const missingEl = document.getElementById('missing-section');
+  const realMissing = missingNames.filter(m => !m.manualSkipped);
+  if (!realMissing.length) { missingEl.className = 'hidden'; missingEl.innerHTML = ''; return; }
+
+  const showCols = examHeaders.slice(0, Math.min(10, examHeaders.length));
+  const thead = showCols.map(k => `<th>${k}</th>`).join('');
+  const tbody = realMissing.map(({ row }) =>
+    `<tr>${showCols.map(k => `<td>${row[k] !== undefined ? row[k] : ''}</td>`).join('')}</tr>`
+  ).join('');
+
+  missingEl.className = '';
+  missingEl.innerHTML =
+    `<div class="alert alert-warn" style="flex-direction:column;gap:10px;margin-top:16px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="alert-icon">⚠️</span>
+        <strong>以下 ${realMissing.length} 位學生在全校名單中查無，請手動補：</strong>
+      </div>
+      <div style="font-size:0.79rem;color:#7a3800;">💡 可能是轉學生、姓名異體字、或資料尚未建檔</div>
+      <div class="missing-table-wrap">
+        <table class="missing-table">
+          <thead><tr>${thead}</tr></thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 預覽
 // ═══════════════════════════════════════════════════════════
 function renderPreview(data, nameCol, idCol) {
-  const wrap = document.getElementById('preview-wrap');
-  wrap.className = '';
-
-  // 顯示：姓名、身分證、再取其他欄最多5欄
+  document.getElementById('preview-wrap').className = '';
   const others = examHeaders.filter(h => h !== nameCol && h !== idCol).slice(0, 5);
   const cols = [nameCol, idCol, ...others];
-
   const thead = document.querySelector('#preview-table thead');
   const tbody = document.querySelector('#preview-table tbody');
-
   thead.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
-
   const display = data.slice(0, 50);
-  tbody.innerHTML = display.map(r => {
-    return `<tr>${cols.map(c => {
+  tbody.innerHTML = display.map(r =>
+    `<tr>${cols.map(c => {
       const v = r[c] !== undefined ? String(r[c]) : '';
       if (c === idCol) {
         if (!v) return `<td><span class="tag tag-miss">未填</span></td>`;
         return `<td><span class="tag tag-ok">${v}</span></td>`;
       }
       return `<td>${v}</td>`;
-    }).join('')}</tr>`;
-  }).join('');
+    }).join('')}</tr>`
+  ).join('');
 }
 
 // ═══════════════════════════════════════════════════════════
-// 匯出：以原始 workbook 結構為基底，只更新身分證欄的 cell
+// 匯出
 // ═══════════════════════════════════════════════════════════
-document.getElementById('btn-export').addEventListener('click', doExport);
-
-function doExport() {
+document.getElementById('btn-export').addEventListener('click', () => {
   if (!examWorkbook || !outputData.length) return;
-
-  const examIdCol   = document.getElementById('exam-id-col').value;
-
-  // 用 sheet_to_json 得到 header 列的順序
+  const ws = XLSX.utils.json_to_sheet(outputData, { header: examHeaders });
   const wsOrig = examWorkbook.Sheets[examWorkbook.SheetNames[0]];
-  const origHeaders = examHeaders;  // 已在上傳時取得
-
-  // 將 outputData 轉回原始格式的 sheet（保留欄位順序）
-  const ws = XLSX.utils.json_to_sheet(outputData, { header: origHeaders });
-
-  // 複製原始 ws 的列寬、合併儲存格等 meta（若有）
   if (wsOrig['!cols'])   ws['!cols']   = wsOrig['!cols'];
   if (wsOrig['!merges']) ws['!merges'] = wsOrig['!merges'];
   if (wsOrig['!rows'])   ws['!rows']   = wsOrig['!rows'];
-
-  // 建立新 workbook（保留所有 sheet，只替換第一個）
   const newWb = XLSX.utils.book_new();
   examWorkbook.SheetNames.forEach((sname, i) => {
-    if (i === 0) {
-      XLSX.utils.book_append_sheet(newWb, ws, sname);
-    } else {
-      XLSX.utils.book_append_sheet(newWb, examWorkbook.Sheets[sname], sname);
-    }
+    XLSX.utils.book_append_sheet(newWb, i === 0 ? ws : examWorkbook.Sheets[sname], sname);
   });
-
   const d = new Date();
   const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
   XLSX.writeFile(newWb, `考試名單_身分證已更新_${stamp}.xlsx`);
-}
+});
 </script>
 </body>
 </html>

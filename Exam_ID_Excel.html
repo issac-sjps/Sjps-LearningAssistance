@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>考試名單身分證填寫工具</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #f7f5f2;
+    --surface: #ffffff;
+    --surface2: #f2efe9;
+    --border: #ddd8cf;
+    --accent: #1a5c3a;
+    --accent-light: #e8f4ed;
+    --accent2: #d4830a;
+    --accent2-light: #fef3e0;
+    --danger: #b91c1c;
+    --danger-light: #fef2f2;
+    --warn: #c2550a;
+    --warn-light: #fff7ed;
+    --text: #1c1c1c;
+    --text-soft: #555;
+    --text-muted: #999;
+    --shadow: 0 1px 8px rgba(0,0,0,0.07), 0 4px 24px rgba(0,0,0,0.04);
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 20px 80px;
+  }
+
+  header {
+    max-width: 900px;
+    margin: 0 auto 36px;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .header-icon {
+    font-size: 2.4rem;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  header h1 {
+    font-size: 1.55rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.03em;
+    line-height: 1.3;
+  }
+
+  header p {
+    font-size: 0.85rem;
+    color: var(--text-soft);
+    margin-top: 5px;
+    line-height: 1.6;
+  }
+
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  /* ── 步驟卡片 ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .card-header {
+    background: var(--accent);
+    color: #fff;
+    padding: 13px 22px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.22);
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+  }
+
+  .card-hint {
+    margin-left: auto;
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 2px 12px;
+    font-size: 0.75rem;
+    font-weight: 400;
+  }
+
+  .card-body { padding: 22px; }
+
+  /* ── 上傳區 ── */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+    position: relative;
+  }
+
+  .upload-zone:hover,
+  .upload-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+
+  .upload-zone input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-icon { font-size: 2.2rem; margin-bottom: 10px; }
+  .upload-label { font-size: 0.9rem; color: var(--text-soft); font-weight: 500; }
+  .upload-sub { font-size: 0.76rem; color: var(--text-muted); margin-top: 5px; }
+
+  .file-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent-light);
+    border: 1px solid #a8d4b9;
+    border-radius: 8px;
+    padding: 9px 16px;
+    margin-top: 14px;
+    font-size: 0.84rem;
+    width: 100%;
+  }
+
+  .file-pill .fname {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--accent);
+    word-break: break-all;
+  }
+
+  .file-pill .fcount {
+    margin-left: auto;
+    color: var(--text-soft);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ── 欄位設定 ── */
+  .col-config {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .col-group label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-soft);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+
+  .col-group select {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 0.84rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  .col-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(26,92,58,0.12);
+  }
+
+  .col-config-label {
+    font-size: 0.8rem;
+    color: var(--text-soft);
+    margin-top: 12px;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  /* ── 按鈕 ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 11px 24px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 600;
+    transition: all 0.18s;
+    letter-spacing: 0.02em;
+  }
+
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #144a2e; transform: translateY(-1px); }
+  .btn-primary:disabled { background: #b0bab5; cursor: not-allowed; }
+
+  .btn-export { background: var(--accent2); color: #fff; }
+  .btn-export:hover:not(:disabled) { background: #b36c08; transform: translateY(-1px); }
+  .btn-export:disabled { background: #c0bab3; cursor: not-allowed; }
+
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* ── 提示訊息 ── */
+  .alert {
+    border-radius: 9px;
+    padding: 13px 16px;
+    font-size: 0.87rem;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.6;
+  }
+
+  .alert + .alert { margin-top: 10px; }
+  .alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+  .alert-warn   { background: var(--warn-light);   border: 1px solid #fbd0a0; color: #7a3800; }
+  .alert-danger { background: var(--danger-light);  border: 1px solid #fca5a5; color: #7f1d1d; }
+  .alert-success{ background: var(--accent-light);  border: 1px solid #86c9a3; color: #0f3d22; }
+
+  /* ── 統計卡 ── */
+  .stat-row {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin: 16px 0 4px;
+  }
+
+  .stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    flex: 1;
+    min-width: 130px;
+    transition: box-shadow 0.2s;
+  }
+
+  .stat:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+
+  .stat-num {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1;
+  }
+
+  .stat-num.warn { color: var(--warn); }
+  .stat-num.danger { color: var(--danger); }
+
+  .stat-label {
+    font-size: 0.76rem;
+    color: var(--text-soft);
+    margin-top: 5px;
+  }
+
+  /* ── 找不到的學生清單 ── */
+  .missing-table-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #fbd0a0;
+    margin-top: 10px;
+  }
+
+  .missing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+
+  .missing-table thead th {
+    background: #fde8c8;
+    color: #7a3800;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .missing-table tbody td {
+    padding: 7px 12px;
+    border-top: 1px solid #fbd0a0;
+    white-space: nowrap;
+    background: #fffaf4;
+  }
+
+  .missing-table tbody tr:nth-child(even) td { background: #fff8ee; }
+
+  /* ── 預覽表格 ── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    margin-top: 18px;
+    max-height: 440px;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+
+  thead th {
+    background: var(--accent);
+    color: #fff;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  tbody tr:nth-child(even) { background: var(--surface2); }
+  tbody td { padding: 8px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .tag {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .tag-ok   { background: var(--accent-light); color: var(--accent); }
+  .tag-miss { background: var(--danger-light); color: var(--danger); border: 1px solid #fca5a5; }
+  .tag-new  { background: #fff3e0; color: var(--accent2); border: 1px solid #fbd0a0; }
+
+  .hidden { display: none; }
+
+  /* ── 分隔線 ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 18px 0;
+  }
+
+  /* ── 狀態指示 ── */
+  .ready-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ccc;
+    margin-right: 6px;
+    transition: background 0.3s;
+  }
+  .ready-dot.on { background: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.2); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .processing { animation: pulse 1.2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-icon">🪪</div>
+    <div>
+      <h1>考試名單身分證填寫工具</h1>
+      <p>上傳考試名單 + 全校學生名單，自動比對姓名填入身分證，輸出更新後的原始格式 Excel</p>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- Step 1：考試名單 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-badge">1</span>
+      上傳「考試名單」Excel
+      <span class="card-hint">身分證欄可為空白</span>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="zone1">
+        <input type="file" id="file1" accept=".xlsx,.xls">
+        <div class="upload-icon">📄</div>
+        <div class="upload-label">點擊或拖曳上傳考試名單</div>
+        <div class="upload-sub">支援 .xlsx / .xls　所有欄位將原樣保留，僅填入身分證</div>
+      </div>
+
+      <div id="file1-info" class="hidden"></div>
+
+      <!-- 欄位設定（上傳後顯示） -->
+      <div id="col-config-exam" class="hidden">
+        <div class="divider"></div>
+        <div class="col-config-label">📌 確認欄位對應（考試名單）</div>
+        <div class="col-config">
+          <div class="col-group">
+            <label>姓名欄位 <span style="color:var(--danger)">*</span></label>
+            <select id="exam-name-col"></select>
+          </div>
+          <div class="col-group">
+            <label>身分證欄位 <span style="color:var(--danger)">*</span>（將被填入）</label>
+            <select id="exam-id-col"></select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2：全校名單 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-badge">2</span>
+      上傳「全校學生名單」Excel
+      <span class="card-hint">需含：姓名、身分證</span>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="zone2">
+        <input type="file" id="file2" accept=".xlsx,.xls">
+        <div class="upload-icon">🏫</div>
+        <div class="upload-label">點擊或拖曳上傳全校學生名單</div>
+        <div class="upload-sub">支援 .xlsx / .xls</div>
+      </div>
+
+      <div id="file2-info" class="hidden"></div>
+
+      <div id="col-config-school" class="hidden">
+        <div class="divider"></div>
+        <div class="col-config-label">📌 確認欄位對應（全校名單）</div>
+        <div class="col-config">
+          <div class="col-group">
+            <label>姓名欄位 <span style="color:var(--danger)">*</span></label>
+            <select id="school-name-col"></select>
+          </div>
+          <div class="col-group">
+            <label>身分證欄位 <span style="color:var(--danger)">*</span></label>
+            <select id="school-id-col"></select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3：整合輸出 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="step-badge">3</span>
+      比對 &amp; 輸出
+    </div>
+    <div class="card-body">
+
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px;font-size:0.84rem;color:var(--text-soft);">
+        <div><span class="ready-dot" id="dot1"></span>考試名單</div>
+        <div><span class="ready-dot" id="dot2"></span>全校名單</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="btn-merge" disabled>🔄 開始比對</button>
+        <button class="btn btn-export" id="btn-export" disabled>⬇️ 匯出更新後的 Excel</button>
+      </div>
+
+      <div id="merge-alerts" style="margin-top:18px;"></div>
+      <div id="stats-row" class="hidden stat-row"></div>
+      <div id="missing-section" class="hidden"></div>
+      <div id="dup-source-section" class="hidden"></div>
+      <div id="preview-wrap" class="hidden">
+        <div class="divider"></div>
+        <div style="font-size:0.84rem;font-weight:600;color:var(--text-soft);margin-bottom:10px;">
+          📋 預覽（前 50 筆）— 僅顯示部分欄位
+        </div>
+        <div class="table-wrap">
+          <table id="preview-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// 狀態
+// ═══════════════════════════════════════════════════════════
+let examWorkbook   = null;   // 原始 workbook（保留格式用）
+let examRows       = [];     // 考試名單 rows（JSON）
+let schoolRows     = [];     // 全校名單 rows
+let examHeaders    = [];
+let schoolHeaders  = [];
+let outputData     = [];     // 處理後的資料（與 examRows 對應，已填入身分證）
+let missingNames   = [];     // 找不到身分證的學生
+
+// ═══════════════════════════════════════════════════════════
+// 工具
+// ═══════════════════════════════════════════════════════════
+const NAME_ALIASES = ['姓名', '學生姓名', '名字', 'name'];
+const ID_ALIASES   = ['身分證號', '身分證', '身分證字號', '身分證統一編號', '證號', '身份證', '統一編號'];
+
+function guessCol(headers, aliases) {
+  // 完全符合優先
+  for (const a of aliases) {
+    const h = headers.find(h => String(h).trim() === a);
+    if (h !== undefined) return h;
+  }
+  // 包含次之
+  for (const a of aliases) {
+    const h = headers.find(h => String(h).includes(a));
+    if (h !== undefined) return h;
+  }
+  return headers[0] || '';
+}
+
+function populateSelect(selectId, headers, guessed) {
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = headers.map(h =>
+    `<option value="${h}" ${h === guessed ? 'selected' : ''}>${h}</option>`
+  ).join('');
+}
+
+function setupZone(zoneId, inputId, cb) {
+  const zone  = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) { input.files = e.dataTransfer.files; readFile(input, cb); }
+  });
+  input.addEventListener('change', () => readFile(input, cb));
+}
+
+function readFile(input, cb) {
+  const f = input.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+    cb(f.name, wb);
+  };
+  reader.readAsArrayBuffer(f);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 考試名單上傳
+// ═══════════════════════════════════════════════════════════
+setupZone('zone1', 'file1', (fname, wb) => {
+  examWorkbook = wb;
+  const ws   = wb.Sheets[wb.SheetNames[0]];
+  examRows   = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  if (!examRows.length) return;
+
+  examHeaders = Object.keys(examRows[0]);
+  const guessName = guessCol(examHeaders, NAME_ALIASES);
+  const guessId   = guessCol(examHeaders, ID_ALIASES);
+
+  populateSelect('exam-name-col', examHeaders, guessName);
+  populateSelect('exam-id-col',   examHeaders, guessId);
+
+  const info = document.getElementById('file1-info');
+  info.className = 'file-pill';
+  info.innerHTML =
+    `<span>📄</span>` +
+    `<span class="fname">${fname}</span>` +
+    `<span class="fcount">${examRows.length} 筆</span>`;
+
+  document.getElementById('col-config-exam').className = '';
+  document.getElementById('dot1').className = 'ready-dot on';
+  checkReady();
+});
+
+// ═══════════════════════════════════════════════════════════
+// 全校名單上傳
+// ═══════════════════════════════════════════════════════════
+setupZone('zone2', 'file2', (fname, wb) => {
+  const ws    = wb.Sheets[wb.SheetNames[0]];
+  schoolRows  = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  if (!schoolRows.length) return;
+
+  schoolHeaders = Object.keys(schoolRows[0]);
+  const guessName = guessCol(schoolHeaders, NAME_ALIASES);
+  const guessId   = guessCol(schoolHeaders, ID_ALIASES);
+
+  populateSelect('school-name-col', schoolHeaders, guessName);
+  populateSelect('school-id-col',   schoolHeaders, guessId);
+
+  const info = document.getElementById('file2-info');
+  info.className = 'file-pill';
+  info.innerHTML =
+    `<span>🏫</span>` +
+    `<span class="fname">${fname}</span>` +
+    `<span class="fcount">${schoolRows.length} 筆</span>`;
+
+  document.getElementById('col-config-school').className = '';
+  document.getElementById('dot2').className = 'ready-dot on';
+  checkReady();
+});
+
+function checkReady() {
+  document.getElementById('btn-merge').disabled = !(examRows.length && schoolRows.length);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 比對邏輯
+// ═══════════════════════════════════════════════════════════
+document.getElementById('btn-merge').addEventListener('click', doMerge);
+
+function doMerge() {
+  const alertsEl = document.getElementById('merge-alerts');
+  alertsEl.innerHTML = '';
+
+  const examNameCol   = document.getElementById('exam-name-col').value;
+  const examIdCol     = document.getElementById('exam-id-col').value;
+  const schoolNameCol = document.getElementById('school-name-col').value;
+  const schoolIdCol   = document.getElementById('school-id-col').value;
+
+  if (!examNameCol || !examIdCol || !schoolNameCol || !schoolIdCol) {
+    alertsEl.innerHTML =
+      `<div class="alert alert-danger"><span class="alert-icon">❌</span>請確認所有欄位已正確選擇。</div>`;
+    return;
+  }
+
+  // 建立全校姓名 → 所有符合 row 的陣列（保留全部，用來偵測同名多筆）
+  const schoolAllMap = {};
+  schoolRows.forEach(r => {
+    const name = String(r[schoolNameCol] || '').trim();
+    if (!name) return;
+    if (!schoolAllMap[name]) schoolAllMap[name] = [];
+    schoolAllMap[name].push(r);
+  });
+
+  // 找出同名多筆（且身分證欄不同）→ 用來顯示警告
+  const dupSourceList = [];  // [{ name, chosen: row, all: rows[] }]
+
+  missingNames = [];
+  let filled     = 0;
+  let alreadyHad = 0;
+
+  // 複製考試名單（深複製每一 row），只更新身分證欄
+  outputData = examRows.map(r => {
+    const row  = { ...r };
+    const name = String(r[examNameCol] || '').trim();
+    const existingId = String(r[examIdCol] || '').trim();
+
+    if (!name) return row;
+
+    if (existingId) {
+      alreadyHad++;
+      return row;  // 已有身分證，不覆蓋
+    }
+
+    const allMatches = schoolAllMap[name] || [];
+    // 取第一筆有身分證的
+    const chosen = allMatches.find(sr => String(sr[schoolIdCol] || '').trim());
+
+    if (chosen) {
+      row[examIdCol] = String(chosen[schoolIdCol]).trim();
+      filled++;
+      // 若有多筆（且 id 不全相同），記錄供顯示
+      const uniqueIds = [...new Set(allMatches.map(sr => String(sr[schoolIdCol] || '').trim()).filter(Boolean))];
+      if (allMatches.length > 1 || uniqueIds.length > 1) {
+        // 避免同一學生重複推入
+        if (!dupSourceList.find(d => d.name === name)) {
+          dupSourceList.push({ name, chosen, all: allMatches });
+        }
+      }
+    } else {
+      missingNames.push({ name, row: r });
+    }
+
+    return row;
+  });
+
+  // ── 顯示統計 ──
+  const statsEl = document.getElementById('stats-row');
+  statsEl.className = 'stat-row';
+  statsEl.innerHTML =
+    `<div class="stat">
+      <div class="stat-num">${examRows.length}</div>
+      <div class="stat-label">考試名單總人數</div>
+    </div>` +
+    `<div class="stat">
+      <div class="stat-num">${filled}</div>
+      <div class="stat-label">成功填入身分證</div>
+    </div>` +
+    `<div class="stat">
+      <div class="stat-num ${alreadyHad > 0 ? '' : ''}">${alreadyHad}</div>
+      <div class="stat-label">原已有身分證（保留）</div>
+    </div>` +
+    `<div class="stat">
+      <div class="stat-num ${missingNames.length > 0 ? 'warn' : ''}">${missingNames.length}</div>
+      <div class="stat-label">找不到身分證（需手動補）</div>
+    </div>`;
+
+  // ── 找不到的清單 ──
+  const missingEl = document.getElementById('missing-section');
+  if (missingNames.length > 0) {
+    // 顯示考試名單原有欄位（最多8欄）
+    const showCols = examHeaders.slice(0, Math.min(8, examHeaders.length));
+
+    const thead = showCols.map(k => `<th>${k}</th>`).join('');
+    const tbody = missingNames.map(({ row }) =>
+      `<tr>${showCols.map(k => `<td>${row[k] !== undefined ? row[k] : ''}</td>`).join('')}</tr>`
+    ).join('');
+
+    missingEl.className = '';
+    missingEl.innerHTML =
+      `<div class="alert alert-warn" style="flex-direction:column;gap:10px;margin-top:16px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="alert-icon">⚠️</span>
+          <strong>以下 ${missingNames.length} 位學生在全校名單中查無身分證，請手動補齊：</strong>
+        </div>
+        <div style="font-size:0.79rem;color:#7a3800;">
+          💡 可能原因：轉學生尚未建檔、姓名有異體字差異、或名字打錯
+        </div>
+        <div class="missing-table-wrap">
+          <table class="missing-table">
+            <thead><tr>${thead}</tr></thead>
+            <tbody>${tbody}</tbody>
+          </table>
+        </div>
+      </div>`;
+  } else {
+    missingEl.className = 'hidden';
+    missingEl.innerHTML = '';
+  }
+
+  // ── 同名多筆警告（顯示取的是哪一筆） ──
+  const dupEl = document.getElementById('dup-source-section');
+  if (dupSourceList.length > 0) {
+    const SCHOOL_SHOW_PRIORITY = ['年級','班級','學生姓名','姓名','座號','身分證號','身分證','身分證字號','性別','出生年月日','班級名稱'];
+    const dupShowCols = [];
+    for (const p of SCHOOL_SHOW_PRIORITY) {
+      const f = schoolHeaders.find(h => h === p || h.includes(p));
+      if (f && !dupShowCols.includes(f)) dupShowCols.push(f);
+    }
+    for (const h of schoolHeaders) {
+      if (dupShowCols.length >= 8) break;
+      if (!dupShowCols.includes(h)) dupShowCols.push(h);
+    }
+
+    const blocks = dupSourceList.map(({ name, chosen, all }) => {
+      const chosenId = String(chosen[schoolIdCol] || '').trim();
+      const rowsHtml = all.map(r => {
+        const isChosen = r === chosen;
+        const rowBg = isChosen ? 'background:#e8f4ed;' : 'background:#fffaf4;';
+        const fontW = isChosen ? 'font-weight:600;' : '';
+        return `<tr style="${rowBg}${fontW}">` +
+          `<td style="padding:6px 10px;border:1px solid #c8dece;text-align:center;white-space:nowrap;">` +
+            `${isChosen ? '<span style="color:#1a5c3a;font-size:0.82rem;">✅ 採用</span>' : '<span style="color:#aaa;font-size:0.82rem;">—</span>'}` +
+          `</td>` +
+          dupShowCols.map(k =>
+            `<td style="padding:6px 10px;border:1px solid #c8dece;white-space:nowrap;">${r[k] !== undefined ? r[k] : ''}</td>`
+          ).join('') +
+          `</tr>`;
+      }).join('');
+
+      return `<div style="margin-bottom:18px;">
+        <div style="font-size:0.88rem;font-weight:600;color:#1a5c3a;margin-bottom:6px;">
+          「${name}」全校名單有 ${all.length} 筆 →
+          採用身分證：<span style="font-family:'JetBrains Mono',monospace;background:#e8f4ed;border:1px solid #86c9a3;padding:2px 10px;border-radius:5px;color:#1a5c3a;">${chosenId}</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="border-collapse:collapse;font-size:0.81rem;width:100%;">
+            <thead>
+              <tr style="background:#c8e6d4;">
+                <th style="padding:7px 10px;border:1px solid #a8d4b9;text-align:left;white-space:nowrap;">狀態</th>
+                ${dupShowCols.map(k => `<th style="padding:7px 10px;border:1px solid #a8d4b9;text-align:left;white-space:nowrap;">${k}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      </div>`;
+    }).join('');
+
+    dupEl.className = '';
+    dupEl.innerHTML =
+      `<div class="alert alert-warn" style="flex-direction:column;gap:10px;margin-top:16px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="alert-icon">🔍</span>
+          <strong>以下 ${dupSourceList.length} 位學生在全校名單有多筆資料，自動取第一筆有身分證的（✅），請確認是否正確：</strong>
+        </div>
+        <div style="font-size:0.79rem;color:#7a3800;">
+          💡 若採用的那一筆不對，請在匯出的 Excel 中手動修正身分證欄位
+        </div>
+        <div style="margin-top:6px;">${blocks}</div>
+      </div>`;
+  } else {
+    dupEl.className = 'hidden';
+    dupEl.innerHTML = '';
+  }
+
+  // ── 成功提示 ──
+  let html = '';
+  if (missingNames.length === 0 && filled > 0) {
+    html += `<div class="alert alert-success"><span class="alert-icon">✅</span>
+      <strong>全部比對成功！共填入 ${filled} 筆身分證，請匯出檔案。</strong></div>`;
+  } else if (filled > 0 || alreadyHad > 0) {
+    html += `<div class="alert alert-success"><span class="alert-icon">✅</span>
+      成功填入 ${filled} 筆身分證${alreadyHad > 0 ? `，${alreadyHad} 筆原本已有` : ''}。
+      ${missingNames.length > 0 ? `<strong>仍有 ${missingNames.length} 筆需手動補充，見下方清單。</strong>` : ''}
+    </div>`;
+  } else if (filled === 0 && alreadyHad === 0) {
+    html += `<div class="alert alert-danger"><span class="alert-icon">❌</span>
+      沒有任何姓名可以比對成功，請確認兩個檔案的姓名欄位是否選擇正確。</div>`;
+  }
+
+  alertsEl.innerHTML = html;
+
+  // ── 預覽 ──
+  renderPreview(outputData, examNameCol, examIdCol);
+  document.getElementById('btn-export').disabled = outputData.length === 0;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 預覽（只顯示姓名 + 身分證 + 其他前幾欄）
+// ═══════════════════════════════════════════════════════════
+function renderPreview(data, nameCol, idCol) {
+  const wrap = document.getElementById('preview-wrap');
+  wrap.className = '';
+
+  // 顯示：姓名、身分證、再取其他欄最多5欄
+  const others = examHeaders.filter(h => h !== nameCol && h !== idCol).slice(0, 5);
+  const cols = [nameCol, idCol, ...others];
+
+  const thead = document.querySelector('#preview-table thead');
+  const tbody = document.querySelector('#preview-table tbody');
+
+  thead.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
+
+  const display = data.slice(0, 50);
+  tbody.innerHTML = display.map(r => {
+    return `<tr>${cols.map(c => {
+      const v = r[c] !== undefined ? String(r[c]) : '';
+      if (c === idCol) {
+        if (!v) return `<td><span class="tag tag-miss">未填</span></td>`;
+        return `<td><span class="tag tag-ok">${v}</span></td>`;
+      }
+      return `<td>${v}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// 匯出：以原始 workbook 結構為基底，只更新身分證欄的 cell
+// ═══════════════════════════════════════════════════════════
+document.getElementById('btn-export').addEventListener('click', doExport);
+
+function doExport() {
+  if (!examWorkbook || !outputData.length) return;
+
+  const examIdCol   = document.getElementById('exam-id-col').value;
+
+  // 用 sheet_to_json 得到 header 列的順序
+  const wsOrig = examWorkbook.Sheets[examWorkbook.SheetNames[0]];
+  const origHeaders = examHeaders;  // 已在上傳時取得
+
+  // 將 outputData 轉回原始格式的 sheet（保留欄位順序）
+  const ws = XLSX.utils.json_to_sheet(outputData, { header: origHeaders });
+
+  // 複製原始 ws 的列寬、合併儲存格等 meta（若有）
+  if (wsOrig['!cols'])   ws['!cols']   = wsOrig['!cols'];
+  if (wsOrig['!merges']) ws['!merges'] = wsOrig['!merges'];
+  if (wsOrig['!rows'])   ws['!rows']   = wsOrig['!rows'];
+
+  // 建立新 workbook（保留所有 sheet，只替換第一個）
+  const newWb = XLSX.utils.book_new();
+  examWorkbook.SheetNames.forEach((sname, i) => {
+    if (i === 0) {
+      XLSX.utils.book_append_sheet(newWb, ws, sname);
+    } else {
+      XLSX.utils.book_append_sheet(newWb, examWorkbook.Sheets[sname], sname);
+    }
+  });
+
+  const d = new Date();
+  const stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  XLSX.writeFile(newWb, `考試名單_身分證已更新_${stamp}.xlsx`);
+}
+</script>
+</body>
+</html>

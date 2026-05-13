@@ -411,6 +411,10 @@ window.addStudent=()=>{
   saveST();renderRosterList();
 };
 window.deleteStudent=id=>{
+  if(!isEditMode){
+    const pw=prompt('請輸入編輯密碼以刪除學生：');
+    if(pw!=='admin'){if(pw!==null)alert('密碼錯誤');return;}
+  }
   if(!confirm('確定刪除此學生？'))return;
   ST.roster=ST.roster.filter(s=>s.id!==id);
   for(const tt of['篩選','成長'])for(const k of Object.keys(ST.sched[tt]))if(ST.sched[tt][k]===id)ST.sched[tt][k]=null;

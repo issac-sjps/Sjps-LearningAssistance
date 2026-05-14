@@ -313,6 +313,8 @@ const SUBJ_PILL={
   '未定':'color:#9CA3AF;border-color:#D1D5DB;background:#F3F4F6',
 };
 const SUBJ_CHAR={'國':'國語','數':'數學','英':'英語'};
+const GRADE_NAMES=['','一','二','三','四','五','六'];
+function gradeFromId(id){ if(!id)return''; const g=parseInt(id.split('-')[1]); return GRADE_NAMES[g]||''; }
 
 // ─── Exam data (read-only from schedule/main) ────────────
 let examData={startDate:'',counts:{},sched:{'篩選':{},'成長':{}}};
@@ -335,8 +337,8 @@ function peopleFromCard(tt,cardObj){
 function slotInfo(tt,w,d,slot){
   const sc=examData.sched[tt]||{};
   const card=sc[`${w}-${d}-${slot}`]||null;
-  if(!card)return{hasExam:false,people:0,subj:'未定'};
-  return{hasExam:true,people:peopleFromCard(tt,card),subj:subjFromId(card.id)||'未定'};
+  if(!card)return{hasExam:false,people:0,subj:'未定',grade:''};
+  return{hasExam:true,people:peopleFromCard(tt,card),subj:subjFromId(card.id)||'未定',grade:gradeFromId(card.id)};
 }
 
 function setSyncStatus(ok,msg){
@@ -491,8 +493,8 @@ function weekTableHTML(w,sc,ws){
     const li=dayInfos[di].lunch;
     const mSlots=slotCount(mi.people);
     const lSlots=slotCount(li.people);
-    const mSubjTag=mi.hasExam?`<span class="subj-${mi.subj} subj-inline">${mi.subj}</span>`:'';
-    const lSubjTag=li.hasExam?`<span class="subj-${li.subj} subj-inline">${li.subj}</span>`:'';
+    const mSubjTag=mi.hasExam?`<span class="subj-${mi.subj} subj-inline">${mi.grade}年${mi.subj}</span>`:'';
+    const lSubjTag=li.hasExam?`<span class="subj-${li.subj} subj-inline">${li.grade}年${li.subj}</span>`:'';
     return `
       <th class="th-sub ${mi.hasExam?'th-sub-morning':'th-sub-none'}">
         早自修${mSubjTag}

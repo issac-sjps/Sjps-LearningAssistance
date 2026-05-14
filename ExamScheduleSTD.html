@@ -224,11 +224,10 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
     page-break-after:always;break-after:page;
     width:auto!important;margin:0!important;padding:8mm 10mm!important;
   }
-  @page{size:A4 portrait;margin:0}
   body.printing-notice .notice-card:last-child{page-break-after:avoid;break-after:avoid}
   /* Normal schedule print: hide notice */
   body:not(.printing-notice) .notice-overlay{display:none!important}
-  @page{size:A4 landscape;margin:8mm 7mm}
+  @page{size:A4 landscape;margin:8mm 7mm} /* default: schedule */
   header,.sidebar,.perm-banner,.no-print,.pool-card,.pool-empty,.reset-btn,.search-input,.s-title,.p-rm{display:none!important}
   body{background:#FFF!important}
   .layout{display:block!important}
@@ -840,8 +839,6 @@ function noticeCardHTML(stu, assignments){
       <div class="nc-head-right">
         <div class="nc-head-stu-num">${stu.num}</div>
         <div class="nc-head-stu-name">${stu.name}</div>
-        <div class="nc-head-tt">${ttName}</div>
-        <div class="nc-head-date">${todayStr}</div>
       </div>
     </div>
     <hr class="nc-divider">`;
@@ -887,9 +884,20 @@ window.doPrint=()=>{
 document.addEventListener('DOMContentLoaded',()=>{});
 // Patch: notice print button calls this
 window.printNotice=()=>{
+  // Inject portrait @page override
+  const styleEl=document.createElement('style');
+  styleEl.id='notice-page-style';
+  styleEl.textContent='@page{size:A4 portrait!important;margin:0!important}';
+  document.head.appendChild(styleEl);
   document.body.classList.add('printing-notice');
-  window.print();
-  setTimeout(()=>document.body.classList.remove('printing-notice'),1000);
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{
+      document.body.classList.remove('printing-notice');
+      const el=document.getElementById('notice-page-style');
+      if(el)el.remove();
+    },500);
+  },100);
 };
 
 loadST();

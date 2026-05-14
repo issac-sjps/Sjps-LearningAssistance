@@ -181,6 +181,30 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 .nc-role-reg  {color:#0369A1;font-weight:700}
 .nc-role-id   {color:#B45309;font-weight:700}
 .nc-footer{margin-top:10pt;font-size:8.5pt;color:#888;text-align:center}
+.nc-half{padding:0}
+.nc-half-top{padding-bottom:8pt}
+.nc-half-bottom{padding-top:8pt}
+.nc-teacher-banner{
+  background:#FEF9EE;border:1.5px solid #F59E0B;border-radius:5px;
+  padding:4pt 10pt;font-size:9pt;font-weight:700;color:#92400E;
+  margin-bottom:7pt;text-align:center;
+}
+.nc-subtitle{
+  font-size:9.5pt;font-weight:700;color:#888;
+  border:1px solid #DDD;border-radius:3px;padding:1pt 8pt;display:inline-block;margin-top:1pt;
+}
+.nc-thank{
+  font-size:9pt;color:#444;line-height:1.75;
+  margin-bottom:7pt;background:#F8F8F8;padding:7pt 10pt;border-radius:4pt;
+  border-left:3pt solid #F59E0B;
+}
+.nc-scissors{
+  border-top:1.5px dashed #CCC;margin:8pt 0;position:relative;text-align:center;
+}
+.nc-scissors::before{
+  content:'✂ 剪下線';font-size:8pt;color:#BBB;
+  background:#FFF;padding:0 6pt;position:relative;top:-8pt;
+}
 .nc-sign{display:flex;justify-content:flex-end;margin-top:12pt;gap:32pt}
 .nc-sign-item{text-align:center;font-size:9pt;color:#555}
 .nc-sign-line{width:60pt;border-bottom:1pt solid #999;margin:0 auto 3pt}
@@ -356,9 +380,8 @@ const WNUM =['一','二','三','四'];
 const WEEKS=4; const DAYS=5;
 const SLOTS=['morning','lunch']; // two sub-columns per day
 const ROLES=[
-  {key:'guide',label:'引導人員',  color:'guide'},
-  {key:'reg',  label:'報到人員',  color:'reg'  },
-  {key:'id',   label:'發身分證條',color:'id'   },
+  {key:'guide',label:'教室外引導人員',    color:'guide'},
+  {key:'reg',  label:'帶位與協助登錄人員',color:'reg'  },
 ];
 const MAX_SLOTS_PER_ROLE=2; // max 2 rows per role
 // ≤0 → 0 slots (no exam), 1-30 → 1 slot, >30 → 2 slots
@@ -743,8 +766,8 @@ window.removeCard=key=>{ST.sched[ST.testType][key]=null;saveST();renderPool();re
 
 // ─── Notice ───────────────────────────────────────────────
 const SLOT_TIME={'morning':'早自修 07:50~08:35','lunch':'午休 12:40~13:20'};
-const ROLE_LABEL={'guide':'引導人員','reg':'報到人員','id':'發身分證條'};
-const ROLE_CLASS={'guide':'nc-role-guide','reg':'nc-role-reg','id':'nc-role-id'};
+const ROLE_LABEL={'guide':'教室外引導人員','reg':'帶位與協助登錄人員'};
+const ROLE_CLASS={'guide':'nc-role-guide','reg':'nc-role-reg'};
 
 function buildNoticeData(){
   const tt=ST.testType;
@@ -775,12 +798,15 @@ function buildNoticeData(){
 }
 
 function noticeCardHTML(stu, assignments){
+  const today=new Date();
+  const todayStr=`${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日`;
+  const ttName=ST.testType+'測驗';
   const rows=assignments.map((a,idx)=>{
     const dow=['日','一','二','三','四','五','六'][a.date.getDay()];
     const dateStr=`${a.date.getMonth()+1}/${a.date.getDate()}（${dow}）`;
     const timeStr=SLOT_TIME[a.slot];
     const subjStr=`${a.info.grade}年級${a.info.subj}`;
-    const roleStr=`${ROLE_LABEL[a.role]} #${a.si+1}`;
+    const roleStr=`${ROLE_LABEL[a.role]}`;
     return `<tr>
       <td class="nc-seq">${idx+1}</td>
       <td class="nc-date">${dateStr}</td>
@@ -790,39 +816,76 @@ function noticeCardHTML(stu, assignments){
     </tr>`;
   }).join('');
 
-  return `<div class="notice-card">
-    <div class="nc-school">聖約翰科技大學附屬中小學</div>
-    <div class="nc-title">學生支援通知單</div>
-    <hr class="nc-divider">
-    <div class="nc-student-row">
-      <div><div class="nc-label">班級座號</div><div class="nc-num">${stu.num}</div></div>
-      <div><div class="nc-label">姓名</div><div class="nc-name">${stu.name}</div></div>
-      <div style="margin-left:auto;text-align:right">
-        <div class="nc-label">測驗類型</div>
-        <div style="font-size:11pt;font-weight:700;color:#D97706">${ST.testType}測驗</div>
-      </div>
+  const tableHTML=`<table class="nc-table">
+    <thead><tr>
+      <th class="nc-seq">#</th><th>日期</th><th>時間</th><th>測驗科目</th><th>支援職位</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+
+  const studentInfo=`<div class="nc-student-row">
+    <div><div class="nc-label">班級座號</div><div class="nc-num">${stu.num}</div></div>
+    <div><div class="nc-label">姓　　名</div><div class="nc-name">${stu.name}</div></div>
+    <div style="margin-left:auto;text-align:right">
+      <div class="nc-label">測驗類型</div>
+      <div style="font-size:10pt;font-weight:800;color:#D97706">${ttName}</div>
     </div>
-    <div class="nc-note">
-      以下為您的考試支援場次，請準時至指定地點報到。如有疑問請洽主辦老師。<br>
-      ⚠️ 請妥善保管此通知單，並於支援前再次確認時間與職位。
-    </div>
-    <table class="nc-table">
-      <thead><tr>
-        <th class="nc-seq">#</th>
-        <th>日期</th>
-        <th>時間</th>
-        <th>考試科目</th>
-        <th>支援職位</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <div class="nc-sign">
-      <div class="nc-sign-item"><div class="nc-sign-line"></div>學生簽名</div>
-      <div class="nc-sign-item"><div class="nc-sign-line"></div>家長簽名</div>
-      <div class="nc-sign-item"><div class="nc-sign-line"></div>教師確認</div>
-    </div>
-    <div class="nc-footer">列印日期：${new Date().getFullYear()}/${new Date().getMonth()+1}/${new Date().getDate()}</div>
   </div>`;
+
+  // ── Top half: 導師留存 ─────────────────────────────────
+  const topHalf=`
+    <div class="nc-half nc-half-top">
+      <div class="nc-teacher-banner">📌 請導師協助張貼聯絡簿</div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <div>
+          <div class="nc-school">高雄市左營區新莊國小</div>
+          <div class="nc-title">學習扶助測驗 協助人員通知單</div>
+          <div class="nc-subtitle">導師留存聯</div>
+        </div>
+        <div style="text-align:right;font-size:8.5pt;color:#888">列印日期：${todayStr}</div>
+      </div>
+      <hr class="nc-divider">
+      ${studentInfo}
+      <div class="nc-thank">
+        親愛的 <strong>${stu.name}</strong> 同學，您好！<br>
+        本校教務處即將舉行<strong>學習扶助${ttName}</strong>，感謝您以小市長團隊成員的身份協助本次活動。
+        您的支援對於測驗的順利進行至關重要，請依下列時間準時至指定地點報到。
+        如有問題或疑問，請聯絡<strong>教務處註冊組</strong>（☎ 3411373 轉 112）。
+      </div>
+      ${tableHTML}
+      <div class="nc-sign" style="margin-top:8pt">
+        <div class="nc-sign-item"><div class="nc-sign-line"></div>導師確認</div>
+        <div class="nc-sign-item"><div class="nc-sign-line"></div>教務處確認</div>
+      </div>
+    </div>`;
+
+  // ── Bottom half: 學生/家長留存 ────────────────────────
+  const bottomHalf=`
+    <div class="nc-half nc-half-bottom">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <div>
+          <div class="nc-school">高雄市左營區新莊國小</div>
+          <div class="nc-title">學習扶助測驗 協助人員通知單</div>
+          <div class="nc-subtitle">學生暨家長留存聯</div>
+        </div>
+      </div>
+      <hr class="nc-divider">
+      ${studentInfo}
+      <div class="nc-thank">
+        親愛的 <strong>${stu.name}</strong> 同學及家長，您好！<br>
+        本校教務處即將舉行<strong>學習扶助${ttName}</strong>，感謝小市長團隊成員
+        <strong>${stu.name}</strong> 同學的鼎力協助！請於以下時間準時報到支援，
+        請妥善保管此通知單並於活動前確認場次。
+        如有問題，請聯絡<strong>教務處註冊組</strong>（☎ 3411373 轉 112）。
+      </div>
+      ${tableHTML}
+      <div class="nc-sign" style="margin-top:8pt">
+        <div class="nc-sign-item"><div class="nc-sign-line"></div>學生簽名</div>
+        <div class="nc-sign-item"><div class="nc-sign-line"></div>家長簽名</div>
+      </div>
+    </div>`;
+
+  return `<div class="notice-card">${topHalf}<div class="nc-scissors"></div>${bottomHalf}</div>`;
 }
 
 window.openNotice=()=>{

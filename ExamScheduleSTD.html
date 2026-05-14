@@ -292,7 +292,7 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
       <button class="modal-close" onclick="closeRoster()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="add-row">
+      <div id="rosterAddRow" class="add-row">
         <div class="field-group">
           <label class="field-label">班級座號（如 60501）</label>
           <input class="field-input" id="newNum" placeholder="60501" maxlength="10">
@@ -302,6 +302,9 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
           <input class="field-input" id="newName" placeholder="王曉明" onkeydown="if(event.key==='Enter')addStudent()">
         </div>
         <button class="add-btn" onclick="addStudent()">＋ 新增</button>
+      </div>
+      <div id="rosterLockNote" style="display:none;padding:8px 12px;background:#FEF9EE;border:1px solid #FDE68A;border-radius:6px;font-size:12px;color:#92400E;margin-bottom:12px">
+        🔒 請進入<strong>編輯模式</strong>後才能新增或刪除學生。
       </div>
       <input type="text" class="search-input" placeholder="搜尋名單…" id="rosterSearch" oninput="renderRosterList()">
       <div class="student-list" id="rosterList"></div>
@@ -454,9 +457,16 @@ async function loadST(){
 }
 
 // ─── Roster ───────────────────────────────────────────────
-window.openRoster=()=>{document.getElementById('rosterModal').classList.add('open');renderRosterList();};
+window.openRoster=()=>{
+  document.getElementById('rosterModal').classList.add('open');
+  const locked=!isEditMode;
+  document.getElementById('rosterAddRow').style.display=locked?'none':'flex';
+  document.getElementById('rosterLockNote').style.display=locked?'block':'none';
+  renderRosterList();
+};
 window.closeRoster=()=>{document.getElementById('rosterModal').classList.remove('open');renderPool();renderSchedule();};
 window.addStudent=()=>{
+  if(!isEditMode){alert('請先進入編輯模式才能新增學生。');return;}
   const num=document.getElementById('newNum').value.trim();
   const name=document.getElementById('newName').value.trim();
   if(!num||!name){alert('請填寫班級座號與姓名');return;}
@@ -476,12 +486,47 @@ window.deleteStudent=id=>{
   for(const tt of['篩選','成長'])for(const k of Object.keys(ST.sched[tt]))if(ST.sched[tt][k]===id)ST.sched[tt][k]=null;
   saveST();renderRosterList();
 };
+// Class colour palette — cycle through these for distinct classes
+const CLASS_COLORS=[
+  '#D92B2B','#1D55D4','#158A45','#B45309','#7C3AED',
+  '#0369A1','#BE185D','#0F766E','#B45309','#6D28D9',
+  '#047857','#1D4ED8','#9D174D','#0E7490','#C2410C',
+];
+const classColorMap={};
+let classColorIdx=0;
+function classColor(num){
+  const cls=num.length>=3?num.slice(0,3):num.slice(0,2);
+  if(!classColorMap[cls]){
+    classColorMap[cls]=CLASS_COLORS[classColorIdx%CLASS_COLORS.length];
+    classColorIdx++;
+  }
+  return classColorMap[cls];
+}
+// Build colour map from current roster (sorted) so colours are stable
+function rebuildClassColors(){
+  // Reset
+  for(const k of Object.keys(classColorMap))delete classColorMap[k];
+  classColorIdx=0;
+  // Go through roster sorted to assign colours in order
+  const classes=[...new Set(ST.roster.map(s=>s.num.length>=3?s.num.slice(0,3):s.num.slice(0,2)))].sort();
+  classes.forEach((cls,i)=>{classColorMap[cls]=CLASS_COLORS[i%CLASS_COLORS.length];});
+}
+
 window.renderRosterList=()=>{
+  rebuildClassColors();
   const q=(document.getElementById('rosterSearch')?.value||'').toLowerCase();
   const el=document.getElementById('rosterList');
   const list=ST.roster.filter(s=>s.num.includes(q)||s.name.toLowerCase().includes(q));
   if(!list.length){el.innerHTML='<div style="text-align:center;color:#94A3B8;padding:16px;font-size:13px">尚無學生或無符合結果</div>';return;}
-  el.innerHTML=list.map(s=>`<div class="student-item"><span class="stu-num">${s.num}</span><span class="stu-name">${s.name}</span><button class="stu-del" onclick="deleteStudent('${s.id}')">✕ 刪除</button></div>`).join('');
+  el.innerHTML=list.map(s=>{
+    const col=classColor(s.num);
+    const delBtn=`<button class="stu-del" onclick="deleteStudent('${s.id}')">✕ 刪除</button>`;
+    return `<div class="student-item">
+      <span class="stu-num" style="color:${col};font-weight:800">${s.num}</span>
+      <span class="stu-name">${s.name}</span>
+      ${isEditMode?delBtn:'<span style="font-size:10px;color:#C4C4C4">🔒</span>'}
+    </div>`;
+  }).join('');
 };
 
 // ─── Pool ─────────────────────────────────────────────────
@@ -494,7 +539,14 @@ function renderPool(){
   const el=document.getElementById('cardPool');if(!el)return;
   const cards=poolStudents();
   if(!cards.length){el.innerHTML='<div class="pool-empty">✓ 所有學生已排入<br>或名單為空</div>';return;}
-  el.innerHTML=cards.map(s=>`<div class="pool-card" data-id="${s.id}" draggable="true" ondragstart="onDragStart(event,'${s.id}','pool')" ondragend="this.classList.remove('dragging')"><span class="pc-num">${s.num}</span><span class="pc-name">${s.name}</span></div>`).join('');
+  rebuildClassColors();
+  el.innerHTML=cards.map(s=>{
+    const col=classColor(s.num);
+    return `<div class="pool-card" data-id="${s.id}" draggable="true" ondragstart="onDragStart(event,'${s.id}','pool')" ondragend="this.classList.remove('dragging')">
+      <span class="pc-num" style="color:${col}">${s.num}</span>
+      <span class="pc-name">${s.name}</span>
+    </div>`;
+  }).join('');
 }
 
 // ─── Dates ────────────────────────────────────────────────
@@ -587,7 +639,7 @@ function weekTableHTML(w,sc,ws){
                     ondragstart="onDragStart(event,'${stu.id}','placed')"
                     ondragend="this.classList.remove('dragging')">
                     <span class="p-rm" onclick="removeCard('${key}')">✕</span>
-                    <div class="placed-num">${stu.num}</div>
+                    <div class="placed-num" style="color:${classColor(stu.num)}">${stu.num}</div>
                     <div class="placed-name">${stu.name}</div>
                   </div>`
                 :'<div class="drop-empty">拖放</div>'}

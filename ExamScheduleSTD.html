@@ -156,9 +156,10 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 .notice-print-btn{padding:5px 14px;border-radius:6px;border:none;background:#059669;color:#FFF;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700}
 .notice-pages{padding:20px;display:flex;flex-direction:column;gap:24px;align-items:center}
 .notice-card{
-  width:190mm;background:#FFF;border:1px solid #DDD;border-radius:8px;
-  padding:14mm 16mm;font-family:'Noto Sans TC',sans-serif;
+  width:210mm;min-height:297mm;background:#FFF;border:1px solid #DDD;border-radius:4px;
+  padding:8mm 10mm;font-family:'Noto Sans TC',sans-serif;
   box-shadow:0 2px 8px rgba(0,0,0,.08);
+  display:flex;flex-direction:column;
 }
 .nc-school{font-size:11pt;color:#555;text-align:center;margin-bottom:2pt}
 .nc-title{font-size:17pt;font-weight:900;text-align:center;margin-bottom:10pt;letter-spacing:.5pt}
@@ -181,29 +182,30 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 .nc-role-reg  {color:#0369A1;font-weight:700}
 .nc-role-id   {color:#B45309;font-weight:700}
 .nc-footer{margin-top:10pt;font-size:8.5pt;color:#888;text-align:center}
-.nc-half{padding:0}
-.nc-half-top{padding-bottom:8pt}
-.nc-half-bottom{padding-top:8pt}
-.nc-teacher-banner{
-  background:#FEF9EE;border:1.5px solid #F59E0B;border-radius:5px;
-  padding:4pt 10pt;font-size:9pt;font-weight:700;color:#92400E;
-  margin-bottom:7pt;text-align:center;
+.nc-half{padding:0;margin:0}
+.nc-compact-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10pt;margin-bottom:4pt}
+.nc-head-left{flex:1}
+.nc-head-right{text-align:right;flex-shrink:0}
+.nc-title-row{display:flex;align-items:baseline;gap:8pt;flex-wrap:wrap}
+.nc-subtitle-tag{
+  font-size:8pt;font-weight:700;color:#888;white-space:nowrap;
+  border:1px solid #CCC;border-radius:3px;padding:1pt 6pt;
 }
-.nc-subtitle{
-  font-size:9.5pt;font-weight:700;color:#888;
-  border:1px solid #DDD;border-radius:3px;padding:1pt 8pt;display:inline-block;margin-top:1pt;
-}
+.nc-head-stu-num{font-size:13pt;font-weight:900;font-family:'JetBrains Mono',monospace;color:#1C1917;line-height:1.2}
+.nc-head-stu-name{font-size:17pt;font-weight:900;color:#1C1917;line-height:1.2}
+.nc-head-tt{font-size:9pt;font-weight:700;color:#D97706;margin-top:2pt}
+.nc-head-date{font-size:7.5pt;color:#AAA}
 .nc-thank{
-  font-size:9pt;color:#444;line-height:1.75;
-  margin-bottom:7pt;background:#F8F8F8;padding:7pt 10pt;border-radius:4pt;
-  border-left:3pt solid #F59E0B;
+  font-size:8.5pt;color:#444;line-height:1.65;
+  margin-bottom:5pt;padding:5pt 8pt;
+  border-left:2.5pt solid #F59E0B;background:#FFFBF0;
 }
 .nc-scissors{
-  border-top:1.5px dashed #CCC;margin:8pt 0;position:relative;text-align:center;
+  border-top:1.5px dashed #CCC;margin:6pt 0;position:relative;text-align:center;
 }
 .nc-scissors::before{
-  content:'✂ 剪下線';font-size:8pt;color:#BBB;
-  background:#FFF;padding:0 6pt;position:relative;top:-8pt;
+  content:'✂ 剪下線';font-size:7.5pt;color:#BBB;
+  background:#FFF;padding:0 6pt;position:relative;top:-7pt;
 }
 .nc-sign{display:flex;justify-content:flex-end;margin-top:12pt;gap:32pt}
 .nc-sign-item{text-align:center;font-size:9pt;color:#555}
@@ -220,8 +222,9 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
   body.printing-notice .notice-card{
     box-shadow:none!important;border:none!important;border-radius:0!important;
     page-break-after:always;break-after:page;
-    width:auto!important;margin:0!important;
+    width:auto!important;margin:0!important;padding:8mm 10mm!important;
   }
+  @page{size:A4 portrait;margin:0}
   body.printing-notice .notice-card:last-child{page-break-after:avoid;break-after:avoid}
   /* Normal schedule print: hide notice */
   body:not(.printing-notice) .notice-overlay{display:none!important}
@@ -807,7 +810,7 @@ function noticeCardHTML(stu, assignments){
     const dateStr=`${a.date.getMonth()+1}/${a.date.getDate()}（${dow}）`;
     const timeStr=SLOT_TIME[a.slot];
     const subjStr=`${a.info.grade}年級${a.info.subj}`;
-    const roleStr=`${ROLE_LABEL[a.role]}`;
+    const roleStr=ROLE_LABEL[a.role];
     return `<tr>
       <td class="nc-seq">${idx+1}</td>
       <td class="nc-date">${dateStr}</td>
@@ -824,69 +827,41 @@ function noticeCardHTML(stu, assignments){
     <tbody>${rows}</tbody>
   </table>`;
 
-  const studentInfo=`<div class="nc-student-row">
-    <div><div class="nc-label">班級座號</div><div class="nc-num">${stu.num}</div></div>
-    <div><div class="nc-label">姓　　名</div><div class="nc-name">${stu.name}</div></div>
-    <div style="margin-left:auto;text-align:right">
-      <div class="nc-label">測驗類型</div>
-      <div style="font-size:10pt;font-weight:800;color:#D97706">${ttName}</div>
+  // Compact header: title left, student info right
+  const compactHeader=(tag)=>`
+    <div class="nc-compact-head">
+      <div class="nc-head-left">
+        <div class="nc-school">高雄市左營區新莊國小</div>
+        <div class="nc-title-row">
+          <span class="nc-title">學習扶助測驗 協助人員通知單</span>
+          <span class="nc-subtitle-tag">${tag}</span>
+        </div>
+      </div>
+      <div class="nc-head-right">
+        <div class="nc-head-stu-num">${stu.num}</div>
+        <div class="nc-head-stu-name">${stu.name}</div>
+        <div class="nc-head-tt">${ttName}</div>
+        <div class="nc-head-date">${todayStr}</div>
+      </div>
     </div>
+    <hr class="nc-divider">`;
+
+  const thankText=(recipient)=>recipient==='teacher'
+    ?`親愛的 <strong>${stu.name}</strong> 同學，您好！本校教務處即將舉行<strong>學習扶助${ttName}</strong>，感謝您以小市長團隊成員的身份協助本次活動，請依下列時間準時至指定地點報到。如有問題請聯絡<strong>教務處註冊組</strong>（☎ 3411373 轉 112）。`
+    :`親愛的 <strong>${stu.name}</strong> 同學及家長，您好！感謝小市長團隊成員 <strong>${stu.name}</strong> 同學協助學習扶助<strong>${ttName}</strong>，請依下列時間準時報到。如有問題請聯絡<strong>教務處註冊組</strong>（☎ 3411373 轉 112）。`;
+
+  const half=(tag, recipient)=>`
+    <div class="nc-half">
+      ${compactHeader(tag)}
+      <div class="nc-thank">${thankText(recipient)}</div>
+      ${tableHTML}
+    </div>`;
+
+  return `<div class="notice-card">
+    ${half('導師留存聯','teacher')}
+    <div class="nc-scissors"></div>
+    ${half('學生暨家長留存聯（請訂在聯絡簿上）','parent')}
   </div>`;
-
-  // ── Top half: 導師留存 ─────────────────────────────────
-  const topHalf=`
-    <div class="nc-half nc-half-top">
-      <div class="nc-teacher-banner">📌 請導師協助張貼聯絡簿</div>
-      <div style="display:flex;align-items:baseline;justify-content:space-between">
-        <div>
-          <div class="nc-school">高雄市左營區新莊國小</div>
-          <div class="nc-title">學習扶助測驗 協助人員通知單</div>
-          <div class="nc-subtitle">導師留存聯</div>
-        </div>
-        <div style="text-align:right;font-size:8.5pt;color:#888">列印日期：${todayStr}</div>
-      </div>
-      <hr class="nc-divider">
-      ${studentInfo}
-      <div class="nc-thank">
-        親愛的 <strong>${stu.name}</strong> 同學，您好！<br>
-        本校教務處即將舉行<strong>學習扶助${ttName}</strong>，感謝您以小市長團隊成員的身份協助本次活動。
-        您的支援對於測驗的順利進行至關重要，請依下列時間準時至指定地點報到。
-        如有問題或疑問，請聯絡<strong>教務處註冊組</strong>（☎ 3411373 轉 112）。
-      </div>
-      ${tableHTML}
-      <div class="nc-sign" style="margin-top:8pt">
-        <div class="nc-sign-item"><div class="nc-sign-line"></div>導師確認</div>
-        <div class="nc-sign-item"><div class="nc-sign-line"></div>教務處確認</div>
-      </div>
-    </div>`;
-
-  // ── Bottom half: 學生/家長留存 ────────────────────────
-  const bottomHalf=`
-    <div class="nc-half nc-half-bottom">
-      <div style="display:flex;align-items:baseline;justify-content:space-between">
-        <div>
-          <div class="nc-school">高雄市左營區新莊國小</div>
-          <div class="nc-title">學習扶助測驗 協助人員通知單</div>
-          <div class="nc-subtitle">學生暨家長留存聯</div>
-        </div>
-      </div>
-      <hr class="nc-divider">
-      ${studentInfo}
-      <div class="nc-thank">
-        親愛的 <strong>${stu.name}</strong> 同學及家長，您好！<br>
-        本校教務處即將舉行<strong>學習扶助${ttName}</strong>，感謝小市長團隊成員
-        <strong>${stu.name}</strong> 同學的鼎力協助！請於以下時間準時報到支援，
-        請妥善保管此通知單並於活動前確認場次。
-        如有問題，請聯絡<strong>教務處註冊組</strong>（☎ 3411373 轉 112）。
-      </div>
-      ${tableHTML}
-      <div class="nc-sign" style="margin-top:8pt">
-        <div class="nc-sign-item"><div class="nc-sign-line"></div>學生簽名</div>
-        <div class="nc-sign-item"><div class="nc-sign-line"></div>家長簽名</div>
-      </div>
-    </div>`;
-
-  return `<div class="notice-card">${topHalf}<div class="nc-scissors"></div>${bottomHalf}</div>`;
 }
 
 window.openNotice=()=>{

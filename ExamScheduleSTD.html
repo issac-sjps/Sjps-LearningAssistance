@@ -207,6 +207,7 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
   content:'✂ 剪下線';font-size:7.5pt;color:#BBB;
   background:#FFF;padding:0 6pt;position:relative;top:-7pt;
 }
+.nc-double-page{min-height:auto!important}
 .nc-sign{display:flex;justify-content:flex-end;margin-top:12pt;gap:32pt}
 .nc-sign-item{text-align:center;font-size:9pt;color:#555}
 .nc-sign-line{width:60pt;border-bottom:1pt solid #999;margin:0 auto 3pt}
@@ -219,7 +220,8 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
   body.printing-notice .notice-overlay{position:static!important;display:block!important}
   body.printing-notice .notice-toolbar{display:none!important}
   body.printing-notice .notice-pages{padding:0!important;gap:0!important;display:block!important}
-  body.printing-notice .notice-card{
+  body.printing-notice .notice-card,
+  body.printing-notice .nc-double-page{
     box-shadow:none!important;border:none!important;border-radius:0!important;
     page-break-after:always;break-after:page;
     width:auto!important;margin:0!important;padding:8mm 10mm!important;
@@ -286,8 +288,8 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
   <div class="header-right">
     <a href="https://issac-sjps.github.io/Sjps-LearningAssistance/ExamSchedule.html" target="_blank" class="icon-btn">📋 考試排程</a>
     <button class="icon-btn" onclick="openRoster()">👤 管理名單</button>
-    <button class="print-btn no-print" onclick="doPrint()">🖨 排班表</button>
-    <button class="print-btn no-print" onclick="openNotice()" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:#C4B5FD">📄 通知單</button>
+    <button class="print-btn no-print" onclick="doPrint()">🖨 排班表列印</button>
+    <button class="print-btn no-print" onclick="openNotice()" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:#C4B5FD">📄 學生通知單列印</button>
     <div class="save-badge">
       <div class="save-dot" id="saveDot"></div>
       <span id="saveStatus">載入中…</span>
@@ -861,17 +863,85 @@ function noticeCardHTML(stu, assignments){
   </div>`;
 }
 
-window.openNotice=()=>{
+function noticeCardHTMLDouble(stu, assignments){
+  const ttName=ST.testType+'測驗';
+  const rows=assignments.map((a,idx)=>{
+    const dow=['日','一','二','三','四','五','六'][a.date.getDay()];
+    const dateStr=`${a.date.getMonth()+1}/${a.date.getDate()}（${dow}）`;
+    const timeStr=SLOT_TIME[a.slot];
+    const subjStr=`${a.info.grade}年級${a.info.subj}`;
+    const roleStr=ROLE_LABEL[a.role];
+    return `<tr>
+      <td class="nc-seq">${idx+1}</td>
+      <td class="nc-date">${dateStr}</td>
+      <td class="nc-time">${timeStr}</td>
+      <td class="nc-subj">${subjStr}</td>
+      <td class="${ROLE_CLASS[a.role]}">${roleStr}</td>
+    </tr>`;
+  }).join('');
+  const tableHTML=`<table class="nc-table">
+    <thead><tr>
+      <th class="nc-seq">#</th><th>日期</th><th>時間</th><th>測驗科目</th><th>支援職位</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+  const compactHeader=(tag)=>`
+    <div class="nc-compact-head">
+      <div class="nc-head-left">
+        <div class="nc-school">高雄市左營區新莊國小</div>
+        <div class="nc-title-row">
+          <span class="nc-title">學習扶助測驗 協助人員通知單</span>
+          <span class="nc-subtitle-tag">${tag}</span>
+        </div>
+      </div>
+      <div class="nc-head-right">
+        <div class="nc-head-stu-num">${stu.num}</div>
+        <div class="nc-head-stu-name">${stu.name}</div>
+      </div>
+    </div>
+    <hr class="nc-divider">`;
+  // Page 1: teacher
+  const page1=`<div class="notice-card nc-double-page">
+    ${compactHeader('導師留存聯')}
+    <div class="nc-thank">親愛的 <strong>${stu.name}</strong> 同學，您好！本校教務處即將舉行<strong>學習扶助${ttName}</strong>，感謝您以小市長團隊成員的身份協助本次活動，請依下列時間準時至指定地點報到。如有問題請聯絡<strong>教務處註冊組</strong>（☎ 3411373 轉 112）。</div>
+    ${tableHTML}
+  </div>`;
+  // Page 2: parent
+  const page2=`<div class="notice-card nc-double-page">
+    ${compactHeader('學生暨家長留存聯（請訂在聯絡簿上）')}
+    <div class="nc-thank">親愛的 <strong>${stu.name}</strong> 同學及家長，您好！感謝小市長團隊成員 <strong>${stu.name}</strong> 同學協助學習扶助<strong>${ttName}</strong>，請依下列時間準時報到。如有問題請聯絡<strong>教務處註冊組</strong>（☎ 3411373 轉 112）。</div>
+    ${tableHTML}
+  </div>`;
+  return page1+page2;
+}
+
+let noticeMode='single'; // 'single' | 'double'
+window.setNoticeMode=(mode)=>{
+  noticeMode=mode;
+  document.getElementById('modeBtn1').style.background=mode==='single'?'#FFF':'transparent';
+  document.getElementById('modeBtn1').style.color=mode==='single'?'#1C1917':'rgba(255,255,255,.6)';
+  document.getElementById('modeBtn2').style.background=mode==='double'?'#FFF':'transparent';
+  document.getElementById('modeBtn2').style.color=mode==='double'?'#1C1917':'rgba(255,255,255,.6)';
+  renderNoticePages();
+};
+function renderNoticePages(){
   const map=buildNoticeData();
   const sids=Object.keys(map);
-  if(!sids.length){alert('目前尚無任何排班資料，請先排班再產生通知單。');return;}
   const pages=document.getElementById('noticePages');
+  if(!sids.length){pages.innerHTML='<div style="color:#999;padding:40px;text-align:center">尚無排班資料</div>';return;}
   pages.innerHTML=sids.map(sid=>{
     const stu=ST.roster.find(s=>s.id===sid);
     if(!stu)return'';
-    return noticeCardHTML(stu,map[sid]);
+    return noticeMode==='double'
+      ? noticeCardHTMLDouble(stu,map[sid])
+      : noticeCardHTML(stu,map[sid]);
   }).join('');
+}
+window.openNotice=()=>{
+  const map=buildNoticeData();
+  if(!Object.keys(map).length){alert('目前尚無任何排班資料，請先排班再產生通知單。');return;}
   document.getElementById('noticeOverlay').classList.add('open');
+  renderNoticePages();
 };
 window.closeNotice=()=>{
   document.getElementById('noticeOverlay').classList.remove('open');
@@ -905,6 +975,11 @@ loadST();
 <div class="notice-overlay" id="noticeOverlay">
   <div class="notice-toolbar">
     <div class="notice-toolbar-title">🖨 學生支援通知單預覽</div>
+    <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);padding:3px 10px;border-radius:6px;font-size:11px;color:rgba(255,255,255,.7)">
+      列印模式：
+      <button id="modeBtn1" onclick="setNoticeMode('single')" style="padding:3px 10px;border-radius:4px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;background:#FFF;color:#1C1917">單頁</button>
+      <button id="modeBtn2" onclick="setNoticeMode('double')" style="padding:3px 10px;border-radius:4px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;background:transparent;color:rgba(255,255,255,.6)">雙頁（場次多用）</button>
+    </div>
     <button class="notice-print-btn" onclick="printNotice()">🖨 列印 / 儲存 PDF</button>
     <button class="notice-close-btn" onclick="closeNotice()">✕ 關閉</button>
   </div>

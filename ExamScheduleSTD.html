@@ -208,6 +208,27 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
   background:#FFF;padding:0 6pt;position:relative;top:-7pt;
 }
 .nc-double-page{min-height:auto!important}
+
+/* Notice checklist panel */
+.notice-checklist{
+  background:#1C1917;border-bottom:1px solid rgba(255,255,255,.12);
+  padding:10px 20px;display:none;flex-wrap:wrap;gap:6px;align-items:center;
+}
+.notice-checklist.show{display:flex}
+.ncl-label{font-size:10px;font-weight:800;color:rgba(255,255,255,.45);
+  text-transform:uppercase;letter-spacing:.08em;margin-right:4px;white-space:nowrap}
+.ncl-item{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  border-radius:5px;padding:4px 10px;cursor:pointer;
+  font-size:11px;color:rgba(255,255,255,.7);user-select:none;
+  transition:all .15s;
+}
+.ncl-item:hover{background:rgba(255,255,255,.15)}
+.ncl-item.double-checked{background:rgba(124,58,237,.35);border-color:#A78BFA;color:#FFF}
+.ncl-item input[type=checkbox]{accent-color:#A78BFA;width:13px;height:13px;cursor:pointer}
+.ncl-num{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px}
+.ncl-hint{font-size:10px;color:rgba(255,255,255,.35);margin-left:6px;white-space:nowrap}
 .nc-sign{display:flex;justify-content:flex-end;margin-top:12pt;gap:32pt}
 .nc-sign-item{text-align:center;font-size:9pt;color:#555}
 .nc-sign-line{width:60pt;border-bottom:1pt solid #999;margin:0 auto 3pt}
@@ -915,15 +936,43 @@ function noticeCardHTMLDouble(stu, assignments){
   return page1+page2;
 }
 
-let noticeMode='single'; // 'single' | 'double'
-window.setNoticeMode=(mode)=>{
-  noticeMode=mode;
-  document.getElementById('modeBtn1').style.background=mode==='single'?'#FFF':'transparent';
-  document.getElementById('modeBtn1').style.color=mode==='single'?'#1C1917':'rgba(255,255,255,.6)';
-  document.getElementById('modeBtn2').style.background=mode==='double'?'#FFF':'transparent';
-  document.getElementById('modeBtn2').style.color=mode==='double'?'#1C1917':'rgba(255,255,255,.6)';
+// Per-student double-page set
+const doublePageSet=new Set();
+
+window.toggleDoubleMode=(sid)=>{
+  if(doublePageSet.has(sid))doublePageSet.delete(sid);
+  else doublePageSet.add(sid);
+  // Update checklist item style
+  const item=document.querySelector(`.ncl-item[data-sid="${sid}"]`);
+  if(item){
+    item.classList.toggle('double-checked',doublePageSet.has(sid));
+    const cb=item.querySelector('input');
+    if(cb)cb.checked=doublePageSet.has(sid);
+  }
   renderNoticePages();
 };
+
+function renderChecklist(map){
+  const cl=document.getElementById('noticeChecklist');
+  const sids=Object.keys(map);
+  if(!sids.length){cl.classList.remove('show');return;}
+  cl.classList.add('show');
+  cl.innerHTML=`<span class="ncl-label">雙頁模式：</span>`+
+    sids.map(sid=>{
+      const stu=ST.roster.find(s=>s.id===sid);
+      if(!stu)return'';
+      const cnt=map[sid].length;
+      const isDouble=doublePageSet.has(sid);
+      return `<label class="ncl-item${isDouble?' double-checked':''}" data-sid="${sid}" onclick="toggleDoubleMode('${sid}');return false">
+        <input type="checkbox" ${isDouble?'checked':''} onclick="event.stopPropagation();toggleDoubleMode('${sid}')">
+        <span class="ncl-num">${stu.num}</span>
+        <span>${stu.name}</span>
+        <span class="ncl-hint">${cnt}場</span>
+      </label>`;
+    }).join('')+
+    `<span class="ncl-hint">✔ 勾選後該學生將以雙頁列印（導師聯＋家長聯各一頁）</span>`;
+}
+
 function renderNoticePages(){
   const map=buildNoticeData();
   const sids=Object.keys(map);
@@ -932,15 +981,17 @@ function renderNoticePages(){
   pages.innerHTML=sids.map(sid=>{
     const stu=ST.roster.find(s=>s.id===sid);
     if(!stu)return'';
-    return noticeMode==='double'
+    return doublePageSet.has(sid)
       ? noticeCardHTMLDouble(stu,map[sid])
       : noticeCardHTML(stu,map[sid]);
   }).join('');
 }
+
 window.openNotice=()=>{
   const map=buildNoticeData();
   if(!Object.keys(map).length){alert('目前尚無任何排班資料，請先排班再產生通知單。');return;}
   document.getElementById('noticeOverlay').classList.add('open');
+  renderChecklist(map);
   renderNoticePages();
 };
 window.closeNotice=()=>{
@@ -975,14 +1026,10 @@ loadST();
 <div class="notice-overlay" id="noticeOverlay">
   <div class="notice-toolbar">
     <div class="notice-toolbar-title">🖨 學生支援通知單預覽</div>
-    <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);padding:3px 10px;border-radius:6px;font-size:11px;color:rgba(255,255,255,.7)">
-      列印模式：
-      <button id="modeBtn1" onclick="setNoticeMode('single')" style="padding:3px 10px;border-radius:4px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;background:#FFF;color:#1C1917">單頁</button>
-      <button id="modeBtn2" onclick="setNoticeMode('double')" style="padding:3px 10px;border-radius:4px;border:none;cursor:pointer;font-size:11px;font-weight:700;font-family:inherit;background:transparent;color:rgba(255,255,255,.6)">雙頁（場次多用）</button>
-    </div>
-    <button class="notice-print-btn" onclick="printNotice()">🖨 列印 / 儲存 PDF</button>
+    <button class="notice-print-btn" onclick="printNotice()">🖨 列印全部 / 儲存 PDF</button>
     <button class="notice-close-btn" onclick="closeNotice()">✕ 關閉</button>
   </div>
+  <div class="notice-checklist" id="noticeChecklist"></div>
   <div class="notice-pages" id="noticePages"></div>
 </div>
 </body>

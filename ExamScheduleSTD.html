@@ -146,8 +146,61 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 
 /* Print */
 .print-page-header{display:none}
+
+/* Notice print */
+.notice-overlay{display:none;position:fixed;inset:0;z-index:600;background:#FFF;overflow-y:auto}
+.notice-overlay.open{display:block}
+.notice-toolbar{position:sticky;top:0;background:#1C1917;color:#FFF;padding:10px 20px;display:flex;align-items:center;gap:12px;z-index:10}
+.notice-toolbar-title{font-size:14px;font-weight:800}
+.notice-close-btn{margin-left:auto;padding:5px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#FFF;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700}
+.notice-print-btn{padding:5px 14px;border-radius:6px;border:none;background:#059669;color:#FFF;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700}
+.notice-pages{padding:20px;display:flex;flex-direction:column;gap:24px;align-items:center}
+.notice-card{
+  width:190mm;background:#FFF;border:1px solid #DDD;border-radius:8px;
+  padding:14mm 16mm;font-family:'Noto Sans TC',sans-serif;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+.nc-school{font-size:11pt;color:#555;text-align:center;margin-bottom:2pt}
+.nc-title{font-size:17pt;font-weight:900;text-align:center;margin-bottom:10pt;letter-spacing:.5pt}
+.nc-divider{border:none;border-top:2pt solid #1C1917;margin:0 0 10pt}
+.nc-student-row{display:flex;align-items:baseline;gap:16pt;margin-bottom:10pt}
+.nc-label{font-size:9pt;color:#888;white-space:nowrap}
+.nc-num{font-size:16pt;font-weight:900;font-family:'JetBrains Mono',monospace;color:#1C1917}
+.nc-name{font-size:20pt;font-weight:900;color:#1C1917}
+.nc-note{font-size:9pt;color:#888;margin-bottom:8pt;line-height:1.6}
+.nc-table{width:100%;border-collapse:collapse;font-size:10pt}
+.nc-table th{background:#1C1917;color:#FFF;padding:5pt 8pt;text-align:left;font-size:9pt;font-weight:700}
+.nc-table td{padding:5pt 8pt;border-bottom:1pt solid #EEE;vertical-align:middle}
+.nc-table tr:last-child td{border-bottom:none}
+.nc-table tr:nth-child(even) td{background:#F8F8F8}
+.nc-seq{font-family:'JetBrains Mono',monospace;font-size:9pt;color:#888;text-align:center;width:24pt}
+.nc-date{font-family:'JetBrains Mono',monospace;font-weight:700;white-space:nowrap}
+.nc-time{color:#555;white-space:nowrap;font-size:9pt}
+.nc-subj{}
+.nc-role-guide{color:#7C3AED;font-weight:700}
+.nc-role-reg  {color:#0369A1;font-weight:700}
+.nc-role-id   {color:#B45309;font-weight:700}
+.nc-footer{margin-top:10pt;font-size:8.5pt;color:#888;text-align:center}
+.nc-sign{display:flex;justify-content:flex-end;margin-top:12pt;gap:32pt}
+.nc-sign-item{text-align:center;font-size:9pt;color:#555}
+.nc-sign-line{width:60pt;border-bottom:1pt solid #999;margin:0 auto 3pt}
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  /* When printing notices, hide everything except notice overlay */
+  body.printing-notice header,
+  body.printing-notice .layout,
+  body.printing-notice .perm-banner{display:none!important}
+  body.printing-notice .notice-overlay{position:static!important;display:block!important}
+  body.printing-notice .notice-toolbar{display:none!important}
+  body.printing-notice .notice-pages{padding:0!important;gap:0!important;display:block!important}
+  body.printing-notice .notice-card{
+    box-shadow:none!important;border:none!important;border-radius:0!important;
+    page-break-after:always;break-after:page;
+    width:auto!important;margin:0!important;
+  }
+  body.printing-notice .notice-card:last-child{page-break-after:avoid;break-after:avoid}
+  /* Normal schedule print: hide notice */
+  body:not(.printing-notice) .notice-overlay{display:none!important}
   @page{size:A4 landscape;margin:8mm 7mm}
   header,.sidebar,.perm-banner,.no-print,.pool-card,.pool-empty,.reset-btn,.search-input,.s-title,.p-rm{display:none!important}
   body{background:#FFF!important}
@@ -207,7 +260,8 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
   <div class="header-right">
     <a href="https://issac-sjps.github.io/Sjps-LearningAssistance/ExamSchedule.html" target="_blank" class="icon-btn">📋 考試排程</a>
     <button class="icon-btn" onclick="openRoster()">👤 管理名單</button>
-    <button class="print-btn no-print" onclick="doPrint()">🖨 列印</button>
+    <button class="print-btn no-print" onclick="doPrint()">🖨 排班表</button>
+    <button class="print-btn no-print" onclick="openNotice()" style="background:rgba(124,58,237,.15);border-color:rgba(124,58,237,.4);color:#C4B5FD">📄 通知單</button>
     <div class="save-badge">
       <div class="save-dot" id="saveDot"></div>
       <span id="saveStatus">載入中…</span>
@@ -635,7 +689,127 @@ window.ev_drop=(ev,targetKey)=>{
 };
 window.removeCard=key=>{ST.sched[ST.testType][key]=null;saveST();renderPool();renderSchedule();};
 
+// ─── Notice ───────────────────────────────────────────────
+const SLOT_TIME={'morning':'早自修 07:50~08:35','lunch':'午休 12:40~13:20'};
+const ROLE_LABEL={'guide':'引導人員','reg':'報到人員','id':'發身分證條'};
+const ROLE_CLASS={'guide':'nc-role-guide','reg':'nc-role-reg','id':'nc-role-id'};
+
+function buildNoticeData(){
+  const tt=ST.testType;
+  const sc=ST.sched[tt];
+  // Collect all assignments: {studentId -> [{w,d,slot,role,si,date,slotLabel,subjLabel,roleLabel}]}
+  const map={};
+  for(const [key,sid] of Object.entries(sc)){
+    if(!sid)continue;
+    const parts=key.split('-'); // w-d-slot-role-si
+    const w=parseInt(parts[0]),d=parseInt(parts[1]),slot=parts[2],role=parts[3],si=parseInt(parts[4]);
+    const info=slotInfo(tt,w,d,slot);
+    if(!info.hasExam)continue;
+    const dates=weekDates(w);
+    const date=dates[d];
+    if(!date)continue;
+    if(!map[sid])map[sid]=[];
+    map[sid].push({w,d,slot,role,si,date,info});
+  }
+  // Sort each student's assignments by date then slot
+  for(const sid of Object.keys(map)){
+    map[sid].sort((a,b)=>{
+      const dt=a.date-b.date;
+      if(dt!==0)return dt;
+      return SLOTS.indexOf(a.slot)-SLOTS.indexOf(b.slot);
+    });
+  }
+  return map;
+}
+
+function noticeCardHTML(stu, assignments){
+  const rows=assignments.map((a,idx)=>{
+    const dow=['日','一','二','三','四','五','六'][a.date.getDay()];
+    const dateStr=`${a.date.getMonth()+1}/${a.date.getDate()}（${dow}）`;
+    const timeStr=SLOT_TIME[a.slot];
+    const subjStr=`${a.info.grade}年級${a.info.subj}`;
+    const roleStr=`${ROLE_LABEL[a.role]} #${a.si+1}`;
+    return `<tr>
+      <td class="nc-seq">${idx+1}</td>
+      <td class="nc-date">${dateStr}</td>
+      <td class="nc-time">${timeStr}</td>
+      <td class="nc-subj">${subjStr}</td>
+      <td class="${ROLE_CLASS[a.role]}">${roleStr}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="notice-card">
+    <div class="nc-school">聖約翰科技大學附屬中小學</div>
+    <div class="nc-title">學生支援通知單</div>
+    <hr class="nc-divider">
+    <div class="nc-student-row">
+      <div><div class="nc-label">班級座號</div><div class="nc-num">${stu.num}</div></div>
+      <div><div class="nc-label">姓名</div><div class="nc-name">${stu.name}</div></div>
+      <div style="margin-left:auto;text-align:right">
+        <div class="nc-label">測驗類型</div>
+        <div style="font-size:11pt;font-weight:700;color:#D97706">${ST.testType}測驗</div>
+      </div>
+    </div>
+    <div class="nc-note">
+      以下為您的考試支援場次，請準時至指定地點報到。如有疑問請洽主辦老師。<br>
+      ⚠️ 請妥善保管此通知單，並於支援前再次確認時間與職位。
+    </div>
+    <table class="nc-table">
+      <thead><tr>
+        <th class="nc-seq">#</th>
+        <th>日期</th>
+        <th>時間</th>
+        <th>考試科目</th>
+        <th>支援職位</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="nc-sign">
+      <div class="nc-sign-item"><div class="nc-sign-line"></div>學生簽名</div>
+      <div class="nc-sign-item"><div class="nc-sign-line"></div>家長簽名</div>
+      <div class="nc-sign-item"><div class="nc-sign-line"></div>教師確認</div>
+    </div>
+    <div class="nc-footer">列印日期：${new Date().getFullYear()}/${new Date().getMonth()+1}/${new Date().getDate()}</div>
+  </div>`;
+}
+
+window.openNotice=()=>{
+  const map=buildNoticeData();
+  const sids=Object.keys(map);
+  if(!sids.length){alert('目前尚無任何排班資料，請先排班再產生通知單。');return;}
+  const pages=document.getElementById('noticePages');
+  pages.innerHTML=sids.map(sid=>{
+    const stu=ST.roster.find(s=>s.id===sid);
+    if(!stu)return'';
+    return noticeCardHTML(stu,map[sid]);
+  }).join('');
+  document.getElementById('noticeOverlay').classList.add('open');
+};
+window.closeNotice=()=>{
+  document.getElementById('noticeOverlay').classList.remove('open');
+};
+window.doPrint=()=>{
+  document.body.classList.remove('printing-notice');
+  window.print();
+};
+// Override print btn for notice
+document.addEventListener('DOMContentLoaded',()=>{});
+// Patch: notice print button calls this
+window.printNotice=()=>{
+  document.body.classList.add('printing-notice');
+  window.print();
+  setTimeout(()=>document.body.classList.remove('printing-notice'),1000);
+};
+
 loadST();
 </script>
+<div class="notice-overlay" id="noticeOverlay">
+  <div class="notice-toolbar">
+    <div class="notice-toolbar-title">🖨 學生支援通知單預覽</div>
+    <button class="notice-print-btn" onclick="printNotice()">🖨 列印 / 儲存 PDF</button>
+    <button class="notice-close-btn" onclick="closeNotice()">✕ 關閉</button>
+  </div>
+  <div class="notice-pages" id="noticePages"></div>
+</div>
 </body>
 </html>

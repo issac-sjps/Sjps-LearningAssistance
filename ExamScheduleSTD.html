@@ -380,8 +380,9 @@ const WNUM =['一','二','三','四'];
 const WEEKS=4; const DAYS=5;
 const SLOTS=['morning','lunch']; // two sub-columns per day
 const ROLES=[
-  {key:'guide',label:'教室外引導人員',    color:'guide'},
-  {key:'reg',  label:'帶位與協助登錄人員',color:'reg'  },
+  {key:'guide',label:'教室外引導人員',        color:'guide'},
+  {key:'reg',  label:'報到與發放身分證條人員', color:'reg'  },
+  {key:'id',   label:'帶位與協助登錄考試系統', color:'id'   },
 ];
 const MAX_SLOTS_PER_ROLE=2; // max 2 rows per role
 // ≤0 → 0 slots (no exam), 1-30 → 1 slot, >30 → 2 slots
@@ -766,8 +767,8 @@ window.removeCard=key=>{ST.sched[ST.testType][key]=null;saveST();renderPool();re
 
 // ─── Notice ───────────────────────────────────────────────
 const SLOT_TIME={'morning':'早自修 07:50~08:35','lunch':'午休 12:40~13:20'};
-const ROLE_LABEL={'guide':'教室外引導人員','reg':'帶位與協助登錄人員'};
-const ROLE_CLASS={'guide':'nc-role-guide','reg':'nc-role-reg'};
+const ROLE_LABEL={'guide':'教室外引導人員','reg':'報到與發放身分證條人員','id':'帶位與協助登錄考試系統'};
+const ROLE_CLASS={'guide':'nc-role-guide','reg':'nc-role-reg','id':'nc-role-id'};
 
 function buildNoticeData(){
   const tt=ST.testType;

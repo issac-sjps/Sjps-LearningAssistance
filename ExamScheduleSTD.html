@@ -230,6 +230,7 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 .ncl-num{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px}
 .ncl-hint{font-size:10px;color:rgba(255,255,255,.35);margin-left:6px;white-space:nowrap}
 .nc-sign{display:flex;justify-content:flex-end;margin-top:12pt;gap:32pt}
+.nc-room{font-size:8.5pt;color:#555;white-space:nowrap}
 .nc-sign-item{text-align:center;font-size:9pt;color:#555}
 .nc-sign-line{width:60pt;border-bottom:1pt solid #999;margin:0 auto 3pt}
 @media print{
@@ -424,7 +425,7 @@ const GRADE_NAMES=['','一','二','三','四','五','六'];
 function gradeFromId(id){ if(!id)return''; const g=parseInt(id.split('-')[1]); return GRADE_NAMES[g]||''; }
 
 // ─── Exam data (read-only from schedule/main) ────────────
-let examData={startDate:'',counts:{},sched:{'篩選':{},'成長':{}}};
+let examData={startDate:'',counts:{},rooms:{morning:'3F-E化教室',lunch:'4F-電腦教室2'},sched:{'篩選':{},'成長':{}}};
 
 function subjFromId(id){
   if(!id)return null;
@@ -444,8 +445,9 @@ function peopleFromCard(tt,cardObj){
 function slotInfo(tt,w,d,slot){
   const sc=examData.sched[tt]||{};
   const card=sc[`${w}-${d}-${slot}`]||null;
-  if(!card)return{hasExam:false,people:0,subj:'未定',grade:''};
-  return{hasExam:true,people:peopleFromCard(tt,card),subj:subjFromId(card.id)||'未定',grade:gradeFromId(card.id)};
+  if(!card)return{hasExam:false,people:0,subj:'未定',grade:'',room:''};
+  const room=examData.rooms?.[slot]||'';
+  return{hasExam:true,people:peopleFromCard(tt,card),subj:subjFromId(card.id)||'未定',grade:gradeFromId(card.id),room};
 }
 
 function setSyncStatus(ok,msg){
@@ -457,6 +459,10 @@ onSnapshot(EXAM_REF,snap=>{
     const d=snap.data();
     examData.startDate=d.startDate||'';
     examData.counts=d.counts||{};
+    examData.rooms={
+      morning:(d.rooms?.morning||'3F-E化教室'),
+      lunch:  (d.rooms?.lunch  ||'4F-電腦教室2'),
+    };
     for(const tt of['篩選','成長'])examData.sched[tt]=d.sched?.[tt]||{};
     setSyncStatus(true,'已同步考試排程');
   }else setSyncStatus(false,'考試排程無資料');
@@ -655,10 +661,12 @@ function weekTableHTML(w,sc,ws){
       <th class="th-sub ${mi.hasExam?'th-sub-morning':'th-sub-none'}">
         早自修${mSubjTag}
         ${mi.hasExam?`<div style="font-size:7px;font-family:'JetBrains Mono',monospace;color:#888;margin-top:1px">${mi.people}人→各${mSlots}位</div>`:''}
+        ${mi.hasExam&&mi.room?`<div style="font-size:7px;color:#0369A1;margin-top:1px;font-weight:700">📍${mi.room}</div>`:''}
       </th>
       <th class="th-sub ${li.hasExam?'th-sub-lunch':'th-sub-none'}">
         午休${lSubjTag}
         ${li.hasExam?`<div style="font-size:7px;font-family:'JetBrains Mono',monospace;color:#888;margin-top:1px">${li.people}人→各${lSlots}位</div>`:''}
+        ${li.hasExam&&li.room?`<div style="font-size:7px;color:#B45309;margin-top:1px;font-weight:700">📍${li.room}</div>`:''}
       </th>`;
   }).join('');
 
@@ -793,6 +801,7 @@ window.removeCard=key=>{ST.sched[ST.testType][key]=null;saveST();renderPool();re
 
 // ─── Notice ───────────────────────────────────────────────
 const SLOT_TIME={'morning':'早自修 07:50~08:35','lunch':'午休 12:40~13:20'};
+function slotRoom(slot){ return examData.rooms?.[slot]||''; }
 const ROLE_LABEL={'guide':'教室外引導人員','reg':'報到與發放身分證條人員','id':'帶位與協助登錄考試系統'};
 const ROLE_CLASS={'guide':'nc-role-guide','reg':'nc-role-reg','id':'nc-role-id'};
 
@@ -832,6 +841,7 @@ function noticeCardHTML(stu, assignments){
     const dow=['日','一','二','三','四','五','六'][a.date.getDay()];
     const dateStr=`${a.date.getMonth()+1}/${a.date.getDate()}（${dow}）`;
     const timeStr=SLOT_TIME[a.slot];
+    const room=slotRoom(a.slot);
     const subjStr=`${a.info.grade}年級${a.info.subj}`;
     const roleStr=ROLE_LABEL[a.role];
     return `<tr>
@@ -840,12 +850,13 @@ function noticeCardHTML(stu, assignments){
       <td class="nc-time">${timeStr}</td>
       <td class="nc-subj">${subjStr}</td>
       <td class="${ROLE_CLASS[a.role]}">${roleStr}</td>
+      <td class="nc-room">📍${room}</td>
     </tr>`;
   }).join('');
 
   const tableHTML=`<table class="nc-table">
     <thead><tr>
-      <th class="nc-seq">#</th><th>日期</th><th>時間</th><th>測驗科目</th><th>支援職位</th>
+      <th class="nc-seq">#</th><th>日期</th><th>時間</th><th>測驗科目</th><th>支援職位</th><th>地點</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -891,6 +902,7 @@ function noticeCardHTMLDouble(stu, assignments){
     const dow=['日','一','二','三','四','五','六'][a.date.getDay()];
     const dateStr=`${a.date.getMonth()+1}/${a.date.getDate()}（${dow}）`;
     const timeStr=SLOT_TIME[a.slot];
+    const room=slotRoom(a.slot);
     const subjStr=`${a.info.grade}年級${a.info.subj}`;
     const roleStr=ROLE_LABEL[a.role];
     return `<tr>
@@ -899,11 +911,12 @@ function noticeCardHTMLDouble(stu, assignments){
       <td class="nc-time">${timeStr}</td>
       <td class="nc-subj">${subjStr}</td>
       <td class="${ROLE_CLASS[a.role]}">${roleStr}</td>
+      <td class="nc-room">📍${room}</td>
     </tr>`;
   }).join('');
   const tableHTML=`<table class="nc-table">
     <thead><tr>
-      <th class="nc-seq">#</th><th>日期</th><th>時間</th><th>測驗科目</th><th>支援職位</th>
+      <th class="nc-seq">#</th><th>日期</th><th>時間</th><th>測驗科目</th><th>支援職位</th><th>地點</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;

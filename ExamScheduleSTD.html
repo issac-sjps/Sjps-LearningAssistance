@@ -212,7 +212,7 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 /* Notice checklist panel */
 .notice-checklist{
   background:#1C1917;border-bottom:1px solid rgba(255,255,255,.12);
-  padding:10px 20px;display:none;flex-wrap:wrap;gap:6px;align-items:center;
+  padding:6px 20px;display:none;flex-direction:column;gap:0;
 }
 .notice-checklist.show{display:flex}
 .ncl-label{font-size:10px;font-weight:800;color:rgba(255,255,255,.45);
@@ -229,6 +229,24 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 .ncl-item input[type=checkbox]{accent-color:#A78BFA;width:13px;height:13px;cursor:pointer}
 .ncl-num{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:10px}
 .ncl-hint{font-size:10px;color:rgba(255,255,255,.35);margin-left:6px;white-space:nowrap}
+.ncl-section{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:6px 0}
+.ncl-section+.ncl-section{border-top:1px solid rgba(255,255,255,.1);padding-top:8px}
+.ncl-reprint-section{gap:8px}
+.ncl-reprint-item{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  border-radius:5px;padding:3px 8px;font-size:11px;
+}
+.ncl-reprint-btns{display:flex;gap:4px;margin-left:4px}
+.ncl-reprint-btn{
+  padding:2px 8px;border-radius:4px;border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);
+  font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.ncl-reprint-btn:hover{background:#059669;border-color:#34D399;color:#FFF}
+.ncl-reprint-double{background:rgba(124,58,237,.2);border-color:rgba(124,58,237,.4);color:#C4B5FD}
+.ncl-reprint-double:hover{background:#7C3AED;border-color:#A78BFA;color:#FFF}
 .nc-sign{display:flex;justify-content:flex-end;margin-top:12pt;gap:32pt}
 .nc-room{font-size:8.5pt;color:#555;white-space:nowrap}
 .nc-sign-item{text-align:center;font-size:9pt;color:#555}
@@ -971,20 +989,38 @@ function renderChecklist(map){
   const sids=Object.keys(map);
   if(!sids.length){cl.classList.remove('show');return;}
   cl.classList.add('show');
-  cl.innerHTML=`<span class="ncl-label">雙頁模式：</span>`+
-    sids.map(sid=>{
-      const stu=ST.roster.find(s=>s.id===sid);
-      if(!stu)return'';
-      const cnt=map[sid].length;
-      const isDouble=doublePageSet.has(sid);
-      return `<label class="ncl-item${isDouble?' double-checked':''}" data-sid="${sid}" onclick="toggleDoubleMode('${sid}');return false">
-        <input type="checkbox" ${isDouble?'checked':''} onclick="event.stopPropagation();toggleDoubleMode('${sid}')">
-        <span class="ncl-num">${stu.num}</span>
-        <span>${stu.name}</span>
-        <span class="ncl-hint">${cnt}場</span>
-      </label>`;
-    }).join('')+
-    `<span class="ncl-hint">✔ 勾選後該學生將以雙頁列印（導師聯＋家長聯各一頁）</span>`;
+  cl.innerHTML=
+    `<div class="ncl-section">
+      <span class="ncl-label">雙頁模式：</span>`+
+      sids.map(sid=>{
+        const stu=ST.roster.find(s=>s.id===sid);
+        if(!stu)return'';
+        const cnt=map[sid].length;
+        const isDouble=doublePageSet.has(sid);
+        return `<label class="ncl-item${isDouble?' double-checked':''}" data-sid="${sid}" onclick="toggleDoubleMode('${sid}');return false">
+          <input type="checkbox" ${isDouble?'checked':''} onclick="event.stopPropagation();toggleDoubleMode('${sid}')">
+          <span class="ncl-num">${stu.num}</span>
+          <span>${stu.name}</span>
+          <span class="ncl-hint">${cnt}場</span>
+        </label>`;
+      }).join('')+
+      `<span class="ncl-hint" style="margin-left:4px">← 勾選後以雙頁列印</span>
+    </div>
+    <div class="ncl-section ncl-reprint-section">
+      <span class="ncl-label">補印單人：</span>`+
+      sids.map(sid=>{
+        const stu=ST.roster.find(s=>s.id===sid);
+        if(!stu)return'';
+        return `<div class="ncl-reprint-item" data-sid="${sid}">
+          <span class="ncl-num" style="color:rgba(255,255,255,.8)">${stu.num}</span>
+          <span style="color:rgba(255,255,255,.8)">${stu.name}</span>
+          <div class="ncl-reprint-btns">
+            <button class="ncl-reprint-btn" onclick="printSingle('${sid}','single')">單頁</button>
+            <button class="ncl-reprint-btn ncl-reprint-double" onclick="printSingle('${sid}','double')">雙頁</button>
+          </div>
+        </div>`;
+      }).join('')+
+    `</div>`;
 }
 
 function renderNoticePages(){
@@ -1018,6 +1054,32 @@ window.doPrint=()=>{
 // Override print btn for notice
 document.addEventListener('DOMContentLoaded',()=>{});
 // Patch: notice print button calls this
+window.printSingle=(sid, mode)=>{
+  const map=buildNoticeData();
+  const stu=ST.roster.find(s=>s.id===sid);
+  if(!stu||!map[sid]){alert('找不到此學生的排班資料');return;}
+  const pages=document.getElementById('noticePages');
+  // Temporarily render only this student
+  const original=pages.innerHTML;
+  pages.innerHTML= mode==='double'
+    ? noticeCardHTMLDouble(stu, map[sid])
+    : noticeCardHTML(stu, map[sid]);
+  const styleEl=document.createElement('style');
+  styleEl.id='notice-page-style';
+  styleEl.textContent='@page{size:A4 portrait!important;margin:0!important}';
+  document.head.appendChild(styleEl);
+  document.body.classList.add('printing-notice');
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{
+      document.body.classList.remove('printing-notice');
+      const el=document.getElementById('notice-page-style');
+      if(el)el.remove();
+      pages.innerHTML=original; // restore full preview
+    },500);
+  },100);
+};
+
 window.printNotice=()=>{
   // Inject portrait @page override
   const styleEl=document.createElement('style');

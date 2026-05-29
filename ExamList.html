@@ -431,6 +431,7 @@ body.view-only input[type=checkbox]{pointer-events:none}
   <button class="ntab" data-tab="rate"><span class="ntab-short">📈</span><span class="ntab-long"> 提報率</span></button>
   <button class="ntab" data-tab="b35"><span class="ntab-short">🔍</span><span class="ntab-long"> 後40%</span></button>
   <button class="ntab" data-tab="examlist"><span class="ntab-short">📋</span><span class="ntab-long"> 考試名單</span></button>
+  <button class="ntab" data-tab="examid"><span class="ntab-short">🪪</span><span class="ntab-long"> 含身分證匯出</span></button>
   <button class="ntab" data-tab="stat1"><span class="ntab-short">📉</span><span class="ntab-long"> +5%前</span></button>
   <button class="ntab" data-tab="stat2"><span class="ntab-short">➕</span><span class="ntab-long"> +5%後</span></button>
   <button class="ntab" data-tab="gradesum"><span class="ntab-short">📋</span><span class="ntab-long"> 年級統計</span></button>
@@ -1126,6 +1127,7 @@ function renderTabContent(tab){
   else if(tab==='rate')renderRate();
   else if(tab==='b35')renderB35();
   else if(tab==='examlist')renderExamList();
+  else if(tab==='examid')initExamIDTab();
   else if(tab==='stat1')renderStat1();
   else if(tab==='stat2')renderStat2();
   else if(tab==='gradesum')renderGradeSummary();
@@ -2756,6 +2758,197 @@ function renderExtraList(){
   });
 
   el.innerHTML=html;
+}
+
+
+// ─── 含身分證匯出 ───
+let allStudentData=[];   // parsed from uploaded school roster
+let matchedIDMap=new Map(); // grade|classNum|seat|name -> idNumber
+let examIDPreview=[];    // exam list with matched IDs
+
+function initExamIDTab(){
+  // reset if needed
+}
+
+// Parse school roster Excel
+document.getElementById('file-allstu').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(!raw.length){toast('檔案是空的','err');return;}
+      // Get headers from first non-empty row
+      let hdrRow=0;
+      for(let i=0;i<Math.min(raw.length,10);i++){
+        if(raw[i].filter(c=>String(c||'').trim()).length>=2){hdrRow=i;break;}
+      }
+      const headers=raw[hdrRow].map((c,i)=>({label:String(c||`欄${i+1}`).trim(),idx:i}));
+      allStudentData={raw,hdrRow,headers};
+
+      // Populate column selectors
+      const selectors=['col-name','col-id','col-grade','col-class'];
+      selectors.forEach(id=>{
+        const sel=document.getElementById(id);
+        const keepFirst=id==='col-grade'||id==='col-class';
+        sel.innerHTML=(keepFirst?'<option value="">— 不使用 —</option>':'');
+        headers.forEach(h=>{
+          sel.innerHTML+=`<option value="${h.idx}">${h.label}</option>`;
+        });
+      });
+
+      // Auto-detect columns
+      headers.forEach(h=>{
+        const t=h.label;
+        if(t.includes('姓名'))document.getElementById('col-name').value=h.idx;
+        if(t.includes('身分證')||t.includes('身份證')||t.includes('證號'))document.getElementById('col-id').value=h.idx;
+        if(t.includes('年級')||t==='年')document.getElementById('col-grade').value=h.idx;
+        if(t.includes('班級')||t==='班')document.getElementById('col-class').value=h.idx;
+      });
+
+      document.getElementById('allstu-col-map').style.display='block';
+      document.getElementById('examid-result').innerHTML=`<div class="al al-ok">✅ 已載入 ${raw.length-hdrRow-1} 筆學生資料，請確認欄位對應後按「開始比對」。</div>`;
+      e.target.value='';
+    }catch(err){toast('解析失敗: '+err.message,'err');e.target.value='';}
+  };
+  rd.readAsBinaryString(f);
+});
+
+// Drag and drop for allstu
+(()=>{
+  const z=document.getElementById('upzone-allstu');
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag');});
+  z.addEventListener('dragleave',()=>z.classList.remove('drag'));
+  z.addEventListener('drop',e=>{
+    e.preventDefault();z.classList.remove('drag');
+    const f=e.dataTransfer.files[0];
+    if(f){const inp=document.getElementById('file-allstu');const dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;inp.dispatchEvent(new Event('change'));}
+  });
+})();
+
+function matchAndPreviewID(){
+  if(!allStudentData.raw){toast('請先上傳全校名單','warn');return;}
+  const{raw,hdrRow}=allStudentData;
+  const colName=parseInt(document.getElementById('col-name').value);
+  const colID=parseInt(document.getElementById('col-id').value);
+  const colGrade=document.getElementById('col-grade').value;
+  const colClass=document.getElementById('col-class').value;
+  if(isNaN(colName)||isNaN(colID)){toast('請選擇姓名和身分證欄位','warn');return;}
+
+  // Build lookup: name -> [{id, grade, classNum}]
+  const lookup=new Map();
+  for(let i=hdrRow+1;i<raw.length;i++){
+    const r=raw[i];
+    const name=String(r[colName]||'').trim();
+    const id=String(r[colID]||'').trim();
+    if(!name||!id)continue;
+    const grade=colGrade?parseInt(r[parseInt(colGrade)])||0:0;
+    const cls=colClass?parseInt(r[parseInt(colClass)])||0:0;
+    if(!lookup.has(name))lookup.set(name,[]);
+    lookup.get(name).push({id,grade,cls});
+  }
+
+  const examAll=buildExamList();
+  let matched=0,notFound=0,ambiguous=[];
+  matchedIDMap=new Map();
+  examIDPreview=[];
+
+  examAll.forEach(s=>{
+    const candidates=lookup.get(s.name)||[];
+    let resolved=null;
+    if(candidates.length===0){
+      notFound++;
+    } else if(candidates.length===1){
+      resolved=candidates[0].id;
+      matched++;
+    } else {
+      // Multiple same name: try to narrow by grade/class
+      const byGrade=candidates.filter(c=>c.grade===s.grade);
+      const byClass=candidates.filter(c=>c.cls===s.classNum);
+      const byBoth=candidates.filter(c=>c.grade===s.grade&&c.cls===s.classNum);
+      if(byBoth.length===1){resolved=byBoth[0].id;matched++;}
+      else if(byGrade.length===1){resolved=byGrade[0].id;matched++;}
+      else{
+        ambiguous.push({...s,candidates});
+        notFound++;
+      }
+    }
+    const key=`${s.grade}|${s.classNum}|${s.seat}|${s.name}`;
+    matchedIDMap.set(key,resolved||'');
+    examIDPreview.push({...s,idNumber:resolved||''});
+  });
+
+  document.getElementById('btn-dl-examid').disabled=false;
+
+  // Show result
+  let html=`<div class="sgrid" style="margin-bottom:14px">
+    <div class="sc"><div class="lbl">考試名單總人數</div><div class="val">${examAll.length}</div></div>
+    <div class="sc"><div class="lbl">✅ 比對成功</div><div class="val" style="color:var(--green)">${matched}</div></div>
+    <div class="sc red"><div class="lbl">❌ 未比對到</div><div class="val" style="color:var(--red)">${notFound}</div></div>
+    <div class="sc amber"><div class="lbl">⚠️ 同名需確認</div><div class="val" style="color:var(--amber)">${ambiguous.length}</div></div>
+  </div>`;
+
+  if(ambiguous.length){
+    html+=`<div class="al al-warn"><strong>⚠️ 同名同姓需人工確認（${ambiguous.length}人）：</strong><br>`;
+    ambiguous.forEach(s=>{
+      html+=`${s.grade}年${s.classNum}班 ${s.seat}號 <strong>${s.name}</strong> — 找到 ${s.candidates.length} 筆相同姓名（`;
+      html+=s.candidates.map(c=>`${c.grade||'?'}年${c.cls||'?'}班 ${c.id}`).join('、');
+      html+=`）<br>`;
+    });
+    html+='</div>';
+  }
+
+  // Not found list
+  const notFoundList=examIDPreview.filter(s=>!s.idNumber);
+  if(notFoundList.length){
+    html+=`<div class="al al-err">❌ <strong>未比對到身分證（${notFoundList.length}人）：</strong><br>`;
+    html+=notFoundList.map(s=>`${s.grade}年${s.classNum}班 ${s.seat}號 ${s.name}`).join('、');
+    html+='</div>';
+  }
+
+  // Preview table (first 30)
+  html+=`<div class="card-hd" style="margin-top:12px">預覽（前30筆）</div>
+  <div class="tw"><table>
+    <thead><tr><th>年級</th><th>班級</th><th>座號</th><th>姓名</th><th>身分證</th><th>狀態</th></tr></thead><tbody>`;
+  examIDPreview.slice(0,30).forEach(s=>{
+    const ok=!!s.idNumber;
+    html+=`<tr>
+      <td>${s.grade}年</td><td>${s.classNum}班</td>
+      <td class="mono">${String(s.seat).padStart(2,'0')}</td>
+      <td class="fw6">${s.name}</td>
+      <td class="mono">${s.idNumber||'—'}</td>
+      <td>${ok?'<span class="b b-pass">✓ 已填入</span>':'<span class="b b-fail">✗ 未找到</span>'}</td>
+    </tr>`;
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('examid-result').innerHTML=html;
+  toast(`比對完成：${matched}/${examAll.length} 人成功`,'ok');
+}
+
+function downloadExamWithID(){
+  if(!examIDPreview.length){toast('請先執行比對','warn');return;}
+  const header=['序號','姓名','身分證統一編號','入學年度','目前年級','班級','座號',
+    '國語文測驗','數學測驗','英語測驗','身分類別'];
+  const rows=[header];
+  examIDPreview.forEach((s,i)=>{
+    rows.push([
+      i+1, s.name, s.idNumber||'',
+      '', s.grade, s.classNum, s.seat,
+      s.needChinese?'X':'',
+      s.needMath?'X':'',
+      s.grade>=3?(s.needEnglish?'X':''):'',
+      s.identity||''
+    ]);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:6},{wch:10},{wch:14},{wch:10},{wch:8},{wch:6},{wch:6},{wch:10},{wch:10},{wch:10},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws,'考試名單（含身分證）');
+  const date=new Date().toLocaleDateString('zh-TW').replace(/\//g,'');
+  XLSX.writeFile(wb,`考試名單_含身分證_${date}.xlsx`);
+  toast('已下載含身分證考試名單','ok');
 }
 
 function emptyState(ico,msg){

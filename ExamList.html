@@ -560,6 +560,51 @@ body.view-only input[type=checkbox]{pointer-events:none}
   <div id="examlist-content"></div>
 </div>
 
+<!-- ═══════════════════ TAB: 含身分證匯出 ═══════════════════ -->
+<div class="tab" id="tab-examid">
+  <div id="examid-content">
+    <div class="card">
+      <div class="card-hd">🪪 含身分證考試名單匯出</div>
+      <div class="al al-info">ℹ️ 上傳全校學生名單（含身分證欄位），系統自動比對考試名單學生姓名，產生含身分證的 Excel。身分證<strong>不會儲存</strong>到 Firebase。</div>
+      <div class="al al-warn">⚠️ 全校名單欄位需包含：姓名、身分證字號。建議同時包含年級或班級，以避免同名學生比對錯誤。</div>
+
+      <div class="upzone" id="upzone-allstu" onclick="document.getElementById('file-allstu').click()" style="margin-bottom:12px">
+        <div class="ico">🏫</div>
+        <p>點擊或拖曳上傳<br><strong>全校學生名單 Excel（含身分證）</strong></p>
+      </div>
+      <input type="file" id="file-allstu" accept=".xlsx,.xls,.csv">
+
+      <div id="allstu-col-map" style="display:none">
+        <div class="card-hd" style="margin-top:12px;font-size:13px">📌 確認欄位對應</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:8px">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">姓名欄位 *</label>
+            <select class="sel" id="col-name" style="width:100%"></select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">身分證欄位 *</label>
+            <select class="sel" id="col-id" style="width:100%"></select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">年級欄位（選填）</label>
+            <select class="sel" id="col-grade" style="width:100%"><option value="">— 不使用 —</option></select>
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px">班級欄位（選填）</label>
+            <select class="sel" id="col-class" style="width:100%"><option value="">— 不使用 —</option></select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn btn-teal" onclick="matchAndPreviewID()">🔄 開始比對</button>
+          <button class="btn btn-blue" id="btn-dl-examid" disabled onclick="downloadExamWithID()">⬇️ 下載含身分證考試名單</button>
+        </div>
+      </div>
+
+      <div id="examid-result" style="margin-top:14px"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════ TAB: STAT1 ═══════════════════ -->
 <div class="tab" id="tab-stat1">
   <div class="card">

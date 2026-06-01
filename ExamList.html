@@ -646,6 +646,9 @@ document.dispatchEvent(new Event('fbReady'));
 // GRADE_TOTALS is now dynamic — loaded from Firebase (settable by admin)
 // These are the fallback defaults (original values)
 const GRADE_TOTALS_DEFAULT={1:161,2:156,3:198,4:220,5:218,6:220};
+// Auth constants — declared early so doLogin() can access them immediately
+const VIEW_PW='073411373';
+const ADMIN_PW='admin';
 // MOE actual counts (from 教育部 system screenshot)
 const GRADE_TOTALS_MOE={1:157,2:150,3:188,4:205,5:212,6:213};
 // 鑑輔生免測人數 default（圖一資料）
@@ -2767,11 +2770,16 @@ let matchedIDMap=new Map(); // grade|classNum|seat|name -> idNumber
 let examIDPreview=[];    // exam list with matched IDs
 
 function initExamIDTab(){
-  // reset if needed
+  attachAllStuListener();
+  attachAllStuDragDrop();
 }
 
-// Parse school roster Excel
-document.getElementById('file-allstu').addEventListener('change',async e=>{
+// Parse school roster Excel — listener attached lazily when tab first opens
+function attachAllStuListener(){
+  const inp=document.getElementById('file-allstu');
+  if(!inp||inp._listenerAttached)return;
+  inp._listenerAttached=true;
+  inp.addEventListener('change',async e=>{
   const f=e.target.files[0];if(!f)return;
   const rd=new FileReader();
   rd.onload=ev=>{
@@ -2814,11 +2822,14 @@ document.getElementById('file-allstu').addEventListener('change',async e=>{
     }catch(err){toast('解析失敗: '+err.message,'err');e.target.value='';}
   };
   rd.readAsBinaryString(f);
-});
+  });
+}
 
-// Drag and drop for allstu
-(()=>{
+// Drag and drop for allstu — lazy init
+function attachAllStuDragDrop(){
   const z=document.getElementById('upzone-allstu');
+  if(!z||z._ddAttached)return;
+  z._ddAttached=true;
   z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag');});
   z.addEventListener('dragleave',()=>z.classList.remove('drag'));
   z.addEventListener('drop',e=>{
@@ -2826,7 +2837,7 @@ document.getElementById('file-allstu').addEventListener('change',async e=>{
     const f=e.dataTransfer.files[0];
     if(f){const inp=document.getElementById('file-allstu');const dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;inp.dispatchEvent(new Event('change'));}
   });
-})();
+}
 
 function matchAndPreviewID(){
   if(!allStudentData.raw){toast('請先上傳全校名單','warn');return;}
@@ -2956,8 +2967,7 @@ function emptyState(ico,msg){
 }
 
 // ─── AUTH ───
-const VIEW_PW  = '073411373';
-const ADMIN_PW = 'admin';
+// (VIEW_PW and ADMIN_PW are declared at top of script to avoid TDZ issues)
 let isEditMode = false;
 
 function doLogin(){

@@ -1046,7 +1046,8 @@ async function loadAll(){
 }
 
 function updateDBStatus(){
-  document.getElementById('db-req-cnt').textContent=REQ.length;
+  const dbReq=document.getElementById('db-req-cnt');
+  if(dbReq)dbReq.textContent=REQ.length;
   document.getElementById('db-b35-cnt').textContent=B35.length;
   document.getElementById('db-sel-cnt').textContent=B35.filter(b=>b.selChinese||b.selMath||b.selEnglish).length;
   document.getElementById('req-count').textContent=REQ.length+' 筆';
@@ -1116,12 +1117,18 @@ function showDupWarnings(dups,src){
 // ─── TAB NAVIGATION ───
 document.querySelectorAll('.ntab').forEach(btn=>{
   btn.addEventListener('click',()=>{
+    const tabId='tab-'+btn.dataset.tab;
+    const tabEl=document.getElementById(tabId);
+    if(!tabEl){console.warn('Tab not found:',tabId);return;}
     document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
     btn.classList.add('on');
-    document.getElementById('tab-'+btn.dataset.tab).classList.add('on');
+    tabEl.classList.add('on');
     renderTabContent(btn.dataset.tab);
-    if(btn.dataset.tab!=='b35'){document.getElementById('b35-float').style.display='none';}else{updateB35FloatPanel();}
+    const floatEl=document.getElementById('b35-float');
+    if(floatEl){
+      if(btn.dataset.tab!=='b35'){floatEl.style.display='none';}else{updateB35FloatPanel();}
+    }
   });
 });
 
@@ -1562,6 +1569,7 @@ function renderB35(){
 function updateB35FloatPanel(){
   const panel=document.getElementById('b35-float');
   const inner=document.getElementById('b35-float-inner');
+  if(!panel||!inner)return;
   // Only show when on B35 tab
   const onB35=document.querySelector('.ntab.on')?.dataset?.tab==='b35';
   if(!onB35||!B35.length){panel.style.display='none';return;}
@@ -2571,7 +2579,7 @@ function showB35UploadDiff(prev,next){
   lastUploadDiff={added,removed};
 
   if(!added.length&&!removed.length){
-    document.getElementById('b35-diff-area').innerHTML='<div class="al al-ok">✅ 名單無人員異動</div>';
+    const _da1=document.getElementById('b35-diff-area');if(_da1)_da1.innerHTML='<div class="al al-ok">✅ 名單無人員異動</div>';
     return;
   }
   let html='';
@@ -2585,7 +2593,7 @@ function showB35UploadDiff(prev,next){
     html+=added.map(s=>`${s.grade}年${s.classNum}班 ${String(s.seat).padStart(2,'0')}號 <strong>${s.name}</strong>`).join('、');
     html+='</div>';
   }
-  document.getElementById('b35-diff-area').innerHTML=html;
+  const _da2=document.getElementById('b35-diff-area');if(_da2)_da2.innerHTML=html;
 }
 
 // ─── 補發名單：為教育部超額而多選的學生 ───
@@ -2816,8 +2824,8 @@ function attachAllStuListener(){
         if(t.includes('班級')||t==='班')document.getElementById('col-class').value=h.idx;
       });
 
-      document.getElementById('allstu-col-map').style.display='block';
-      document.getElementById('examid-result').innerHTML=`<div class="al al-ok">✅ 已載入 ${raw.length-hdrRow-1} 筆學生資料，請確認欄位對應後按「開始比對」。</div>`;
+      const _cm=document.getElementById('allstu-col-map');if(_cm)_cm.style.display='block';
+      const _er1=document.getElementById('examid-result');if(_er1)_er1.innerHTML=`<div class="al al-ok">✅ 已載入 ${raw.length-hdrRow-1} 筆學生資料，請確認欄位對應後按「開始比對」。</div>`;
       e.target.value='';
     }catch(err){toast('解析失敗: '+err.message,'err');e.target.value='';}
   };
@@ -2891,7 +2899,7 @@ function matchAndPreviewID(){
     examIDPreview.push({...s,idNumber:resolved||''});
   });
 
-  document.getElementById('btn-dl-examid').disabled=false;
+  const _bd=document.getElementById('btn-dl-examid');if(_bd)_bd.disabled=false;
 
   // Show result
   let html=`<div class="sgrid" style="margin-bottom:14px">
@@ -2934,7 +2942,7 @@ function matchAndPreviewID(){
     </tr>`;
   });
   html+='</tbody></table></div>';
-  document.getElementById('examid-result').innerHTML=html;
+  const _er2=document.getElementById('examid-result');if(_er2)_er2.innerHTML=html;
   toast(`比對完成：${matched}/${examAll.length} 人成功`,'ok');
 }
 
@@ -3039,7 +3047,8 @@ document.getElementById('login-pw').focus();
 
 // ─── SCROLL TO TOP VISIBILITY ───
 window.addEventListener('scroll',()=>{
-  document.getElementById('scroll-top').classList.toggle('vis',window.scrollY>300);
+  const st=document.getElementById('scroll-top');
+  if(st)st.classList.toggle('vis',window.scrollY>300);
 },{passive:true});
 
 // ─── INIT ───

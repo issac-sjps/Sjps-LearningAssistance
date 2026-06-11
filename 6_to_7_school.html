@@ -215,6 +215,21 @@
   .badge-male { background: #dbeafe; color: #1e4d8a; }
   .badge-female { background: #fce7f3; color: #8a1e5a; }
   .badge-other { background: #e8f5e9; color: #1a5c2a; }
+
+  .remark-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #fff3cd;
+    color: #7a5500;
+    border: 1px solid #ffd970;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  tr.has-remark td { background: #fffdf0 !important; }
+  tr.has-remark:hover td { background: #fff8d6 !important; }
 </style>
 </head>
 <body>
@@ -333,6 +348,7 @@ function doMatch() {
   const sample1 = data1[0];
   const nameCol1   = findCol(sample1, ['姓名']);
   const schoolCol  = findCol(sample1, ['分發學校名稱','學校名稱','分發學校']);
+  const remarkCol  = findCol(sample1, ['改分發備註','改分發','備註']);
   const idCol1     = findCol(sample1, ['身分證號','身分證統一','身分證']);
   const classCol1  = findCol(sample1, ['班級']);
   const seatCol1   = findCol(sample1, ['座號']);
@@ -358,8 +374,9 @@ function doMatch() {
     const id   = idCol1   ? normalize(row[idCol1])   : '';
     const name = nameCol1 ? normalize(row[nameCol1]) : '';
     const school = normalize(row[schoolCol]) || '（未填寫）';
-    if (id)   byId.set(id, { school, row });
-    if (name) byName.set(name, { school, row });
+    const remark = remarkCol ? String(row[remarkCol] || '').trim() : '';
+    if (id)   byId.set(id, { school, remark, row });
+    if (name) byName.set(name, { school, remark, row });
   }
 
   // Match each student in data2
@@ -382,7 +399,7 @@ function doMatch() {
     if (found) {
       const s = found.school;
       if (!schoolMap.has(s)) schoolMap.set(s, []);
-      schoolMap.get(s).push({ name: displayName, class: stuClass, seat: stuSeat, grade: stuGrade });
+      schoolMap.get(s).push({ name: displayName, class: stuClass, seat: stuSeat, grade: stuGrade, remark: found.remark || '' });
     } else {
       unmatched.push(displayName);
     }
@@ -430,11 +447,12 @@ function doMatch() {
             ${classCol2 ? '<th>班級</th>' : ''}
             ${seatCol2  ? '<th>座號</th>' : ''}
             ${gradeCol  ? '<th>年級</th>' : ''}
+            <th>改分發備註</th>
           </tr>
         </thead>
         <tbody>
           ${students.map((s,i) => `
-          <tr>
+          <tr class="${s.remark ? 'has-remark' : ''}">
             <td style="color:#8a9bb0;font-size:0.8rem">${i+1}</td>
             <td><span class="name-cell" onclick="copyName(this,'${s.name.replace(/'/g,"\\'")}')">
               ${s.name} <span class="copy-icon">📋</span>
@@ -442,6 +460,7 @@ function doMatch() {
             ${classCol2 ? `<td>${s.class}</td>` : ''}
             ${seatCol2  ? `<td>${s.seat}</td>` : ''}
             ${gradeCol  ? `<td>${s.grade}</td>` : ''}
+            <td>${s.remark ? `<span class="remark-badge">⚠ ${s.remark}</span>` : '<span style="color:#ccc;font-size:0.8rem">—</span>'}</td>
           </tr>`).join('')}
         </tbody>
       </table>

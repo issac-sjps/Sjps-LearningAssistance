@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>學生分發查詢系統</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    background: #f0f4f8;
+    color: #1a2332;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+
+  header .icon { font-size: 2rem; }
+  header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: 1px; }
+  header p { font-size: 0.82rem; color: #a8c0d9; margin-top: 2px; }
+
+  .main { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+
+  .upload-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 640px) { .upload-section { grid-template-columns: 1fr; } }
+
+  .upload-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    border: 2px dashed #b0c4de;
+    transition: border-color 0.2s;
+  }
+  .upload-card:hover { border-color: #1e3a5f; }
+  .upload-card label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #1e3a5f;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .upload-card .desc { font-size: 0.8rem; color: #6b7c93; margin-bottom: 12px; }
+  .upload-card input[type="file"] {
+    width: 100%;
+    font-size: 0.85rem;
+    color: #333;
+  }
+  .upload-card .file-name {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: #2a7a2a;
+    font-weight: 600;
+    min-height: 18px;
+  }
+
+  .btn-match {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto 28px;
+    padding: 13px 0;
+    background: #1e3a5f;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.12s;
+  }
+  .btn-match:hover { background: #2a5080; transform: translateY(-1px); }
+  .btn-match:disabled { background: #9aafca; cursor: not-allowed; transform: none; }
+
+  .status-bar {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #c0392b;
+    margin-bottom: 16px;
+    min-height: 20px;
+  }
+
+  .results-area { display: none; }
+
+  .summary-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding: 12px 18px;
+    background: #fff;
+    border-radius: 8px;
+    border-left: 4px solid #1e3a5f;
+  }
+  .summary-bar .stats { font-size: 0.88rem; color: #1a2332; }
+  .summary-bar .stats strong { color: #1e3a5f; }
+
+  .unmatched-note {
+    font-size: 0.82rem;
+    color: #c0392b;
+    margin-bottom: 18px;
+    padding: 10px 16px;
+    background: #fdf3f2;
+    border-radius: 7px;
+    border: 1px solid #f0b8b3;
+    display: none;
+  }
+
+  .school-block {
+    background: #fff;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+
+  .school-header {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 13px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .school-header .school-name { font-size: 1rem; font-weight: 700; letter-spacing: 0.5px; }
+  .school-header .school-count {
+    background: rgba(255,255,255,0.2);
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .student-table { width: 100%; border-collapse: collapse; }
+  .student-table thead tr { background: #e8f0f8; }
+  .student-table th {
+    padding: 9px 14px;
+    text-align: left;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #3d5a80;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #d0dce9;
+  }
+  .student-table td {
+    padding: 9px 14px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid #f0f4f8;
+    vertical-align: middle;
+  }
+  .student-table tr:last-child td { border-bottom: none; }
+  .student-table tr:hover td { background: #f5f9ff; }
+
+  .name-cell {
+    cursor: pointer;
+    font-weight: 600;
+    color: #1e3a5f;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    transition: background 0.15s;
+  }
+  .name-cell:hover { background: #dbeafe; }
+  .name-cell .copy-icon { font-size: 0.75rem; opacity: 0.5; }
+  .name-cell.copied { background: #d4edda; color: #2a7a2a; }
+
+  .copy-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1e3a5f;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 9999;
+  }
+  .copy-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge-male { background: #dbeafe; color: #1e4d8a; }
+  .badge-female { background: #fce7f3; color: #8a1e5a; }
+  .badge-other { background: #e8f5e9; color: #1a5c2a; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="icon">🏫</span>
+  <div>
+    <h1>學生分發國中查詢系統</h1>
+    <p>上傳兩份 Excel，自動比對名單 → 依國中分類顯示</p>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="upload-section">
+    <div class="upload-card">
+      <label>① 分發資料 Excel</label>
+      <div class="desc">含「姓名、學校代號、分發學校名稱」等欄位</div>
+      <input type="file" id="file1" accept=".xlsx,.xls,.csv">
+      <div class="file-name" id="file1Name"></div>
+    </div>
+    <div class="upload-card">
+      <label>② 學生名單 Excel</label>
+      <div class="desc">含「姓名、班級、座號、身分證統一編號」等欄位</div>
+      <input type="file" id="file2" accept=".xlsx,.xls,.csv">
+      <div class="file-name" id="file2Name"></div>
+    </div>
+  </div>
+
+  <button class="btn-match" id="matchBtn" disabled onclick="doMatch()">🔍 開始比對</button>
+  <div class="status-bar" id="statusBar"></div>
+
+  <div class="results-area" id="resultsArea">
+    <div class="summary-bar">
+      <div class="stats">共比對 <strong id="totalCount">0</strong> 位學生，
+        成功配對 <strong id="matchedCount">0</strong> 位，
+        共 <strong id="schoolCount">0</strong> 所國中
+      </div>
+    </div>
+    <div class="unmatched-note" id="unmatchedNote"></div>
+    <div id="schoolsContainer"></div>
+  </div>
+
+</div>
+
+<div class="copy-toast" id="copyToast">已複製姓名 ✓</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+let data1 = null, data2 = null;
+
+function readExcel(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        resolve(json);
+      } catch(err) { reject(err); }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+document.getElementById('file1').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  document.getElementById('file1Name').textContent = '讀取中…';
+  try {
+    data1 = await readExcel(f);
+    document.getElementById('file1Name').textContent = `✓ ${f.name}（${data1.length} 筆）`;
+  } catch { document.getElementById('file1Name').textContent = '讀取失敗，請確認格式'; data1 = null; }
+  checkReady();
+});
+
+document.getElementById('file2').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  document.getElementById('file2Name').textContent = '讀取中…';
+  try {
+    data2 = await readExcel(f);
+    document.getElementById('file2Name').textContent = `✓ ${f.name}（${data2.length} 筆）`;
+  } catch { document.getElementById('file2Name').textContent = '讀取失敗，請確認格式'; data2 = null; }
+  checkReady();
+});
+
+function checkReady() {
+  document.getElementById('matchBtn').disabled = !(data1 && data2);
+}
+
+// Find a column from a row by possible aliases
+function findCol(row, aliases) {
+  const keys = Object.keys(row);
+  for (const a of aliases) {
+    const found = keys.find(k => k.replace(/\s/g,'').includes(a.replace(/\s/g,'')));
+    if (found) return found;
+  }
+  return null;
+}
+
+function normalize(s) {
+  return String(s || '').trim().replace(/\s+/g, '');
+}
+
+function doMatch() {
+  const statusBar = document.getElementById('statusBar');
+  statusBar.textContent = '';
+
+  if (!data1 || !data2) { statusBar.textContent = '請先上傳兩個檔案'; return; }
+  if (data1.length === 0 || data2.length === 0) { statusBar.textContent = '檔案內容為空'; return; }
+
+  // --- detect columns in data1 (分發資料) ---
+  const sample1 = data1[0];
+  const nameCol1   = findCol(sample1, ['姓名']);
+  const schoolCol  = findCol(sample1, ['分發學校名稱','學校名稱','分發學校']);
+  const idCol1     = findCol(sample1, ['身分證號','身分證統一','身分證']);
+  const classCol1  = findCol(sample1, ['班級']);
+  const seatCol1   = findCol(sample1, ['座號']);
+
+  if (!nameCol1 && !idCol1) { statusBar.textContent = '分發資料 Excel 找不到「姓名」或「身分證號」欄位，請確認欄位名稱'; return; }
+  if (!schoolCol)           { statusBar.textContent = '分發資料 Excel 找不到「分發學校名稱」欄位，請確認欄位名稱'; return; }
+
+  // --- detect columns in data2 (名單) ---
+  const sample2 = data2[0];
+  const nameCol2  = findCol(sample2, ['姓名']);
+  const idCol2    = findCol(sample2, ['身分證統一編號','身分證統一','身分證號','身分證']);
+  const classCol2 = findCol(sample2, ['班級']);
+  const seatCol2  = findCol(sample2, ['座號']);
+  const gradeCol  = findCol(sample2, ['目前年級','年級']);
+
+  if (!nameCol2 && !idCol2) { statusBar.textContent = '名單 Excel 找不到「姓名」或「身分證統一編號」欄位'; return; }
+
+  // Build lookup from data1: prefer ID match, fallback to name
+  // Key: normalized ID or name → {school, row}
+  const byId   = new Map();
+  const byName = new Map();
+  for (const row of data1) {
+    const id   = idCol1   ? normalize(row[idCol1])   : '';
+    const name = nameCol1 ? normalize(row[nameCol1]) : '';
+    const school = normalize(row[schoolCol]) || '（未填寫）';
+    if (id)   byId.set(id, { school, row });
+    if (name) byName.set(name, { school, row });
+  }
+
+  // Match each student in data2
+  const schoolMap = new Map(); // schoolName → [ student ]
+  const unmatched = [];
+
+  for (const stu of data2) {
+    const stuId   = idCol2   ? normalize(stu[idCol2])   : '';
+    const stuName = nameCol2 ? normalize(stu[nameCol2]) : '';
+    const stuClass = classCol2 ? String(stu[classCol2] || '').trim() : '';
+    const stuSeat  = seatCol2  ? String(stu[seatCol2]  || '').trim() : '';
+    const stuGrade = gradeCol  ? String(stu[gradeCol]  || '').trim() : '';
+
+    let found = null;
+    if (stuId && byId.has(stuId))     found = byId.get(stuId);
+    else if (stuName && byName.has(stuName)) found = byName.get(stuName);
+
+    const displayName = stuName || stuId || '（無姓名）';
+
+    if (found) {
+      const s = found.school;
+      if (!schoolMap.has(s)) schoolMap.set(s, []);
+      schoolMap.get(s).push({ name: displayName, class: stuClass, seat: stuSeat, grade: stuGrade });
+    } else {
+      unmatched.push(displayName);
+    }
+  }
+
+  // Render
+  document.getElementById('totalCount').textContent   = data2.length;
+  document.getElementById('matchedCount').textContent = data2.length - unmatched.length;
+  document.getElementById('schoolCount').textContent  = schoolMap.size;
+
+  const unmatchedNote = document.getElementById('unmatchedNote');
+  if (unmatched.length > 0) {
+    unmatchedNote.style.display = 'block';
+    unmatchedNote.innerHTML = `⚠️ 有 <strong>${unmatched.length}</strong> 位學生在分發資料中找不到對應：${unmatched.join('、')}`;
+  } else {
+    unmatchedNote.style.display = 'none';
+  }
+
+  const container = document.getElementById('schoolsContainer');
+  container.innerHTML = '';
+
+  // Sort schools by student count desc
+  const sorted = [...schoolMap.entries()].sort((a,b) => b[1].length - a[1].length);
+
+  for (const [school, students] of sorted) {
+    // Sort students by class then seat
+    students.sort((a,b) => {
+      const ca = a.class.padStart(4,'0'), cb = b.class.padStart(4,'0');
+      if (ca !== cb) return ca.localeCompare(cb);
+      return a.seat.padStart(4,'0').localeCompare(b.seat.padStart(4,'0'));
+    });
+
+    const block = document.createElement('div');
+    block.className = 'school-block';
+    block.innerHTML = `
+      <div class="school-header">
+        <span class="school-name">🏫 ${school}</span>
+        <span class="school-count">${students.length} 位學生</span>
+      </div>
+      <table class="student-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>姓名（點擊複製）</th>
+            ${classCol2 ? '<th>班級</th>' : ''}
+            ${seatCol2  ? '<th>座號</th>' : ''}
+            ${gradeCol  ? '<th>年級</th>' : ''}
+          </tr>
+        </thead>
+        <tbody>
+          ${students.map((s,i) => `
+          <tr>
+            <td style="color:#8a9bb0;font-size:0.8rem">${i+1}</td>
+            <td><span class="name-cell" onclick="copyName(this,'${s.name.replace(/'/g,"\\'")}')">
+              ${s.name} <span class="copy-icon">📋</span>
+            </span></td>
+            ${classCol2 ? `<td>${s.class}</td>` : ''}
+            ${seatCol2  ? `<td>${s.seat}</td>` : ''}
+            ${gradeCol  ? `<td>${s.grade}</td>` : ''}
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    `;
+    container.appendChild(block);
+  }
+
+  document.getElementById('resultsArea').style.display = 'block';
+  document.getElementById('resultsArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyName(el, name) {
+  navigator.clipboard.writeText(name).then(() => {
+    el.classList.add('copied');
+    setTimeout(() => el.classList.remove('copied'), 1200);
+    const toast = document.getElementById('copyToast');
+    toast.textContent = `已複製：${name} ✓`;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1800);
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = name;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    const toast = document.getElementById('copyToast');
+    toast.textContent = `已複製：${name} ✓`;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1800);
+  });
+}
+</script>
+</body>
+</html>

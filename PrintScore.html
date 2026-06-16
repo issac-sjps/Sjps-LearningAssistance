@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>班級成績報告產生器</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    background: #f0f4f8;
+    color: #1a2332;
+    min-height: 100vh;
+  }
+
+  /* ── 上傳介面 ── */
+  #upload-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+
+  .app-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #1e3a5f;
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.05em;
+  }
+  .app-subtitle {
+    font-size: 0.95rem;
+    color: #5a7a99;
+    margin-bottom: 2.5rem;
+  }
+
+  .drop-zone {
+    width: 100%;
+    max-width: 480px;
+    border: 2.5px dashed #7aafd4;
+    border-radius: 16px;
+    background: #fff;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: #1e6fb5;
+    background: #eef5fc;
+  }
+  .drop-icon { font-size: 3rem; margin-bottom: 1rem; }
+  .drop-label { font-size: 1.05rem; color: #2c5282; font-weight: 600; margin-bottom: 0.4rem; }
+  .drop-hint { font-size: 0.85rem; color: #7a9bb5; }
+
+  #file-input { display: none; }
+
+  .btn-upload {
+    margin-top: 1.5rem;
+    padding: 0.7rem 2rem;
+    background: #1e6fb5;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-upload:hover { background: #1558a0; }
+
+  .error-msg {
+    margin-top: 1rem;
+    color: #c0392b;
+    font-size: 0.9rem;
+    background: #fdf0ee;
+    border: 1px solid #e8b4ae;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  /* ── 報告介面 ── */
+  #report-screen { display: none; }
+
+  .toolbar {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 0.9rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .toolbar-title { font-size: 1.1rem; font-weight: 700; flex: 1; }
+
+  .toolbar select, .toolbar button {
+    padding: 0.45rem 1rem;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .toolbar select { background: #fff; color: #1a2332; min-width: 130px; }
+  .btn-print {
+    background: #e8a320;
+    color: #fff;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .btn-print:hover { background: #c98a10; }
+  .btn-reset {
+    background: #5a7a99;
+    color: #fff;
+    transition: background 0.2s;
+  }
+  .btn-reset:hover { background: #3d5a72; }
+
+  .class-nav {
+    background: #e8f0f8;
+    padding: 0.7rem 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #c5d8ec;
+  }
+  .class-tab {
+    padding: 0.3rem 0.9rem;
+    border-radius: 20px;
+    border: 1.5px solid #7aafd4;
+    background: #fff;
+    color: #1e6fb5;
+    font-size: 0.85rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .class-tab:hover, .class-tab.active {
+    background: #1e6fb5;
+    color: #fff;
+    border-color: #1e6fb5;
+  }
+
+  /* ── 列印區 ── */
+  #print-area { padding: 1.5rem; }
+
+  .class-report {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(30,58,95,0.1);
+    margin-bottom: 2.5rem;
+    overflow: hidden;
+  }
+
+  .report-header {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 1.1rem 1.5rem;
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+  }
+  .report-class-name { font-size: 1.4rem; font-weight: 700; }
+  .report-meta { font-size: 0.85rem; color: #a8c4e0; }
+  .report-meta span { margin-right: 1.2rem; }
+
+  .report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .report-table th {
+    background: #e8f0f8;
+    color: #1e3a5f;
+    padding: 0.6rem 0.8rem;
+    text-align: center;
+    border-bottom: 2px solid #c5d8ec;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .report-table td {
+    padding: 0.55rem 0.8rem;
+    text-align: center;
+    border-bottom: 1px solid #edf2f7;
+  }
+  .report-table tr:last-child td { border-bottom: none; }
+  .report-table tr:hover td { background: #f5f9ff; }
+
+  .td-name { text-align: left !important; font-weight: 500; }
+  .td-seat { color: #5a7a99; }
+  .badge-case {
+    display: inline-block;
+    background: #e74c3c;
+    color: #fff;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 10px;
+    margin-left: 0.3rem;
+    vertical-align: middle;
+  }
+
+  .score-pass { color: #1a7a3f; font-weight: 600; }
+  .score-fail { color: #c0392b; font-weight: 600; }
+  .score-skip { color: #aaa; }
+
+  .tag-y { color: #1a7a3f; font-weight: 700; }
+  .tag-n { color: #c0392b; font-weight: 700; }
+  .tag-skip { color: #bbb; }
+
+  /* ── 列印樣式 ── */
+  @media print {
+    body { background: #fff; }
+    .toolbar, .class-nav { display: none !important; }
+    #print-area { padding: 0; }
+    .class-report {
+      box-shadow: none;
+      border: 1px solid #ccc;
+      border-radius: 0;
+      page-break-after: always;
+      margin-bottom: 0;
+    }
+    .class-report:last-child { page-break-after: avoid; }
+    .report-header { background: #1e3a5f !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .report-table th { background: #e8f0f8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 上傳介面 -->
+<div id="upload-screen">
+  <div class="app-title">📋 班級成績報告產生器</div>
+  <div class="app-subtitle">上傳 Excel 或 CSV 測驗報告，自動依班級分組輸出</div>
+  <div class="drop-zone" id="drop-zone">
+    <div class="drop-icon">📂</div>
+    <div class="drop-label">拖放檔案到這裡</div>
+    <div class="drop-hint">支援 .xlsx / .xls / .csv 格式</div>
+    <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
+    <button class="btn-upload" onclick="document.getElementById('file-input').click()">選擇檔案</button>
+  </div>
+  <div id="error-box" class="error-msg" style="display:none"></div>
+</div>
+
+<!-- 報告介面 -->
+<div id="report-screen">
+  <div class="toolbar">
+    <span class="toolbar-title">📋 班級成績報告</span>
+    <select id="grade-filter" onchange="filterByGrade()">
+      <option value="">所有年級</option>
+    </select>
+    <button class="btn-print" onclick="window.print()">🖨️ 列印</button>
+    <button class="btn-reset" onclick="resetApp()">↩ 重新上傳</button>
+  </div>
+  <div class="class-nav" id="class-nav"></div>
+  <div id="print-area"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ── 拖放 ──
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) processFile(e.target.files[0]);
+});
+
+function showError(msg) {
+  const box = document.getElementById('error-box');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+
+// ── 讀取檔案 ──
+function processFile(file) {
+  document.getElementById('error-box').style.display = 'none';
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let rows;
+      if (ext === 'csv') {
+        rows = parseCSV(e.target.result);
+      } else {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      }
+      buildReport(rows);
+    } catch (err) {
+      showError('無法解析檔案，請確認格式正確。(' + err.message + ')');
+    }
+  };
+  if (ext === 'csv') {
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+// ── 簡易 CSV 解析 ──
+function parseCSV(text) {
+  // 去掉 BOM
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  return text.split('\n').map(line => line.split(',').map(c => c.trim()));
+}
+
+// ── 欄位對應（允許名稱變化）──
+const COL_ALIASES = {
+  入學年度: ['入學年度', '年度'],
+  班級:     ['班級'],
+  座號:     ['座號'],
+  姓名:     ['姓名'],
+  個案:     ['個案'],
+  國語文分數: ['國語文分數', '國語文分', '國語分數'],
+  國語文通過: ['國語文通過', '國語文過', '國語通過'],
+  數學分數:  ['數學分數', '數學分'],
+  數學通過:  ['數學通過', '數學過'],
+  英語分數:  ['英語分數', '英語分', '英文分數'],
+  英語通過:  ['英語通過', '英語過', '英文通過'],
+};
+
+function findCol(headers, aliases) {
+  for (const alias of aliases) {
+    const idx = headers.findIndex(h => h && h.toString().trim() === alias);
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
+// ── 建立報告 ──
+function buildReport(rows) {
+  if (!rows || rows.length < 2) { showError('檔案內容為空或格式不符。'); return; }
+
+  // 找 header 列（包含「姓名」的那列）
+  let headerIdx = rows.findIndex(r => r.some(c => c && c.toString().trim() === '姓名'));
+  if (headerIdx === -1) { showError('找不到欄位標題列（應包含「姓名」欄位）。'); return; }
+
+  const headers = rows[headerIdx].map(c => c ? c.toString().trim() : '');
+  const dataRows = rows.slice(headerIdx + 1).filter(r => r.some(c => c !== ''));
+
+  const colMap = {};
+  for (const [key, aliases] of Object.entries(COL_ALIASES)) {
+    colMap[key] = findCol(headers, aliases);
+  }
+
+  if (colMap['姓名'] === -1) { showError('找不到「姓名」欄位。'); return; }
+  if (colMap['班級'] === -1) { showError('找不到「班級」欄位。'); return; }
+
+  // 解析每一列
+  const students = dataRows.map(r => ({
+    入學年度: r[colMap['入學年度']] ?? '',
+    班級:     r[colMap['班級']] ?? '',
+    座號:     r[colMap['座號']] ?? '',
+    姓名:     r[colMap['姓名']] ?? '',
+    個案:     r[colMap['個案']] ?? '',
+    國語文分數: r[colMap['國語文分數']] ?? '',
+    國語文通過: r[colMap['國語文通過']] ?? '',
+    數學分數:  r[colMap['數學分數']] ?? '',
+    數學通過:  r[colMap['數學通過']] ?? '',
+    英語分數:  r[colMap['英語分數']] ?? '',
+    英語通過:  r[colMap['英語通過']] ?? '',
+  })).filter(s => s.姓名 && s.班級 !== '');
+
+  if (!students.length) { showError('沒有讀取到任何學生資料。'); return; }
+
+  // 依「入學年度 + 班級」分組
+  const classMap = new Map();
+  for (const s of students) {
+    const key = `${s.入學年度}_${s.班級}`;
+    if (!classMap.has(key)) classMap.set(key, { 入學年度: s.入學年度, 班級: s.班級, students: [] });
+    classMap.get(key).students.push(s);
+  }
+
+  // 依年度、班級排序
+  const classes = [...classMap.values()].sort((a, b) => {
+    const ya = Number(a.入學年度) || 0, yb = Number(b.入學年度) || 0;
+    if (ya !== yb) return ya - yb;
+    return (Number(a.班級) || 0) - (Number(b.班級) || 0);
+  });
+
+  // 每班內依座號排序
+  for (const c of classes) {
+    c.students.sort((a, b) => (Number(a.座號) || 0) - (Number(b.座號) || 0));
+  }
+
+  // 取得年級選單
+  const grades = [...new Set(classes.map(c => c.入學年度))].sort();
+  const gradeFilter = document.getElementById('grade-filter');
+  gradeFilter.innerHTML = '<option value="">所有年級</option>';
+  grades.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g; opt.textContent = `${g}年度`;
+    gradeFilter.appendChild(opt);
+  });
+
+  renderAll(classes);
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('report-screen').style.display = 'block';
+}
+
+let allClasses = [];
+function renderAll(classes) {
+  allClasses = classes;
+  renderNav(classes);
+  renderReports(classes);
+}
+
+function filterByGrade() {
+  const val = document.getElementById('grade-filter').value;
+  const filtered = val ? allClasses.filter(c => String(c.入學年度) === val) : allClasses;
+  renderNav(filtered);
+  renderReports(filtered);
+}
+
+function renderNav(classes) {
+  const nav = document.getElementById('class-nav');
+  nav.innerHTML = '';
+  classes.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'class-tab';
+    btn.textContent = `${c.入學年度}年 ${c.班級}班`;
+    btn.onclick = () => {
+      document.querySelectorAll('.class-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`class-${c.入學年度}-${c.班級}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    nav.appendChild(btn);
+  });
+}
+
+function isCase(val) {
+  const v = String(val).trim();
+  return v === '1';
+}
+
+function renderScore(score, pass) {
+  const s = String(score).trim();
+  const p = String(pass).trim();
+
+  if (s === '未選考' || s === '' || s === '--') {
+    return `<td class="score-skip">未選考</td><td class="tag-skip">--</td>`;
+  }
+  if (s === '缺考') {
+    return `<td class="score-skip">缺考</td><td class="tag-skip">--</td>`;
+  }
+  const passClass = p === 'Y' ? 'tag-y' : (p === 'N' ? 'tag-n' : 'tag-skip');
+  const scoreClass = p === 'Y' ? 'score-pass' : (p === 'N' ? 'score-fail' : '');
+  return `<td class="${scoreClass}">${s}</td><td class="${passClass}">${p || '--'}</td>`;
+}
+
+function renderReports(classes) {
+  const area = document.getElementById('print-area');
+  area.innerHTML = '';
+
+  classes.forEach(c => {
+    const caseCount = c.students.filter(s => isCase(s.個案)).length;
+    const total = c.students.length;
+
+    const div = document.createElement('div');
+    div.className = 'class-report';
+    div.id = `class-${c.入學年度}-${c.班級}`;
+
+    let rows = c.students.map((s, i) => `
+      <tr>
+        <td class="td-seat">${String(s.座號).padStart(2,'0')}</td>
+        <td class="td-name">
+          ${s.姓名}${isCase(s.個案) ? '<span class="badge-case">個案</span>' : ''}
+        </td>
+        ${renderScore(s.國語文分數, s.國語文通過)}
+        ${renderScore(s.數學分數, s.數學通過)}
+        ${renderScore(s.英語分數, s.英語通過)}
+      </tr>
+    `).join('');
+
+    div.innerHTML = `
+      <div class="report-header">
+        <span class="report-class-name">${c.入學年度} 年度　${c.班級} 班</span>
+        <div class="report-meta">
+          <span>共 ${total} 人</span>
+          <span>個案 ${caseCount} 人</span>
+        </div>
+      </div>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>座號</th>
+            <th>姓名</th>
+            <th>國語文分數</th>
+            <th>國語通過</th>
+            <th>數學分數</th>
+            <th>數學通過</th>
+            <th>英語分數</th>
+            <th>英語通過</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+    area.appendChild(div);
+  });
+}
+
+function resetApp() {
+  document.getElementById('report-screen').style.display = 'none';
+  document.getElementById('upload-screen').style.display = 'flex';
+  document.getElementById('file-input').value = '';
+  document.getElementById('error-box').style.display = 'none';
+  document.getElementById('print-area').innerHTML = '';
+}
+</script>
+</body>
+</html>

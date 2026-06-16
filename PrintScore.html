@@ -13,28 +13,25 @@
   .app-title { font-size: 1.8rem; font-weight: 700; color: #1e3a5f; margin-bottom: 0.4rem; letter-spacing: 0.05em; }
   .app-subtitle { font-size: 0.95rem; color: #5a7a99; margin-bottom: 2rem; }
 
-  .setting-box {
-    background: #fff;
-    border-radius: 12px;
-    border: 1.5px solid #c5d8ec;
-    padding: 1.2rem 1.8rem;
-    margin-bottom: 1.5rem;
-    width: 100%;
-    max-width: 480px;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
+  .setting-box { background: #fff; border-radius: 12px; border: 1.5px solid #c5d8ec; padding: 1.2rem 1.8rem; margin-bottom: 1.2rem; width: 100%; max-width: 480px; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
   .setting-box label { font-size: 0.95rem; color: #1e3a5f; font-weight: 600; white-space: nowrap; }
-  .setting-box input[type=number] {
-    width: 90px; padding: 0.45rem 0.7rem; border: 1.5px solid #7aafd4;
-    border-radius: 6px; font-size: 1rem; font-family: inherit; color: #1a2332;
-    outline: none; transition: border-color 0.2s;
-  }
+  .setting-box input[type=number] { width: 90px; padding: 0.45rem 0.7rem; border: 1.5px solid #7aafd4; border-radius: 6px; font-size: 1rem; font-family: inherit; color: #1a2332; outline: none; transition: border-color 0.2s; }
   .setting-box input[type=number]:focus { border-color: #1e6fb5; }
   .setting-hint { font-size: 0.82rem; color: #7a9bb5; }
 
-  .drop-zone { width: 100%; max-width: 480px; border: 2.5px dashed #7aafd4; border-radius: 16px; background: #fff; padding: 3rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+  /* 測驗名稱選擇 */
+  .exam-box { background: #fff; border-radius: 12px; border: 1.5px solid #c5d8ec; padding: 1.2rem 1.8rem; margin-bottom: 1.2rem; width: 100%; max-width: 480px; }
+  .exam-box label { font-size: 0.95rem; color: #1e3a5f; font-weight: 600; display: block; margin-bottom: 0.8rem; }
+  .exam-options { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+  .exam-chip { padding: 0.4rem 1rem; border-radius: 20px; border: 1.5px solid #7aafd4; background: #fff; color: #1e6fb5; font-size: 0.9rem; font-family: inherit; cursor: pointer; transition: all 0.15s; }
+  .exam-chip:hover { background: #eef5fc; }
+  .exam-chip.selected { background: #1e6fb5; color: #fff; border-color: #1e6fb5; }
+  .exam-custom { display: flex; gap: 0.5rem; align-items: center; }
+  .exam-custom input { flex: 1; padding: 0.45rem 0.7rem; border: 1.5px solid #7aafd4; border-radius: 6px; font-size: 0.9rem; font-family: inherit; outline: none; transition: border-color 0.2s; }
+  .exam-custom input:focus { border-color: #1e6fb5; }
+  .exam-custom-label { font-size: 0.85rem; color: #7a9bb5; white-space: nowrap; }
+
+  .drop-zone { width: 100%; max-width: 480px; border: 2.5px dashed #7aafd4; border-radius: 16px; background: #fff; padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
   .drop-zone:hover, .drop-zone.drag-over { border-color: #1e6fb5; background: #eef5fc; }
   .drop-icon { font-size: 3rem; margin-bottom: 1rem; }
   .drop-label { font-size: 1.05rem; color: #2c5282; font-weight: 600; margin-bottom: 0.4rem; }
@@ -49,12 +46,22 @@
   .toolbar { background: #1e3a5f; color: #fff; padding: 0.9rem 1.5rem; display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
   .toolbar-title { font-size: 1.1rem; font-weight: 700; flex: 1; }
   .toolbar select, .toolbar button { padding: 0.45rem 1rem; border-radius: 6px; border: none; font-size: 0.9rem; font-family: inherit; cursor: pointer; }
-  .toolbar select { background: #fff; color: #1a2332; min-width: 120px; }
+  .toolbar select { background: #fff; color: #1a2332; min-width: 110px; }
   .btn-print { background: #e8a320; color: #fff; font-weight: 600; transition: background 0.2s; }
   .btn-print:hover { background: #c98a10; }
   .btn-reset { background: #5a7a99; color: #fff; transition: background 0.2s; }
   .btn-reset:hover { background: #3d5a72; }
   .toolbar-year { font-size: 0.85rem; color: #a8c4e0; background: rgba(255,255,255,0.1); padding: 0.3rem 0.8rem; border-radius: 6px; white-space: nowrap; }
+
+  /* 測驗名稱工具列快速切換 */
+  .exam-toolbar { background: #162d4a; padding: 0.55rem 1.5rem; display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; border-bottom: 1px solid #0d1f35; }
+  .exam-toolbar-label { font-size: 0.82rem; color: #7aafd4; white-space: nowrap; }
+  .exam-toolbar-chip { padding: 0.25rem 0.8rem; border-radius: 14px; border: 1px solid #7aafd4; background: transparent; color: #a8c4e0; font-size: 0.82rem; font-family: inherit; cursor: pointer; transition: all 0.15s; }
+  .exam-toolbar-chip:hover { background: rgba(122,175,212,0.2); }
+  .exam-toolbar-chip.active { background: #e8a320; color: #fff; border-color: #e8a320; }
+  .exam-toolbar-input { padding: 0.25rem 0.6rem; border-radius: 6px; border: 1px solid #4a7a9b; background: rgba(255,255,255,0.08); color: #fff; font-size: 0.82rem; font-family: inherit; width: 130px; outline: none; }
+  .exam-toolbar-input::placeholder { color: #5a7a99; }
+  .exam-toolbar-input:focus { border-color: #7aafd4; background: rgba(255,255,255,0.12); }
 
   .class-nav { background: #e8f0f8; padding: 0.7rem 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; border-bottom: 1px solid #c5d8ec; }
   .class-tab { padding: 0.3rem 0.9rem; border-radius: 20px; border: 1.5px solid #7aafd4; background: #fff; color: #1e6fb5; font-size: 0.85rem; font-family: inherit; cursor: pointer; transition: all 0.15s; }
@@ -62,10 +69,42 @@
 
   #print-area { padding: 1.5rem; }
   .class-report { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(30,58,95,0.1); margin-bottom: 2.5rem; overflow: hidden; }
-  .report-header { background: #1e3a5f; color: #fff; padding: 1.1rem 1.5rem; display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+
+  /* ── 報告標頭：左班級 右測驗名稱 ── */
+  .report-header {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 1.1rem 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1rem;
+  }
+  .report-header-left {}
   .report-class-name { font-size: 1.4rem; font-weight: 700; }
-  .report-meta { font-size: 0.85rem; color: #a8c4e0; }
+  .report-meta { font-size: 0.85rem; color: #a8c4e0; margin-top: 0.2rem; }
   .report-meta span { margin-right: 1.2rem; }
+
+  /* 測驗名稱標籤 */
+  .exam-badge {
+    background: #e8a320;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding: 0.5rem 1.3rem;
+    border-radius: 8px;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+    min-width: 100px;
+    text-align: center;
+  }
+  .exam-badge.empty {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.3);
+    font-weight: 400;
+    font-size: 0.85rem;
+    border: 1px dashed rgba(255,255,255,0.2);
+  }
 
   .report-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
   .report-table th { background: #e8f0f8; color: #1e3a5f; padding: 0.6rem 0.8rem; text-align: center; border-bottom: 2px solid #c5d8ec; font-weight: 600; white-space: nowrap; }
@@ -84,18 +123,21 @@
 
   @media print {
     body { background: #fff; }
-    .toolbar, .class-nav { display: none !important; }
+    .toolbar, .exam-toolbar, .class-nav { display: none !important; }
     #print-area { padding: 0; }
     .class-report { box-shadow: none; border: 1px solid #ccc; border-radius: 0; page-break-after: always; margin-bottom: 0; }
     .class-report:last-child { page-break-after: avoid; }
     .report-header { background: #1e3a5f !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .report-table th { background: #e8f0f8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .badge-case { background: #e74c3c !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .exam-badge { background: #e8a320 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .exam-badge.empty { background: rgba(255,255,255,0.1) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
 <body>
 
+<!-- 上傳介面 -->
 <div id="upload-screen">
   <div class="app-title">📋 班級成績報告產生器</div>
   <div class="app-subtitle">上傳 Excel 或 CSV 測驗報告，自動依班級分組輸出</div>
@@ -103,7 +145,21 @@
   <div class="setting-box">
     <label for="current-year">當前學年度</label>
     <input type="number" id="current-year" value="114" min="100" max="130" step="1">
-    <span class="setting-hint">用來計算年級（當前年度 − 入學年度 + 1 = 年級）</span>
+    <span class="setting-hint">年級 = 當前年度 − 入學年度 + 1</span>
+  </div>
+
+  <div class="exam-box">
+    <label>測驗名稱（列印時顯示在每班右上角）</label>
+    <div class="exam-options">
+      <button class="exam-chip selected" onclick="selectExamPreset(this, '成長測驗')">成長測驗</button>
+      <button class="exam-chip" onclick="selectExamPreset(this, '篩選測驗')">篩選測驗</button>
+      <button class="exam-chip" onclick="selectExamPreset(this, '期中測驗')">期中測驗</button>
+      <button class="exam-chip" onclick="selectExamPreset(this, '期末測驗')">期末測驗</button>
+    </div>
+    <div class="exam-custom">
+      <span class="exam-custom-label">自訂：</span>
+      <input type="text" id="exam-custom-input" placeholder="輸入自訂名稱…" oninput="onCustomExamInput(this)">
+    </div>
   </div>
 
   <div class="drop-zone" id="drop-zone">
@@ -116,6 +172,7 @@
   <div id="error-box" class="error-msg" style="display:none"></div>
 </div>
 
+<!-- 報告介面 -->
 <div id="report-screen">
   <div class="toolbar">
     <span class="toolbar-title">📋 班級成績報告</span>
@@ -129,15 +186,71 @@
     <button class="btn-print" onclick="window.print()">🖨️ 列印</button>
     <button class="btn-reset" onclick="resetApp()">↩ 重新上傳</button>
   </div>
+
+  <!-- 測驗名稱快速切換列 -->
+  <div class="exam-toolbar">
+    <span class="exam-toolbar-label">測驗名稱：</span>
+    <button class="exam-toolbar-chip active" onclick="setExamName('成長測驗', this)">成長測驗</button>
+    <button class="exam-toolbar-chip" onclick="setExamName('篩選測驗', this)">篩選測驗</button>
+    <button class="exam-toolbar-chip" onclick="setExamName('期中測驗', this)">期中測驗</button>
+    <button class="exam-toolbar-chip" onclick="setExamName('期末測驗', this)">期末測驗</button>
+    <input class="exam-toolbar-input" type="text" placeholder="自訂名稱…" oninput="setExamNameCustom(this.value)">
+  </div>
+
   <div class="class-nav" id="class-nav"></div>
   <div id="print-area"></div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+// ── 測驗名稱狀態 ──
+let currentExamName = '成長測驗';
+
+function selectExamPreset(btn, name) {
+  document.querySelectorAll('.exam-chip').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('exam-custom-input').value = '';
+  currentExamName = name;
+}
+
+function onCustomExamInput(input) {
+  if (input.value.trim()) {
+    document.querySelectorAll('.exam-chip').forEach(b => b.classList.remove('selected'));
+    currentExamName = input.value.trim();
+  }
+}
+
+function setExamName(name, btn) {
+  document.querySelectorAll('.exam-toolbar-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelector('.exam-toolbar-input').value = '';
+  currentExamName = name;
+  updateAllBadges();
+}
+
+function setExamNameCustom(val) {
+  if (val.trim()) {
+    document.querySelectorAll('.exam-toolbar-chip').forEach(b => b.classList.remove('active'));
+    currentExamName = val.trim();
+    updateAllBadges();
+  }
+}
+
+function updateAllBadges() {
+  document.querySelectorAll('.exam-badge').forEach(b => {
+    if (currentExamName) {
+      b.textContent = currentExamName;
+      b.classList.remove('empty');
+    } else {
+      b.textContent = '未設定';
+      b.classList.add('empty');
+    }
+  });
+}
+
+// ── 拖放 ──
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
-
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
 dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
@@ -152,13 +265,8 @@ function processFile(file) {
   reader.onload = e => {
     try {
       let rows;
-      if (ext === 'csv') {
-        rows = parseCSV(e.target.result);
-      } else {
-        const wb = XLSX.read(e.target.result, { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-      }
+      if (ext === 'csv') rows = parseCSV(e.target.result);
+      else { const wb = XLSX.read(e.target.result, { type: 'array' }); const ws = wb.Sheets[wb.SheetNames[0]]; rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }); }
       buildReport(rows);
     } catch (err) { showError('無法解析檔案，請確認格式正確。(' + err.message + ')'); }
   };
@@ -196,15 +304,15 @@ let currentSchoolYear = 114;
 function buildReport(rows) {
   if (!rows || rows.length < 2) { showError('檔案內容為空或格式不符。'); return; }
   currentSchoolYear = parseInt(document.getElementById('current-year').value) || 114;
+  // 同步工具列測驗名稱
+  currentExamName = document.getElementById('exam-custom-input').value.trim() || currentExamName;
 
   let headerIdx = rows.findIndex(r => r.some(c => c && c.toString().trim() === '姓名'));
   if (headerIdx === -1) { showError('找不到欄位標題列（應包含「姓名」欄位）。'); return; }
-
   const headers = rows[headerIdx].map(c => c ? c.toString().trim() : '');
   const dataRows = rows.slice(headerIdx + 1).filter(r => r.some(c => c !== ''));
   const colMap = {};
   for (const [key, aliases] of Object.entries(COL_ALIASES)) colMap[key] = findCol(headers, aliases);
-
   if (colMap['姓名'] === -1) { showError('找不到「姓名」欄位。'); return; }
   if (colMap['班級'] === -1) { showError('找不到「班級」欄位。'); return; }
 
@@ -232,13 +340,9 @@ function buildReport(rows) {
     classMap.get(key).students.push(s);
   }
 
-  allClasses = [...classMap.values()].sort((a, b) => {
-    if (a.年級 !== b.年級) return a.年級 - b.年級;
-    return a.班級 - b.班級;
-  });
+  allClasses = [...classMap.values()].sort((a, b) => a.年級 !== b.年級 ? a.年級 - b.年級 : a.班級 - b.班級);
   for (const c of allClasses) c.students.sort((a, b) => (parseInt(a.座號) || 0) - (parseInt(b.座號) || 0));
 
-  // 填入篩選器
   const grades = [...new Set(allClasses.map(c => c.年級))].sort((a,b)=>a-b);
   const gf = document.getElementById('grade-filter');
   gf.innerHTML = '<option value="">所有年級</option>';
@@ -250,17 +354,17 @@ function buildReport(rows) {
   classes.forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = `${c} 班`; cf.appendChild(o); });
 
   document.getElementById('toolbar-year').textContent = `當前學年度：${currentSchoolYear}`;
-  renderFiltered();
 
+  // 同步工具列顯示
+  const activeChip = document.querySelector('.exam-toolbar-chip.active');
+  if (!activeChip) document.querySelector('.exam-toolbar-chip').classList.add('active');
+
+  renderFiltered();
   document.getElementById('upload-screen').style.display = 'none';
   document.getElementById('report-screen').style.display = 'block';
 }
 
-function calcGrade(入學年度) {
-  const y = parseInt(入學年度);
-  if (!y) return 0;
-  return currentSchoolYear - y + 1;
-}
+function calcGrade(入學年度) { const y = parseInt(入學年度); return y ? currentSchoolYear - y + 1 : 0; }
 
 function filterReports() { renderFiltered(); }
 
@@ -305,10 +409,7 @@ function renderScore(score, pass) {
 function renderReports(classes) {
   const area = document.getElementById('print-area');
   area.innerHTML = '';
-  if (!classes.length) {
-    area.innerHTML = '<div style="text-align:center;padding:3rem;color:#7a9bb5;">沒有符合條件的班級資料</div>';
-    return;
-  }
+  if (!classes.length) { area.innerHTML = '<div style="text-align:center;padding:3rem;color:#7a9bb5;">沒有符合條件的班級資料</div>'; return; }
   classes.forEach(c => {
     const caseCount = c.students.filter(s => isCase(s.個案)).length;
     const div = document.createElement('div');
@@ -322,14 +423,20 @@ function renderReports(classes) {
         ${renderScore(s.數學分數, s.數學通過)}
         ${renderScore(s.英語分數, s.英語通過)}
       </tr>`).join('');
+    const badgeHtml = currentExamName
+      ? `<div class="exam-badge">${currentExamName}</div>`
+      : `<div class="exam-badge empty">未設定</div>`;
     div.innerHTML = `
       <div class="report-header">
-        <span class="report-class-name">${c.年級} 年 ${c.班級} 班</span>
-        <div class="report-meta">
-          <span>入學年度 ${c.入學年度}</span>
-          <span>共 ${c.students.length} 人</span>
-          <span>個案 ${caseCount} 人</span>
+        <div class="report-header-left">
+          <div class="report-class-name">${c.年級} 年 ${c.班級} 班</div>
+          <div class="report-meta">
+            <span>入學年度 ${c.入學年度}</span>
+            <span>共 ${c.students.length} 人</span>
+            <span>個案 ${caseCount} 人</span>
+          </div>
         </div>
+        ${badgeHtml}
       </div>
       <table class="report-table">
         <thead><tr>

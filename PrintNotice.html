@@ -167,6 +167,24 @@
                     </div>
                 </div>
                 <div id="data-status" style="margin-top:10px; font-weight:bold; color:red;">尚未匯入資料</div>
+
+                <!-- 格式二專用：個案篩選器（匯入後才顯示） -->
+                <div id="case-filter-box" style="display:none; margin-top:10px; background:#fff8e1; border:2px solid #ffc107; border-radius:8px; padding:12px;">
+                    <div style="font-weight:bold; color:#856404; margin-bottom:8px;">📋 列印名單篩選（格式二專用）</div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                        <label style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:6px 14px; border-radius:20px; border:2px solid #ccc; background:white; font-weight:bold;">
+                            <input type="radio" name="case-filter" value="all" checked onchange="applyCaseFilter()"> 全部印
+                        </label>
+                        <label style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:6px 14px; border-radius:20px; border:2px solid #ccc; background:white; font-weight:bold;">
+                            <input type="radio" name="case-filter" value="case" onchange="applyCaseFilter()"> 只印個案
+                        </label>
+                        <label style="cursor:pointer; display:flex; align-items:center; gap:5px; padding:6px 14px; border-radius:20px; border:2px solid #ccc; background:white; font-weight:bold;">
+                            <input type="radio" name="case-filter" value="noncase" onchange="applyCaseFilter()"> 只印非個案
+                        </label>
+                        <span id="case-filter-count" style="font-size:13px; color:#555; margin-left:5px;"></span>
+                    </div>
+                </div>
+
                 <div id="data-preview-area" style="margin-top:20px; border-top:2px dashed #ddd; padding-top:10px;"></div>
             </div>
         </div>
@@ -464,7 +482,10 @@
                     // chi/math/eng 只用於簽到表篩選（X才要考），isCase 全部列印
                     const chi = sC==='X', math = sM==='X', eng = sE==='X';
                     const hasAnyData = sC!==''||sM!==''||sE!=='';
-                    return { id:idx, grade, cls:(row['班級']||'').toString().trim(), seat:(row['座號']||'').toString().trim(), name, idNo:(row['身分證統一編號']||row['身分證']||'').toString().trim(), chi, math, eng, statusC:sC, statusM:sM, statusE:sE, isCase:true, _fmt:2 };
+                    // 個案欄：有值且不為 0/空 視為個案
+                    const rawCase = row['個案'];
+                    const isRawCase = rawCase !== undefined && rawCase !== null && rawCase.toString().trim() !== '' && rawCase.toString().trim() !== '0';
+                    return { id:idx, grade, cls:(row['班級']||'').toString().trim(), seat:(row['座號']||'').toString().trim(), name, idNo:(row['身分證統一編號']||row['身分證']||'').toString().trim(), chi, math, eng, statusC:sC, statusM:sM, statusE:sE, isCase:true, _rawCase:isRawCase, _fmt:2 };
                 }).filter(s => s.name && s.grade && parseInt(s.grade)>=1 && parseInt(s.grade)<=6);
             } else {
                 // 格式一：原有邏輯
@@ -484,19 +505,50 @@
             const badge = isFmt2 ? '<span class="format-badge fmt2">📊 格式二（成績通過格式）</span>' : '<span class="format-badge fmt1">📄 格式一（原有格式）</span>';
             document.getElementById('data-status').innerHTML = `✅ 已讀取 ${globalStudents.length} 筆資料 ${badge}`;
             document.getElementById('data-status').style.color = 'green';
+
+            // 格式二顯示篩選器，格式一隱藏
+            const filterBox = document.getElementById('case-filter-box');
+            if (isFmt2) {
+                filterBox.style.display = 'block';
+                // 重設為全部印
+                document.querySelector('input[name="case-filter"][value="all"]').checked = true;
+                applyCaseFilter();
+            } else {
+                filterBox.style.display = 'none';
+            }
+
             renderDataPreview(); initTeacherSelector();
         };
         reader.readAsArrayBuffer(e.target.files[0]);
     });
 
+    // 格式二：個案篩選器，切換 isCase 來控制哪些人列印
+    function applyCaseFilter() {
+        const val = document.querySelector('input[name="case-filter"]:checked').value;
+        globalStudents.forEach(s => {
+            if (s._fmt !== 2) return; // 格式一不動
+            const isRawCase = s._isCase !== undefined ? s._isCase : (s.chi || s.math || s.eng || s._rawCase);
+            // 個案判斷：_rawCase 儲存原始個案欄位值
+            const isCase = s._rawCase;
+            if (val === 'all')     s.isCase = true;
+            else if (val === 'case')    s.isCase = !!isCase;
+            else if (val === 'noncase') s.isCase = !isCase;
+        });
+        const count = globalStudents.filter(s=>s.isCase).length;
+        document.getElementById('case-filter-count').innerText = `→ 目前列印名單：${count} 人`;
+        renderDataPreview();
+        initTeacherSelector();
+    }
+
     function renderDataPreview() {
         const c = document.getElementById('data-preview-area');
         if(!globalStudents.length) { c.innerHTML=''; return; }
-        let html = '<h4 style="margin:5px 0;">📋 資料匯入檢視</h4><div style="max-height:400px; overflow-y:auto; border:1px solid #ccc;"><table class="std-table" style="font-size:14px;"><thead style="position:sticky;top:0;background:#eee;z-index:1;"><tr><th>年級</th><th>班級</th><th>座號</th><th>姓名</th><th>國語</th><th>數學</th><th>英語</th><th>列印狀態</th></tr></thead><tbody>';
+        let html = '<h4 style="margin:5px 0;">📋 資料匯入檢視</h4><div style="max-height:400px; overflow-y:auto; border:1px solid #ccc;"><table class="std-table" style="font-size:14px;"><thead style="position:sticky;top:0;background:#eee;z-index:1;"><tr><th>年級</th><th>班級</th><th>座號</th><th>姓名</th><th>國語</th><th>數學</th><th>英語</th><th>個案</th><th>列印狀態</th></tr></thead><tbody>';
         let printCount=0;
         globalStudents.forEach(s => {
             if(s.isCase) printCount++;
-            html += `<tr style="${!s.isCase?'background-color:#ffebee;':''}"><td>${s.grade}</td><td>${s.cls}</td><td>${s.seat}</td><td>${s.name}</td><td style="${s.chi?'color:red;font-weight:bold;':''}">${s.statusC}</td><td style="${s.math?'color:blue;font-weight:bold;':''}">${s.statusM}</td><td style="${s.eng?'color:green;font-weight:bold;':''}">${s.statusE}</td><td style="font-size:12px;">${s.isCase?'<span style="color:green;font-weight:bold;">✅ 列印</span>':'<span style="color:red;font-weight:bold;">❌ 不列印</span>'}</td></tr>`;
+            const caseTag = s._fmt===2 ? (s._rawCase ? '<span style="color:#8e44ad;font-weight:bold;">●個案</span>' : '<span style="color:#888;">非個案</span>') : '';
+            html += `<tr style="${!s.isCase?'background-color:#ffebee;':''}"><td>${s.grade}</td><td>${s.cls}</td><td>${s.seat}</td><td>${s.name}</td><td style="${s.chi?'color:red;font-weight:bold;':''}">${s.statusC}</td><td style="${s.math?'color:blue;font-weight:bold;':''}">${s.statusM}</td><td style="${s.eng?'color:green;font-weight:bold;':''}">${s.statusE}</td><td style="font-size:12px;">${caseTag}</td><td style="font-size:12px;">${s.isCase?'<span style="color:green;font-weight:bold;">✅ 列印</span>':'<span style="color:red;font-weight:bold;">❌ 不列印</span>'}</td></tr>`;
         });
         html += `</tbody></table></div><p style="text-align:right;font-size:13px;color:#333;margin-top:5px;font-weight:bold;">總資料數：${globalStudents.length} 筆 │ 實際列印：<span style="color:green;">${printCount}</span> 筆 │ 不列印：<span style="color:red;">${globalStudents.length-printCount}</span> 筆</p>`;
         c.innerHTML = html;

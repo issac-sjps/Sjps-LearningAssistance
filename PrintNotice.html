@@ -453,6 +453,7 @@
 
             if (isFmt2) {
                 // 格式二：N=要考(X)，Y=免考(O)，--=空白
+                // isCase = 全部列印（當成績單用，不管 O/X/空白 都要印）
                 const currentYear = parseInt(document.getElementById('current-school-year').value) || 114;
                 const conv = v => { if(!v) return ''; const s = v.toString().trim().toUpperCase(); if(s==='N') return 'X'; if(s==='Y') return 'O'; return ''; };
                 globalStudents = rawData.map((row, idx) => {
@@ -460,8 +461,10 @@
                     const admYear = parseInt(row['入學年度']||0);
                     const grade = admYear > 0 ? String(currentYear - admYear + 1) : '';
                     const sC = conv(row['國語文通過']), sM = conv(row['數學通過']), sE = conv(row['英語通過']);
+                    // chi/math/eng 只用於簽到表篩選（X才要考），isCase 全部列印
                     const chi = sC==='X', math = sM==='X', eng = sE==='X';
-                    return { id:idx, grade, cls:(row['班級']||'').toString().trim(), seat:(row['座號']||'').toString().trim(), name, idNo:(row['身分證統一編號']||row['身分證']||'').toString().trim(), chi, math, eng, statusC:sC, statusM:sM, statusE:sE, isCase:chi||math||eng, _fmt:2 };
+                    const hasAnyData = sC!==''||sM!==''||sE!=='';
+                    return { id:idx, grade, cls:(row['班級']||'').toString().trim(), seat:(row['座號']||'').toString().trim(), name, idNo:(row['身分證統一編號']||row['身分證']||'').toString().trim(), chi, math, eng, statusC:sC, statusM:sM, statusE:sE, isCase:true, _fmt:2 };
                 }).filter(s => s.name && s.grade && parseInt(s.grade)>=1 && parseInt(s.grade)<=6);
             } else {
                 // 格式一：原有邏輯

@@ -417,15 +417,17 @@
     <div class="modal-content">
         <div class="text-4xl text-center mb-3">🔐</div>
         <h3 class="text-lg font-bold text-gray-800 text-center mb-1">管理員登入</h3>
-        <p class="text-sm text-gray-500 text-center mb-5">請使用學校授權的 Google 帳號登入以啟用編輯功能</p>
+        <p class="text-sm text-gray-500 text-center mb-5">輸入管理員密碼以啟用編輯功能</p>
+        <input id="admin-pw-input" type="password" placeholder="管理員密碼"
+               class="w-full border-2 border-gray-200 p-3 rounded-xl text-center text-xl tracking-widest
+                      focus:border-blue-400 focus:outline-none mb-2"
+               onkeydown="if(event.key==='Enter') submitAdminPw()">
         <div id="admin-pw-error" class="text-red-500 text-sm text-center mb-4 min-h-[20px]"></div>
         <div class="flex gap-3">
             <button onclick="closeAdminModal()"
                     class="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200">取消</button>
-            <button onclick="loginWithGoogle()" id="admin-google-btn"
-                    class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2">
-                🔑 使用 Google 登入
-            </button>
+            <button onclick="submitAdminPw()"
+                    class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700">確認登入</button>
         </div>
     </div>
 </div>
@@ -856,10 +858,11 @@
     </div>
 </div>
 <script>
-// ── 通關碼設定 ──────────────────────────────────────────────────────
+// ── 通關碼與管理員密碼設定 ──────────────────────────────────────────
 const PASSCODE = "073411373";
-// 管理員驗證改用真正的 Firebase Google 登入（見下方 loginWithGoogle），
-// 不再使用寫死在前端的密碼字串。
+const ADMIN_PW = "admin";
+// ⚠️ 這個密碼只在網頁前端判斷，Firestore 的 /shared/main 寫入規則
+// 也要對應改成開放寫入（allow write: if true;），否則存檔仍會被拒絕。
 
 // ── 全域狀態 ──────────────────────────────────────────────────────
 let students = [], classes = [], settingsData = {};
@@ -936,39 +939,31 @@ function renderAll() {
     }
 }
 
-// ── 管理員登入（真正的 Firebase Google 登入）───────────────────────
+// ── 管理員密碼登入 ─────────────────────────────────────────────────
 function openAdminModal() {
+    document.getElementById('admin-pw-input').value = '';
     document.getElementById('admin-pw-error').innerText = '';
     document.getElementById('admin-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('admin-pw-input').focus(), 60);
 }
 function closeAdminModal() {
     document.getElementById('admin-modal').classList.add('hidden');
 }
-async function loginWithGoogle() {
-    const errEl = document.getElementById('admin-pw-error');
-    const btn   = document.getElementById('admin-google-btn');
-    errEl.innerText = '';
-    btn.disabled = true;
-    btn.innerText = '登入中…';
-
-    const res = await window._fbAdminLogin();
-
-    btn.disabled = false;
-    btn.innerText = '🔑 使用 Google 登入';
-
-    if (res.ok) {
+function submitAdminPw() {
+    if (document.getElementById('admin-pw-input').value === ADMIN_PW) {
         IS_ADMIN = true;
         closeAdminModal();
         applyModeUI();
-        toast(`✅ 管理員模式已啟用（${res.email}）`);
+        toast('✅ 管理員模式已啟用');
         renderAll();
     } else {
-        errEl.innerText = '❌ ' + (res.message || '登入失敗');
+        document.getElementById('admin-pw-error').innerText = '❌ 密碼錯誤';
+        document.getElementById('admin-pw-input').value = '';
+        setTimeout(() => document.getElementById('admin-pw-error').innerText = '', 2000);
     }
 }
-async function adminLogout() {
+function adminLogout() {
     IS_ADMIN = false;
-    await window._fbAdminLogout();
     applyModeUI();
     toast('已切換回瀏覽模式');
     renderAll();

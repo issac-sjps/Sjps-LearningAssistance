@@ -248,6 +248,11 @@
         .read-only-mode textarea {
             background: #f3f4f6 !important; cursor: not-allowed; pointer-events: none;
         }
+        /* 全勤獎登記開放所有老師使用，不受管理員瀏覽模式鎖定影響 */
+        .read-only-mode #attendance-section select,
+        .read-only-mode #attendance-section input[type=checkbox] {
+            background: white !important; cursor: pointer !important; pointer-events: auto !important;
+        }
 
         /* ── 模式標籤 ─────────────────────────────────────── */
         .badge-view  { background: #fef3c7; color: #92400e; }

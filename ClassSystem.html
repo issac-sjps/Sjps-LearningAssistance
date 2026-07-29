@@ -1961,7 +1961,7 @@ function renderAttendanceRoster() {
 
     // 重新產生班級選項（維持目前選取的班級，若被刪除則改選第一個）
     sel.innerHTML = classes.length
-        ? classes.map(c => `<option value="${c.id}">${c.name}（${c.grade || '?'}年級・${c.subject}）</option>`).join('')
+        ? classes.map(c => `<option value="${c.id}">${c.name}（${c.grade || '?'}年級・${c.subject}・${c.teacher || '未設定教師'}）</option>`).join('')
         : '<option value="">尚未設定班級，請先到「2. 班級設定」新增</option>';
 
     if (!selectedAttClassId || !classes.some(c => c.id === selectedAttClassId)) {
@@ -1972,7 +1972,7 @@ function renderAttendanceRoster() {
     const cls  = classes.find(c => c.id === selectedAttClassId);
     const list = selectedAttClassId ? students.filter(s => s.classId === selectedAttClassId) : [];
 
-    document.getElementById('att-roster-title').innerText = cls ? `${cls.name} 名單` : '請先設定班級';
+    document.getElementById('att-roster-title').innerText = cls ? `${cls.name}（${cls.teacher || '未設定教師'}）名單` : '請先設定班級';
     document.getElementById('att-roster-count').innerText =
         `${list.length} 人 · 全勤 ${list.filter(s => attendanceAwards[s.id]).length} 人`;
 
@@ -2009,7 +2009,7 @@ function renderAttendanceAdminPanel() {
         const list = students.filter(s => s.classId === c.id);
         const awarded = list.filter(s => attendanceAwards[s.id]).length;
         return `<tr class="hover:bg-gray-50">
-            <td class="px-3 py-2 border">${c.name}（${c.grade || '?'}年級・${c.subject}）</td>
+            <td class="px-3 py-2 border">${c.name}（${c.grade || '?'}年級・${c.subject}・${c.teacher || '未設定教師'}）</td>
             <td class="px-3 py-2 border text-center">${list.length}</td>
             <td class="px-3 py-2 border text-center font-bold text-amber-600">${awarded}</td>
         </tr>`;
@@ -2068,7 +2068,7 @@ function mobAttRenderList() {
         return `<div onclick="mobAttSelectClass('${c.id}')"
                      class="mob-class-card border-gray-300 flex items-center justify-between cursor-pointer active:bg-gray-50">
             <div>
-                <div class="font-black text-gray-800 text-base">${c.name}</div>
+                <div class="font-black text-gray-800 text-base">${c.name} <span class="text-amber-600 font-bold">・${c.teacher || '未設定教師'}</span></div>
                 <div class="text-xs text-gray-400 mt-0.5">${c.grade || '?'}年級・${c.subject} · 已分發 ${list.length} 人 · 全勤 ${awarded} 人</div>
             </div>
             <span class="text-amber-500 text-xl">›</span>
@@ -2080,7 +2080,7 @@ function mobAttRenderList() {
 function mobAttSelectClass(classId) {
     const c = classes.find(x => x.id === classId);
     if (!c) return;
-    if (!confirm(`確定要開始編輯「${c.name}」的全勤獎名單嗎？\n請小心不要動到別班的名單。`)) return;
+    if (!confirm(`確定要開始編輯「${c.name}（${c.teacher || '未設定教師'}）」的全勤獎名單嗎？\n請小心不要動到別班的名單。`)) return;
 
     selectedAttClassId = classId; // 跟桌機版共用同一個選取狀態
     document.getElementById('mob-att-list-view').classList.add('hidden');
@@ -2103,7 +2103,7 @@ function mobAttRenderRoster() {
     const cls  = classes.find(c => c.id === selectedAttClassId);
     const list = selectedAttClassId ? students.filter(s => s.classId === selectedAttClassId) : [];
 
-    titleEl.innerText = cls ? cls.name : '請先選擇班級';
+    titleEl.innerText = cls ? `${cls.name}（${cls.teacher || '未設定教師'}）` : '請先選擇班級';
     countEl.innerText = `${list.length} 人 · 全勤 ${list.filter(s => attendanceAwards[s.id]).length} 人`;
 
     if (!list.length) {

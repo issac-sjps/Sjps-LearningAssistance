@@ -31,7 +31,8 @@
         // 【修正 2】：只啟動 Auth 攔截器，拔除匿名登入
         const auth = getAuth(app);
         const db   = getFirestore(app);
-        const REF  = doc(db, "shared", "main");
+        const REF      = doc(db, "shared", "main");        // 學生/班級/設定：僅管理員可寫入
+        const REF_ATT  = doc(db, "shared", "attendance");   // 全勤獎登記：開放所有人寫入
 
         // 匯出 auth 給全域使用，用來做前端雙重鎖檢查
         window._firebaseAuth = auth;
@@ -45,20 +46,41 @@
                 window._onRemoteUpdate({ students: [], classes: [], settings: {} });
             }
         }, (err) => {
-            console.error("監聽失敗，請確認 Firebase Rules 已開放 /shared 路徑的 read 權限", err);
+            console.error("監聽失敗，請確認 Firebase Rules 已開放 /shared/main 路徑的 read 權限", err);
             toast('❌ 讀取資料庫失敗，請檢查系統權限設定');
         });
 
-        // 寫入 Firestore (後端防護會自動檢查 auth.currentUser 夾帶的憑證)
-        window._fbSave = async (payload) => {
-            try { 
-                await setDoc(REF, payload); 
-                return true; 
+        onSnapshot(REF_ATT, (snap) => {
+            if (window._onAttendanceUpdate) {
+                window._onAttendanceUpdate(snap.exists() ? (snap.data().attendance || []) : []);
             }
-            catch (e) { 
-                console.error("存檔失敗（可能無權限或網路斷線）", e); 
+        }, (err) => {
+            console.error("監聽失敗，請確認 Firebase Rules 已開放 /shared/attendance 路徑的 read 權限", err);
+        });
+
+        // 寫入班級/學生/設定 (需要管理員權限，由 Firestore Rules 的 isAdmin() 檢查)
+        window._fbSaveMain = async (payload) => {
+            try {
+                await setDoc(REF, payload);
+                return true;
+            }
+            catch (e) {
+                console.error("存檔失敗（可能無權限或網路斷線）", e);
                 toast('❌ 存檔失敗：系統拒絕未授權的寫入');
-                return false; 
+                return false;
+            }
+        };
+
+        // 寫入全勤獎登記 (開放所有老師寫入，不需要管理員權限)
+        window._fbSaveAttendance = async (attendance) => {
+            try {
+                await setDoc(REF_ATT, { attendance });
+                return true;
+            }
+            catch (e) {
+                console.error("全勤獎存檔失敗（可能無權限或網路斷線）", e);
+                toast('❌ 全勤獎存檔失敗：請檢查網路或系統權限設定');
+                return false;
             }
         };
     </script>
@@ -874,15 +896,29 @@ function bootApp() {
     // Firebase onSnapshot 在 module 端已綁好，有資料時觸發 _onRemoteUpdate
 }
 
-// Firestore 即時更新（module 端呼叫）
+// Firestore 即時更新（module 端呼叫）── 學生/班級/設定（僅管理員可寫入的主資料）
 window._onRemoteUpdate = function(data) {
     students       = data.students   || [];
     classes        = data.classes    || [];
     settingsData   = data.settings   || {};
-    attendanceData = data.attendance || [];
     applyDefaultSettings(settingsData);
     loadSettingsToUI();
     renderAll();
+};
+
+// Firestore 即時更新（module 端呼叫）── 全勤獎登記（開放所有人寫入的資料，獨立文件）
+window._onAttendanceUpdate = function(attendance) {
+    attendanceData = attendance || [];
+    if (!document.getElementById('attendance-section').classList.contains('hidden')) {
+        renderAttendanceRoster();
+        renderAttendanceAdminPanel();
+    }
+    const attPage = document.getElementById('mob-page-attendance');
+    if (attPage && attPage.classList.contains('active')) {
+        const editView = document.getElementById('mob-att-edit-view');
+        if (editView && !editView.classList.contains('hidden')) mobAttRenderRoster();
+        else mobAttRenderList();
+    }
 };
 
 function renderAll() {
@@ -983,17 +1019,17 @@ async function saveData() {
     });
     const el = document.getElementById('save-status');
     el.innerText = '(存檔中…)';
-    const ok = await window._fbSave({ students, classes, settings: settingsData, attendance: attendanceData });
+    const ok = await window._fbSaveMain({ students, classes, settings: settingsData });
     el.innerText = ok ? '(已存檔 ☁️)' : '(存檔失敗)';
     setTimeout(() => el.innerText = '', 2500);
     updateGlobalStats();
 }
 
-// 全勤獎頁面專用存檔：開放給所有人（不需要管理員權限）
+// 全勤獎頁面專用存檔：開放給所有人（不需要管理員權限），寫入獨立的 attendance 文件
 async function saveAttendanceOnly() {
     const el = document.getElementById('save-status');
     el.innerText = '(存檔中…)';
-    const ok = await window._fbSave({ students, classes, settings: settingsData, attendance: attendanceData });
+    const ok = await window._fbSaveAttendance(attendanceData);
     el.innerText = ok ? '(已存檔 ☁️)' : '(存檔失敗)';
     setTimeout(() => el.innerText = '', 2500);
 }
@@ -1368,7 +1404,7 @@ function importSystemBackup(input) {
             attendanceData = d.attendance || [];
             applyDefaultSettings(settingsData);
 
-            if (typeof window._fbSave !== 'function') {
+            if (typeof window._fbSaveMain !== 'function' || typeof window._fbSaveAttendance !== 'function') {
                 alert('Firebase 尚未就緒，請稍後再試（重新整理頁面後再匯入）');
                 input.value = ''; return;
             }
@@ -1376,7 +1412,9 @@ function importSystemBackup(input) {
             const el = document.getElementById('save-status');
             el.innerText = '(存檔中…)';
             // 直接用備份的 settingsData 存，不從畫面欄位讀（避免覆蓋成空值）
-            const ok = await window._fbSave({ students, classes, settings: settingsData, attendance: attendanceData });
+            const okMain = await window._fbSaveMain({ students, classes, settings: settingsData });
+            const okAtt  = await window._fbSaveAttendance(attendanceData);
+            const ok = okMain && okAtt;
 
             if (ok) {
                 el.innerText = '(已存檔 ☁️)';

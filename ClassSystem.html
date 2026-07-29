@@ -12,9 +12,9 @@
         // 【修正 1】：統一使用穩定的 10.12.0 版本
         import { initializeApp }
             from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth }
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut }
             from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot }
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot }
             from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -28,13 +28,12 @@
         };
 
         const app  = initializeApp(firebaseConfig);
-        // 【修正 2】：只啟動 Auth 攔截器，拔除匿名登入
         const auth = getAuth(app);
         const db   = getFirestore(app);
         const REF      = doc(db, "shared", "main");        // 學生/班級/設定：僅管理員可寫入
         const REF_ATT  = doc(db, "shared", "attendance");   // 全勤獎登記：開放所有人寫入
 
-        // 匯出 auth 給全域使用，用來做前端雙重鎖檢查
+        // 匯出 auth 給全域使用
         window._firebaseAuth = auth;
 
         // 【修正 3】：直接監聽資料庫。只要 Rules 設為 allow read: if true，就不需要登入即可讀取
@@ -52,7 +51,7 @@
 
         onSnapshot(REF_ATT, (snap) => {
             if (window._onAttendanceUpdate) {
-                window._onAttendanceUpdate(snap.exists() ? (snap.data().attendance || []) : []);
+                window._onAttendanceUpdate(snap.exists() ? (snap.data().awards || {}) : {});
             }
         }, (err) => {
             console.error("監聽失敗，請確認 Firebase Rules 已開放 /shared/attendance 路徑的 read 權限", err);
@@ -72,9 +71,9 @@
         };
 
         // 寫入全勤獎登記 (開放所有老師寫入，不需要管理員權限)
-        window._fbSaveAttendance = async (attendance) => {
+        window._fbSaveAttendance = async (awards) => {
             try {
-                await setDoc(REF_ATT, { attendance });
+                await setDoc(REF_ATT, { awards });
                 return true;
             }
             catch (e) {
@@ -82,6 +81,41 @@
                 toast('❌ 全勤獎存檔失敗：請檢查網路或系統權限設定');
                 return false;
             }
+        };
+
+        // ── 管理員登入：真正呼叫 Firebase Google 登入，讓 Firestore Rules 的
+        //    isAdmin() 檢查能生效（比對指定信箱，或 /users/{uid} 的 role 是否為 admin）
+        const ADMIN_EMAILS = ['issac@sjps.kh.edu.tw'];
+        const googleProvider = new GoogleAuthProvider();
+
+        window._fbAdminLogin = async () => {
+            try {
+                const result = await signInWithPopup(auth, googleProvider);
+                const email  = result.user.email || '';
+                const uid    = result.user.uid;
+
+                if (ADMIN_EMAILS.includes(email)) {
+                    return { ok: true, email };
+                }
+                // 不是指定信箱，再查 /users/{uid} 是否有 role: 'admin'
+                try {
+                    const userSnap = await getDoc(doc(db, 'users', uid));
+                    if (userSnap.exists() && userSnap.data().role === 'admin') {
+                        return { ok: true, email };
+                    }
+                } catch (inner) {
+                    console.error('讀取使用者權限失敗', inner);
+                }
+                await signOut(auth);
+                return { ok: false, message: `此 Google 帳號（${email}）沒有管理員權限` };
+            } catch (e) {
+                console.error('Google 登入失敗', e);
+                return { ok: false, message: '登入失敗或已取消：' + (e.message || '未知錯誤') };
+            }
+        };
+
+        window._fbAdminLogout = async () => {
+            try { await signOut(auth); } catch (e) { console.error(e); }
         };
     </script>
 
@@ -340,15 +374,6 @@
             <button onclick="mobAttBack()" class="text-sm font-bold text-blue-600 mb-3 flex items-center gap-1">← 返回班級列表</button>
             <h2 class="font-black text-gray-800 text-lg mb-1" id="mob-att-roster-title">班級名單</h2>
             <div class="text-xs text-gray-500 font-bold mb-3" id="mob-att-roster-count">0 人 · 全勤 0 人</div>
-            <div class="flex gap-2 mb-4">
-                <input type="text" id="mob-att-new-name" placeholder="輸入姓名後新增"
-                       onkeydown="if(event.key==='Enter'){mobAttAddStudent();}"
-                       class="border border-gray-300 rounded-xl px-3 py-2.5 text-sm flex-1">
-                <button onclick="mobAttAddStudent()" class="bg-amber-500 text-white font-bold px-4 rounded-xl">+</button>
-            </div>
-            <button onclick="mobAttImportFromRegistered()" class="w-full bg-blue-500 text-white text-sm font-bold py-2.5 rounded-xl mb-4">
-                📥 從已登錄名單帶入
-            </button>
             <div id="mob-att-roster-list" class="space-y-2"></div>
         </div>
     </div>
@@ -392,17 +417,15 @@
     <div class="modal-content">
         <div class="text-4xl text-center mb-3">🔐</div>
         <h3 class="text-lg font-bold text-gray-800 text-center mb-1">管理員登入</h3>
-        <p class="text-sm text-gray-500 text-center mb-5">輸入管理員密碼以啟用編輯功能</p>
-        <input id="admin-pw-input" type="password" placeholder="管理員密碼"
-               class="w-full border-2 border-gray-200 p-3 rounded-xl text-center text-xl tracking-widest
-                      focus:border-blue-400 focus:outline-none mb-2"
-               onkeydown="if(event.key==='Enter') submitAdminPw()">
+        <p class="text-sm text-gray-500 text-center mb-5">請使用學校授權的 Google 帳號登入以啟用編輯功能</p>
         <div id="admin-pw-error" class="text-red-500 text-sm text-center mb-4 min-h-[20px]"></div>
         <div class="flex gap-3">
             <button onclick="closeAdminModal()"
                     class="flex-1 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200">取消</button>
-            <button onclick="submitAdminPw()"
-                    class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700">確認登入</button>
+            <button onclick="loginWithGoogle()" id="admin-google-btn"
+                    class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2">
+                🔑 使用 Google 登入
+            </button>
         </div>
     </div>
 </div>
@@ -799,36 +822,13 @@
     </div>
 
     <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
-        <strong>使用方式：</strong>選擇您任教班級的「年級」與「班級」，輸入學生姓名並勾選全勤，系統會即時同步儲存。
+        <strong>使用方式：</strong>選擇您任教的扶助班級（例如 A班），下面會自動列出已分發到該班的學生，勾選全勤即可，系統會即時同步儲存。
     </div>
 
     <div class="flex flex-wrap gap-3 items-end mb-5 bg-gray-50 border rounded-xl p-4">
-        <div>
-            <label class="block text-xs text-gray-500 mb-1 font-bold">年級</label>
-            <select id="att-grade" onchange="renderAttendanceRoster()" class="border p-2 rounded-lg w-24">
-                <option value="1">一年級</option>
-                <option value="2">二年級</option>
-                <option value="3">三年級</option>
-                <option value="4">四年級</option>
-                <option value="5">五年級</option>
-                <option value="6">六年級</option>
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs text-gray-500 mb-1 font-bold">班級</label>
-            <input type="number" id="att-class" value="1" min="1" onchange="renderAttendanceRoster()" class="border p-2 rounded-lg w-20">
-        </div>
-        <button onclick="attImportFromRegistered()" class="bg-blue-500 text-white text-sm font-bold px-3 py-2 rounded-lg hover:bg-blue-600">
-            📥 從已登錄名單帶入
-        </button>
-        <div class="flex-1 min-w-[200px]">
-            <label class="block text-xs text-gray-500 mb-1 font-bold">新增學生姓名</label>
-            <div class="flex gap-2">
-                <input type="text" id="att-new-name" placeholder="輸入姓名後按 Enter 或點+"
-                       onkeydown="if(event.key==='Enter'){attAddStudent();}"
-                       class="border p-2 rounded-lg flex-1">
-                <button onclick="attAddStudent()" class="bg-amber-500 text-white font-bold px-4 rounded-lg hover:bg-amber-600">+</button>
-            </div>
+        <div class="flex-1 min-w-[240px]">
+            <label class="block text-xs text-gray-500 mb-1 font-bold">選擇班級</label>
+            <select id="att-class-select" onchange="selectedAttClassId=this.value; renderAttendanceRoster();" class="border p-2 rounded-lg w-full"></select>
         </div>
     </div>
 
@@ -856,13 +856,15 @@
     </div>
 </div>
 <script>
-// ── 密碼設定 ──────────────────────────────────────────────────────
+// ── 通關碼設定 ──────────────────────────────────────────────────────
 const PASSCODE = "073411373";
-const ADMIN_PW = "admin";
+// 管理員驗證改用真正的 Firebase Google 登入（見下方 loginWithGoogle），
+// 不再使用寫死在前端的密碼字串。
 
 // ── 全域狀態 ──────────────────────────────────────────────────────
 let students = [], classes = [], settingsData = {};
-let attendanceData = []; // { classKey, grade, cls, students: [{id,name,awarded}] }
+let attendanceAwards = {}; // { [studentId]: true }  -- 依「拖曳編班」實際分發的班級登記全勤
+let selectedAttClassId = null;
 let IS_ADMIN = false;
 let filterGrade   = 'all';   // 'all' | '1'~'6'
 let filterSubject = 'all';   // 'all' | '國語' | '數學' | '英語'
@@ -907,8 +909,8 @@ window._onRemoteUpdate = function(data) {
 };
 
 // Firestore 即時更新（module 端呼叫）── 全勤獎登記（開放所有人寫入的資料，獨立文件）
-window._onAttendanceUpdate = function(attendance) {
-    attendanceData = attendance || [];
+window._onAttendanceUpdate = function(awards) {
+    attendanceAwards = awards || {};
     if (!document.getElementById('attendance-section').classList.contains('hidden')) {
         renderAttendanceRoster();
         renderAttendanceAdminPanel();
@@ -934,31 +936,39 @@ function renderAll() {
     }
 }
 
-// ── 管理員密碼與雙重鎖防護 ─────────────────────────────────────────
+// ── 管理員登入（真正的 Firebase Google 登入）───────────────────────
 function openAdminModal() {
-    document.getElementById('admin-pw-input').value = '';
     document.getElementById('admin-pw-error').innerText = '';
     document.getElementById('admin-modal').classList.remove('hidden');
-    setTimeout(() => document.getElementById('admin-pw-input').focus(), 60);
 }
 function closeAdminModal() {
     document.getElementById('admin-modal').classList.add('hidden');
 }
-function submitAdminPw() {
-    if (document.getElementById('admin-pw-input').value === ADMIN_PW) {
+async function loginWithGoogle() {
+    const errEl = document.getElementById('admin-pw-error');
+    const btn   = document.getElementById('admin-google-btn');
+    errEl.innerText = '';
+    btn.disabled = true;
+    btn.innerText = '登入中…';
+
+    const res = await window._fbAdminLogin();
+
+    btn.disabled = false;
+    btn.innerText = '🔑 使用 Google 登入';
+
+    if (res.ok) {
         IS_ADMIN = true;
         closeAdminModal();
         applyModeUI();
-        toast('✅ 管理員模式已啟用');
+        toast(`✅ 管理員模式已啟用（${res.email}）`);
         renderAll();
     } else {
-        document.getElementById('admin-pw-error').innerText = '❌ 密碼錯誤';
-        document.getElementById('admin-pw-input').value = '';
-        setTimeout(() => document.getElementById('admin-pw-error').innerText = '', 2000);
+        errEl.innerText = '❌ ' + (res.message || '登入失敗');
     }
 }
-function adminLogout() {
+async function adminLogout() {
     IS_ADMIN = false;
+    await window._fbAdminLogout();
     applyModeUI();
     toast('已切換回瀏覽模式');
     renderAll();
@@ -1029,7 +1039,7 @@ async function saveData() {
 async function saveAttendanceOnly() {
     const el = document.getElementById('save-status');
     el.innerText = '(存檔中…)';
-    const ok = await window._fbSaveAttendance(attendanceData);
+    const ok = await window._fbSaveAttendance(attendanceAwards);
     el.innerText = ok ? '(已存檔 ☁️)' : '(存檔失敗)';
     setTimeout(() => el.innerText = '', 2500);
 }
@@ -1384,7 +1394,7 @@ function importExcel(input) {
 }
 function exportSystemBackup() {
     if (!IS_ADMIN) { alert('請先登入管理員'); return; }
-    const d = { version: '1.0', ts: new Date().toISOString(), students, classes, settings: settingsData, attendance: attendanceData };
+    const d = { version: '1.0', ts: new Date().toISOString(), students, classes, settings: settingsData, attendance: attendanceAwards };
     const a = document.createElement('a');
     a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(d, null, 2));
     a.download = `編班備份_${new Date().toISOString().slice(0, 10)}.json`;
@@ -1401,7 +1411,7 @@ function importSystemBackup(input) {
             students       = d.students   || [];
             classes        = d.classes    || [];
             settingsData   = d.settings   || {};
-            attendanceData = d.attendance || [];
+            attendanceAwards = d.attendance || {};
             applyDefaultSettings(settingsData);
 
             if (typeof window._fbSaveMain !== 'function' || typeof window._fbSaveAttendance !== 'function') {
@@ -1413,7 +1423,7 @@ function importSystemBackup(input) {
             el.innerText = '(存檔中…)';
             // 直接用備份的 settingsData 存，不從畫面欄位讀（避免覆蓋成空值）
             const okMain = await window._fbSaveMain({ students, classes, settings: settingsData });
-            const okAtt  = await window._fbSaveAttendance(attendanceData);
+            const okAtt  = await window._fbSaveAttendance(attendanceAwards);
             const ok = okMain && okAtt;
 
             if (ok) {
@@ -1935,87 +1945,59 @@ function printPhoneList() {
 }
 
 // ── 全勤獎登記 ────────────────────────────────────────────────────
-function attGetClassKey() {
-    const grade = document.getElementById('att-grade').value;
-    const cls   = document.getElementById('att-class').value;
-    return { key: `${grade}-${cls}`, grade, cls };
-}
-function attGetOrCreateClass() {
-    const { key, grade, cls } = attGetClassKey();
-    let rec = attendanceData.find(r => r.classKey === key);
-    if (!rec) {
-        rec = { classKey: key, grade, cls, students: [] };
-        attendanceData.push(rec);
-    }
-    return rec;
-}
-function attImportFromRegistered() {
-    const { grade, cls } = attGetClassKey();
-    const rec = attGetOrCreateClass();
-    const matches = students.filter(s => s.orgGrade === grade && s.orgClass === cls);
-    if (!matches.length) { toast('⚠️ 已登錄名單中找不到這個班級的學生'); return; }
-    let added = 0;
-    matches.forEach(s => {
-        if (!rec.students.some(x => x.name === s.name)) {
-            rec.students.push({ id: Date.now() + Math.random(), name: s.name, awarded: false });
-            added++;
-        }
-    });
-    renderAttendanceRoster();
-    saveAttendanceOnly();
-    toast(`✅ 已帶入 ${added} 位新學生`);
-}
-function attAddStudent() {
-    const input = document.getElementById('att-new-name');
-    const name = input.value.trim();
-    if (!name) return;
-    const rec = attGetOrCreateClass();
-    if (rec.students.some(s => s.name === name)) { toast('⚠️ 名單中已有此姓名'); return; }
-    rec.students.push({ id: Date.now() + Math.random(), name, awarded: false });
-    input.value = '';
-    renderAttendanceRoster();
-    saveAttendanceOnly();
-}
-function attToggleAward(studentId) {
-    const rec = attGetOrCreateClass();
-    const s = rec.students.find(x => x.id == studentId);
-    if (s) { s.awarded = !s.awarded; }
-    renderAttendanceRoster();
-    saveAttendanceOnly();
-}
-function attDeleteStudent(studentId) {
-    const rec = attGetOrCreateClass();
-    rec.students = rec.students.filter(x => x.id != studentId);
-    renderAttendanceRoster();
-    saveAttendanceOnly();
-}
-function renderAttendanceRoster() {
-    const { grade, cls } = attGetClassKey();
-    const rec = attendanceData.find(r => r.classKey === `${grade}-${cls}`);
-    const list = rec ? rec.students : [];
-    const gradeNames = { '1':'一年級','2':'二年級','3':'三年級','4':'四年級','5':'五年級','6':'六年級' };
+// 全勤獎是依照「拖曳編班」實際分發到的扶助班級（A班/B班...）來登記，
+// 不是用原班級（幾年幾班），這樣老師才能直接對照自己任教的那個班。
 
-    document.getElementById('att-roster-title').innerText = `${gradeNames[grade] || grade+'年級'} ${cls}班 名單`;
+function attToggleAward(studentId) {
+    attendanceAwards[studentId] = !attendanceAwards[studentId];
+    if (!attendanceAwards[studentId]) delete attendanceAwards[studentId];
+    renderAttendanceRoster();
+    saveAttendanceOnly();
+}
+
+function renderAttendanceRoster() {
+    const sel = document.getElementById('att-class-select');
+    if (!sel) return;
+
+    // 重新產生班級選項（維持目前選取的班級，若被刪除則改選第一個）
+    sel.innerHTML = classes.length
+        ? classes.map(c => `<option value="${c.id}">${c.name}（${c.grade || '?'}年級・${c.subject}）</option>`).join('')
+        : '<option value="">尚未設定班級，請先到「2. 班級設定」新增</option>';
+
+    if (!selectedAttClassId || !classes.some(c => c.id === selectedAttClassId)) {
+        selectedAttClassId = classes.length ? classes[0].id : null;
+    }
+    if (selectedAttClassId) sel.value = selectedAttClassId;
+
+    const cls  = classes.find(c => c.id === selectedAttClassId);
+    const list = selectedAttClassId ? students.filter(s => s.classId === selectedAttClassId) : [];
+
+    document.getElementById('att-roster-title').innerText = cls ? `${cls.name} 名單` : '請先設定班級';
     document.getElementById('att-roster-count').innerText =
-        `${list.length} 人 · 全勤 ${list.filter(s => s.awarded).length} 人`;
+        `${list.length} 人 · 全勤 ${list.filter(s => attendanceAwards[s.id]).length} 人`;
 
     const box = document.getElementById('att-roster-list');
     if (!list.length) {
-        box.innerHTML = '<div class="text-center text-gray-400 py-10 text-sm">尚無學生，請新增或從已登錄名單帶入</div>';
-        return;
+        box.innerHTML = '<div class="text-center text-gray-400 py-10 text-sm">這個班級目前沒有已分發的學生，請先到「3. 拖曳編班」把學生分進這班</div>';
+    } else {
+        box.innerHTML = [...list]
+            .sort((a, b) => (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass) || a.name.localeCompare(b.name, 'zh-Hant'))
+            .map(s => {
+                const awarded = !!attendanceAwards[s.id];
+                return `<div class="flex items-center justify-between bg-white border rounded-lg p-3 ${awarded ? 'border-amber-400 bg-amber-50' : ''}">
+                    <label class="flex items-center gap-3 cursor-pointer flex-1">
+                        <input type="checkbox" ${awarded ? 'checked' : ''} onchange="attToggleAward(${s.id})" class="w-5 h-5 accent-amber-500">
+                        <span class="font-bold ${awarded ? 'text-amber-700' : 'text-gray-700'}">${s.name}</span>
+                        <span class="text-xs text-gray-400">${s.orgGrade}年${s.orgClass}班</span>
+                        ${awarded ? '<span class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">🏅 全勤</span>' : ''}
+                    </label>
+                </div>`;
+            }).join('');
     }
-    box.innerHTML = [...list].sort((a,b) => a.name.localeCompare(b.name,'zh-Hant')).map(s => `
-        <div class="flex items-center justify-between bg-white border rounded-lg p-3 ${s.awarded ? 'border-amber-400 bg-amber-50' : ''}">
-            <label class="flex items-center gap-3 cursor-pointer flex-1">
-                <input type="checkbox" ${s.awarded ? 'checked' : ''} onchange="attToggleAward(${s.id})" class="w-5 h-5 accent-amber-500">
-                <span class="font-bold ${s.awarded ? 'text-amber-700' : 'text-gray-700'}">${s.name}</span>
-                ${s.awarded ? '<span class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">🏅 全勤</span>' : ''}
-            </label>
-            <button onclick="attDeleteStudent(${s.id})" class="text-red-400 hover:text-red-600 text-sm px-2">刪除</button>
-        </div>`).join('');
 
     if (typeof mobAttRenderRoster === 'function') mobAttRenderRoster();
 }
+
 function renderAttendanceAdminPanel() {
     const hint  = document.getElementById('att-admin-hint');
     const panel = document.getElementById('att-admin-panel');
@@ -2023,83 +2005,71 @@ function renderAttendanceAdminPanel() {
     if (!IS_ADMIN) { hint.classList.remove('hidden'); panel.classList.add('hidden'); return; }
     hint.classList.add('hidden'); panel.classList.remove('hidden');
 
-    const gradeNames = { '1':'一年級','2':'二年級','3':'三年級','4':'四年級','5':'五年級','6':'六年級' };
-    const sorted = [...attendanceData].sort((a,b) => (+a.grade - +b.grade) || (+a.cls - +b.cls));
-    const rows = sorted.map(r => {
-        const awarded = r.students.filter(s => s.awarded).length;
+    const rows = classes.map(c => {
+        const list = students.filter(s => s.classId === c.id);
+        const awarded = list.filter(s => attendanceAwards[s.id]).length;
         return `<tr class="hover:bg-gray-50">
-            <td class="px-3 py-2 border">${gradeNames[r.grade] || r.grade+'年級'} ${r.cls}班</td>
-            <td class="px-3 py-2 border text-center">${r.students.length}</td>
+            <td class="px-3 py-2 border">${c.name}（${c.grade || '?'}年級・${c.subject}）</td>
+            <td class="px-3 py-2 border text-center">${list.length}</td>
             <td class="px-3 py-2 border text-center font-bold text-amber-600">${awarded}</td>
         </tr>`;
     }).join('');
-    document.getElementById('att-summary-table').innerHTML = sorted.length ? `
+    document.getElementById('att-summary-table').innerHTML = classes.length ? `
         <table class="w-full text-sm border-collapse">
             <thead><tr class="bg-gray-100">
                 <th class="px-3 py-2 border text-left">班級</th>
-                <th class="px-3 py-2 border">已登記人數</th>
+                <th class="px-3 py-2 border">已分發人數</th>
                 <th class="px-3 py-2 border">全勤人數</th>
             </tr></thead>
             <tbody>${rows}</tbody>
-        </table>` : '<div class="text-center text-gray-400 py-8 text-sm">尚無任何班級登記全勤獎</div>';
+        </table>` : '<div class="text-center text-gray-400 py-8 text-sm">尚未設定班級</div>';
 }
+
 function exportAttendanceExcel() {
     if (!IS_ADMIN) { alert('請先登入管理員'); return; }
-    const gradeNames = { '1':'一年級','2':'二年級','3':'三年級','4':'四年級','5':'五年級','6':'六年級' };
     const data = [];
-    [...attendanceData].sort((a,b) => (+a.grade - +b.grade) || (+a.cls - +b.cls)).forEach(r => {
-        [...r.students].sort((a,b) => a.name.localeCompare(b.name,'zh-Hant')).forEach(s => {
-            data.push({
-                '年級': gradeNames[r.grade] || r.grade,
-                '班級': r.cls,
-                '姓名': s.name,
-                '是否全勤': s.awarded ? '是' : '否'
+    classes.forEach(c => {
+        students.filter(s => s.classId === c.id)
+            .sort((a, b) => (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass) || a.name.localeCompare(b.name, 'zh-Hant'))
+            .forEach(s => {
+                data.push({
+                    '扶助班級': c.name,
+                    '年級': c.grade || '',
+                    '科目': c.subject || '',
+                    '原班級': `${s.orgGrade}年${s.orgClass}班`,
+                    '姓名': s.name,
+                    '是否全勤': attendanceAwards[s.id] ? '是' : '否'
+                });
             });
-        });
     });
-    if (!data.length) { alert('目前沒有全勤獎登記資料'); return; }
+    if (!data.length) { alert('目前沒有已分發的學生資料'); return; }
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), '全勤獎登記');
     // 另外附上「只列出全勤獲獎者」的工作表，方便直接印獎狀
-    const awardedOnly = data.filter(d => d['是否全勤'] === '是').map(d => ({ '年級': d['年級'], '班級': d['班級'], '姓名': d['姓名'] }));
+    const awardedOnly = data.filter(d => d['是否全勤'] === '是')
+        .map(d => ({ '扶助班級': d['扶助班級'], '年級': d['年級'], '原班級': d['原班級'], '姓名': d['姓名'] }));
     if (awardedOnly.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(awardedOnly), '全勤獲獎名單');
     XLSX.writeFile(wb, '全勤獎名單.xlsx');
 }
 
 // ── 全勤獎登記（手機版）──────────────────────────────────────────
-const MOB_GRADE_NAMES = { '1':'一年級','2':'二年級','3':'三年級','4':'四年級','5':'五年級','6':'六年級' };
-
-// 彙整所有原班級：來自已登錄名單 + 已建立的全勤獎紀錄，去重後排序
-function mobAttGetAllClasses() {
-    const map = new Map();
-    students.forEach(s => {
-        if (!s.orgGrade || !s.orgClass) return;
-        const key = `${s.orgGrade}-${s.orgClass}`;
-        if (!map.has(key)) map.set(key, { grade: s.orgGrade, cls: s.orgClass });
-    });
-    attendanceData.forEach(r => {
-        if (!map.has(r.classKey)) map.set(r.classKey, { grade: r.grade, cls: r.cls });
-    });
-    return [...map.values()].sort((a, b) => (+a.grade - +b.grade) || (+a.cls - +b.cls));
-}
+// 手機版直接列出「拖曳編班」中的實際班級（A班/B班...），跟桌機版共用同一組資料
 
 function mobAttRenderList() {
     const box = document.getElementById('mob-att-list');
     if (!box) return;
-    const list = mobAttGetAllClasses();
-    if (!list.length) {
-        box.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">目前沒有任何班級資料</div>';
+    if (!classes.length) {
+        box.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">尚未設定班級，請請管理員先到「班級設定」新增</div>';
         return;
     }
-    box.innerHTML = list.map(c => {
-        const rec = attendanceData.find(r => r.classKey === `${c.grade}-${c.cls}`);
-        const total   = rec ? rec.students.length : 0;
-        const awarded = rec ? rec.students.filter(s => s.awarded).length : 0;
-        return `<div onclick="mobAttSelectClass('${c.grade}','${c.cls}')"
+    box.innerHTML = classes.map(c => {
+        const list = students.filter(s => s.classId === c.id);
+        const awarded = list.filter(s => attendanceAwards[s.id]).length;
+        return `<div onclick="mobAttSelectClass('${c.id}')"
                      class="mob-class-card border-gray-300 flex items-center justify-between cursor-pointer active:bg-gray-50">
             <div>
-                <div class="font-black text-gray-800 text-base">${MOB_GRADE_NAMES[c.grade] || c.grade + '年級'} ${c.cls}班</div>
-                <div class="text-xs text-gray-400 mt-0.5">已登記 ${total} 人 · 全勤 ${awarded} 人</div>
+                <div class="font-black text-gray-800 text-base">${c.name}</div>
+                <div class="text-xs text-gray-400 mt-0.5">${c.grade || '?'}年級・${c.subject} · 已分發 ${list.length} 人 · 全勤 ${awarded} 人</div>
             </div>
             <span class="text-amber-500 text-xl">›</span>
         </div>`;
@@ -2107,14 +2077,12 @@ function mobAttRenderList() {
 }
 
 // 點選班級前先跳確認視窗，避免手滑動到別班名單
-function mobAttSelectClass(grade, cls) {
-    const label = `${MOB_GRADE_NAMES[grade] || grade + '年級'} ${cls}班`;
-    if (!confirm(`確定要開始編輯「${label}」的全勤獎名單嗎？\n請小心不要動到別班的名單。`)) return;
+function mobAttSelectClass(classId) {
+    const c = classes.find(x => x.id === classId);
+    if (!c) return;
+    if (!confirm(`確定要開始編輯「${c.name}」的全勤獎名單嗎？\n請小心不要動到別班的名單。`)) return;
 
-    // 共用桌機版的資料存取邏輯：把選到的年級/班級寫進（隱藏的）桌機版欄位
-    document.getElementById('att-grade').value = grade;
-    document.getElementById('att-class').value = cls;
-
+    selectedAttClassId = classId; // 跟桌機版共用同一個選取狀態
     document.getElementById('mob-att-list-view').classList.add('hidden');
     document.getElementById('mob-att-edit-view').classList.remove('hidden');
     renderAttendanceRoster(); // 會連動呼叫 mobAttRenderRoster()
@@ -2126,53 +2094,41 @@ function mobAttBack() {
     mobAttRenderList();
 }
 
-function mobAttAddStudent() {
-    const input = document.getElementById('mob-att-new-name');
-    const name = input.value.trim();
-    if (!name) return;
-    const rec = attGetOrCreateClass();
-    if (rec.students.some(s => s.name === name)) { toast('⚠️ 名單中已有此姓名'); return; }
-    rec.students.push({ id: Date.now() + Math.random(), name, awarded: false });
-    input.value = '';
-    renderAttendanceRoster();
-    saveAttendanceOnly();
-}
-
-function mobAttImportFromRegistered() {
-    attImportFromRegistered();
-}
-
 function mobAttRenderRoster() {
     const titleEl = document.getElementById('mob-att-roster-title');
     const countEl = document.getElementById('mob-att-roster-count');
     const listEl  = document.getElementById('mob-att-roster-list');
     if (!titleEl || !listEl) return;
 
-    const { grade, cls } = attGetClassKey();
-    const rec = attendanceData.find(r => r.classKey === `${grade}-${cls}`);
-    const list = rec ? rec.students : [];
+    const cls  = classes.find(c => c.id === selectedAttClassId);
+    const list = selectedAttClassId ? students.filter(s => s.classId === selectedAttClassId) : [];
 
-    titleEl.innerText = `${MOB_GRADE_NAMES[grade] || grade + '年級'} ${cls}班`;
-    countEl.innerText = `${list.length} 人 · 全勤 ${list.filter(s => s.awarded).length} 人`;
+    titleEl.innerText = cls ? cls.name : '請先選擇班級';
+    countEl.innerText = `${list.length} 人 · 全勤 ${list.filter(s => attendanceAwards[s.id]).length} 人`;
 
     if (!list.length) {
-        listEl.innerHTML = '<div class="text-center text-gray-400 py-10 text-sm">尚無學生，請新增或從已登錄名單帶入</div>';
+        listEl.innerHTML = '<div class="text-center text-gray-400 py-10 text-sm">這個班級目前沒有已分發的學生</div>';
         return;
     }
-    listEl.innerHTML = [...list].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant')).map(s => `
-        <div onclick="attToggleAward(${s.id})"
-             class="flex items-center justify-between bg-white border rounded-xl p-3.5 cursor-pointer active:bg-gray-50 ${s.awarded ? 'border-amber-400 bg-amber-50' : ''}">
-            <div class="flex items-center gap-3">
-                <input type="checkbox" ${s.awarded ? 'checked' : ''} onclick="event.stopPropagation();attToggleAward(${s.id})" class="w-5 h-5 accent-amber-500 pointer-events-none">
-                <span class="font-bold ${s.awarded ? 'text-amber-700' : 'text-gray-700'}">${s.name}</span>
-                ${s.awarded ? '<span class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">🏅</span>' : ''}
-            </div>
-            <button onclick="event.stopPropagation();attDeleteStudent(${s.id})" class="text-red-400 text-xs px-2">刪除</button>
-        </div>`).join('');
+    listEl.innerHTML = [...list]
+        .sort((a, b) => (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass) || a.name.localeCompare(b.name, 'zh-Hant'))
+        .map(s => {
+            const awarded = !!attendanceAwards[s.id];
+            return `<div onclick="attToggleAward(${s.id})"
+                 class="flex items-center justify-between bg-white border rounded-xl p-3.5 cursor-pointer active:bg-gray-50 ${awarded ? 'border-amber-400 bg-amber-50' : ''}">
+                <div class="flex items-center gap-3">
+                    <input type="checkbox" ${awarded ? 'checked' : ''} class="w-5 h-5 accent-amber-500 pointer-events-none">
+                    <span class="font-bold ${awarded ? 'text-amber-700' : 'text-gray-700'}">${s.name}</span>
+                    <span class="text-xs text-gray-400">${s.orgGrade}年${s.orgClass}班</span>
+                    ${awarded ? '<span class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">🏅</span>' : ''}
+                </div>
+            </div>`;
+        }).join('');
 }
 </script>
 
 </div><div id="print-layout"></div>
+
 
 <script>
 // ── 手機版狀態 ────────────────────────────────────────────────────

@@ -866,9 +866,12 @@
             登入管理員後可查看全校彙整表並下載全勤獎名單 Excel。
         </div>
         <div id="att-admin-panel" class="hidden">
-            <div class="flex gap-3 mb-4">
+            <div class="flex flex-wrap gap-3 mb-4">
                 <button onclick="exportAttendanceExcel()" class="bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-emerald-700 text-sm">
-                    ⬇️ 下載全勤獎名單 Excel
+                    ⬇️ 下載全勤獎名單 Excel（完整版）
+                </button>
+                <button onclick="exportAttendanceAwardedOnly()" class="bg-amber-600 text-white font-bold px-4 py-2 rounded-lg hover:bg-amber-700 text-sm">
+                    ⬇️ 只下載全勤學生名單（班級+姓名）
                 </button>
             </div>
             <div id="att-summary-table" class="overflow-x-auto"></div>
@@ -2127,6 +2130,28 @@ function exportAttendanceExcel() {
         .map(d => ({ '扶助班級': d['扶助班級'], '年級': d['年級'], '原班級': d['原班級'], '姓名': d['姓名'] }));
     if (awardedOnly.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(awardedOnly), '全勤獲獎名單');
     XLSX.writeFile(wb, '全勤獎名單.xlsx');
+}
+
+// 把「年級 + 原班級」轉成 101、201 這種 3 碼班級代號（年級1碼 + 班級2碼）
+function attClassCode(orgGrade, orgClass) {
+    const g = String(orgGrade || '').trim();
+    const c = String(orgClass || '').trim().padStart(2, '0');
+    return g + c;
+}
+
+// 只下載「班級 + 姓名」，只列出真的被勾選全勤的學生，班級用 101 / 201 這種代號表示
+function exportAttendanceAwardedOnly() {
+    if (!IS_ADMIN) { alert('請先登入管理員'); return; }
+    const data = [];
+    students.forEach(s => {
+        if (!attendanceAwards[s.id]) return;
+        data.push({ '班級': attClassCode(s.orgGrade, s.orgClass), '姓名': s.name });
+    });
+    if (!data.length) { alert('目前還沒有任何全勤學生'); return; }
+    data.sort((a, b) => a['班級'].localeCompare(b['班級']) || a['姓名'].localeCompare(b['姓名'], 'zh-Hant'));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), '全勤學生名單');
+    XLSX.writeFile(wb, '全勤學生名單.xlsx');
 }
 
 // ── 全勤獎登記（手機版）──────────────────────────────────────────

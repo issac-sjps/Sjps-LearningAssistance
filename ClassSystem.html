@@ -874,6 +874,7 @@
                     ⬇️ 只下載全勤學生名單（班級+姓名）
                 </button>
             </div>
+            <div id="att-grade-summary" class="grid grid-cols-3 md:grid-cols-6 gap-3 mb-5"></div>
             <div id="att-summary-table" class="overflow-x-auto"></div>
         </div>
     </div>
@@ -2065,6 +2066,30 @@ function renderAttendanceAdminPanel() {
     if (!IS_ADMIN) { hint.classList.remove('hidden'); panel.classList.add('hidden'); return; }
     hint.classList.add('hidden'); panel.classList.remove('hidden');
 
+    // 依「年級」統計全勤人數，方便算獎品數量
+    const gradeNames = { '1':'一年級','2':'二年級','3':'三年級','4':'四年級','5':'五年級','6':'六年級' };
+    const gradeCounts = { '1':0,'2':0,'3':0,'4':0,'5':0,'6':0 };
+    let totalAwarded = 0;
+    students.forEach(s => {
+        if (attendanceAwards[s.id]) {
+            totalAwarded++;
+            if (gradeCounts[s.orgGrade] !== undefined) gradeCounts[s.orgGrade]++;
+        }
+    });
+    const gradeSummaryEl = document.getElementById('att-grade-summary');
+    if (gradeSummaryEl) {
+        gradeSummaryEl.innerHTML = ['1','2','3','4','5','6'].map(g => `
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+                <div class="text-2xl font-black text-amber-600">${gradeCounts[g]}</div>
+                <div class="text-xs text-amber-800 font-bold mt-0.5">${gradeNames[g]}</div>
+            </div>`).join('') + `
+            <div class="col-span-3 md:col-span-6 bg-gray-100 border rounded-xl p-3 text-center">
+                <span class="text-sm text-gray-500 font-bold">全校全勤總人數：</span>
+                <span class="text-xl font-black text-gray-800">${totalAwarded}</span>
+                <span class="text-sm text-gray-500 font-bold"> 人</span>
+            </div>`;
+    }
+
     const rows = classes.map(c => {
         const list = students.filter(s => s.classId === c.id);
         const awarded = list.filter(s => attendanceAwards[s.id]).length;
@@ -2143,12 +2168,15 @@ function attClassCode(orgGrade, orgClass) {
 function exportAttendanceAwardedOnly() {
     if (!IS_ADMIN) { alert('請先登入管理員'); return; }
     const data = [];
-    students.forEach(s => {
-        if (!attendanceAwards[s.id]) return;
-        data.push({ '班級': attClassCode(s.orgGrade, s.orgClass), '姓名': s.name });
+    // 依「拖曳編班」的班別順序（A班→B班→C班...）列出，同班內再依原年級/原班級/姓名排序
+    classes.forEach(c => {
+        students.filter(s => s.classId === c.id && attendanceAwards[s.id])
+            .sort((a, b) => (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass) || a.name.localeCompare(b.name, 'zh-Hant'))
+            .forEach(s => {
+                data.push({ '班別': c.name, '班級': attClassCode(s.orgGrade, s.orgClass), '姓名': s.name });
+            });
     });
     if (!data.length) { alert('目前還沒有任何全勤學生'); return; }
-    data.sort((a, b) => a['班級'].localeCompare(b['班級']) || a['姓名'].localeCompare(b['姓名'], 'zh-Hant'));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), '全勤學生名單');
     XLSX.writeFile(wb, '全勤學生名單.xlsx');

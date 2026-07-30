@@ -51,7 +51,10 @@
 
         onSnapshot(REF_ATT, (snap) => {
             if (window._onAttendanceUpdate) {
-                window._onAttendanceUpdate(snap.exists() ? (snap.data().awards || {}) : {});
+                window._onAttendanceUpdate(snap.exists() ? {
+                    awards:   snap.data().awards   || {},
+                    noAward:  snap.data().noAward  || {}
+                } : { awards: {}, noAward: {} });
             }
         }, (err) => {
             console.error("監聽失敗，請確認 Firebase Rules 已開放 /shared/attendance 路徑的 read 權限", err);
@@ -71,9 +74,9 @@
         };
 
         // 寫入全勤獎登記 (開放所有老師寫入，不需要管理員權限)
-        window._fbSaveAttendance = async (awards) => {
+        window._fbSaveAttendance = async (awards, noAward) => {
             try {
-                await setDoc(REF_ATT, { awards });
+                await setDoc(REF_ATT, { awards, noAward });
                 return true;
             }
             catch (e) {
@@ -380,6 +383,11 @@
             <h2 class="font-black text-gray-800 text-lg mb-1" id="mob-att-roster-title">班級名單</h2>
             <div class="text-xs text-gray-500 font-bold mb-3" id="mob-att-roster-count">0 人 · 全勤 0 人</div>
             <div id="mob-att-roster-list" class="space-y-2"></div>
+
+            <label id="mob-att-no-award-row" class="flex items-center gap-3 mt-4 mb-4 p-3.5 bg-gray-50 border rounded-xl cursor-pointer active:bg-gray-100">
+                <input type="checkbox" id="mob-att-no-award-checkbox" onchange="attToggleNoAward()" class="w-5 h-5 accent-gray-500">
+                <span class="text-sm font-bold text-gray-600">本班這次沒有人全勤（勾選代表已確認完成登記）</span>
+            </label>
         </div>
     </div>
 
@@ -843,7 +851,12 @@
         <h3 class="font-bold text-gray-700 text-sm" id="att-roster-title">本班名單</h3>
         <span id="att-roster-count" class="text-xs bg-gray-200 px-2 py-1 rounded-lg font-bold text-gray-600">0 人 · 全勤 0 人</span>
     </div>
-    <div id="att-roster-list" class="space-y-2 mb-10"></div>
+    <div id="att-roster-list" class="space-y-2"></div>
+
+    <label id="att-no-award-row" class="flex items-center gap-3 mt-4 mb-10 p-3.5 bg-gray-50 border rounded-lg cursor-pointer hover:bg-gray-100">
+        <input type="checkbox" id="att-no-award-checkbox" onchange="attToggleNoAward()" class="w-5 h-5 accent-gray-500">
+        <span class="text-sm font-bold text-gray-600">本班這次沒有人全勤（勾選代表已確認完成登記）</span>
+    </label>
 
     <div class="border-t pt-6">
         <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
@@ -871,7 +884,8 @@ const ADMIN_PW = "admin";
 
 // ── 全域狀態 ──────────────────────────────────────────────────────
 let students = [], classes = [], settingsData = {};
-let attendanceAwards = {}; // { [studentId]: true }  -- 依「拖曳編班」實際分發的班級登記全勤
+let attendanceAwards = {};  // { [studentId]: true }  -- 依「拖曳編班」實際分發的班級登記全勤
+let attendanceNoAward = {}; // { [classId]: true }     -- 老師確認「這次沒有人全勤」，代表已經處理完
 let selectedAttClassId = null;
 let IS_ADMIN = false;
 let filterGrade   = 'all';   // 'all' | '1'~'6'
@@ -917,8 +931,9 @@ window._onRemoteUpdate = function(data) {
 };
 
 // Firestore 即時更新（module 端呼叫）── 全勤獎登記（開放所有人寫入的資料，獨立文件）
-window._onAttendanceUpdate = function(awards) {
-    attendanceAwards = awards || {};
+window._onAttendanceUpdate = function(data) {
+    attendanceAwards  = (data && data.awards)  || {};
+    attendanceNoAward = (data && data.noAward) || {};
     if (!document.getElementById('attendance-section').classList.contains('hidden')) {
         renderAttendanceRoster();
         renderAttendanceAdminPanel();
@@ -1039,7 +1054,7 @@ async function saveData() {
 async function saveAttendanceOnly() {
     const el = document.getElementById('save-status');
     el.innerText = '(存檔中…)';
-    const ok = await window._fbSaveAttendance(attendanceAwards);
+    const ok = await window._fbSaveAttendance(attendanceAwards, attendanceNoAward);
     el.innerText = ok ? '(已存檔 ☁️)' : '(存檔失敗)';
     setTimeout(() => el.innerText = '', 2500);
 }
@@ -1394,7 +1409,7 @@ function importExcel(input) {
 }
 function exportSystemBackup() {
     if (!IS_ADMIN) { alert('請先登入管理員'); return; }
-    const d = { version: '1.0', ts: new Date().toISOString(), students, classes, settings: settingsData, attendance: attendanceAwards };
+    const d = { version: '1.0', ts: new Date().toISOString(), students, classes, settings: settingsData, attendance: attendanceAwards, attendanceNoAward };
     const a = document.createElement('a');
     a.href = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(d, null, 2));
     a.download = `編班備份_${new Date().toISOString().slice(0, 10)}.json`;
@@ -1411,7 +1426,8 @@ function importSystemBackup(input) {
             students       = d.students   || [];
             classes        = d.classes    || [];
             settingsData   = d.settings   || {};
-            attendanceAwards = d.attendance || {};
+            attendanceAwards  = d.attendance || {};
+            attendanceNoAward = d.attendanceNoAward || {};
             applyDefaultSettings(settingsData);
 
             if (typeof window._fbSaveMain !== 'function' || typeof window._fbSaveAttendance !== 'function') {
@@ -1423,7 +1439,7 @@ function importSystemBackup(input) {
             el.innerText = '(存檔中…)';
             // 直接用備份的 settingsData 存，不從畫面欄位讀（避免覆蓋成空值）
             const okMain = await window._fbSaveMain({ students, classes, settings: settingsData });
-            const okAtt  = await window._fbSaveAttendance(attendanceAwards);
+            const okAtt  = await window._fbSaveAttendance(attendanceAwards, attendanceNoAward);
             const ok = okMain && okAtt;
 
             if (ok) {
@@ -1947,10 +1963,42 @@ function printPhoneList() {
 // ── 全勤獎登記 ────────────────────────────────────────────────────
 // 全勤獎是依照「拖曳編班」實際分發到的扶助班級（A班/B班...）來登記，
 // 不是用原班級（幾年幾班），這樣老師才能直接對照自己任教的那個班。
+//
+// 每個班級的登記狀態分三種：
+//   empty   → 這班還沒有分發任何學生，不列入「待處理」
+//   pending → 有學生，但老師還沒勾選任何人、也還沒勾「無人全勤」
+//   done    → 已經有全勤學生，或老師已勾選「本班無人全勤」
+
+function attClassStatus(classId) {
+    const list = students.filter(s => s.classId === classId);
+    if (!list.length) return 'empty';
+    const awarded = list.filter(s => attendanceAwards[s.id]).length;
+    if (awarded > 0 || attendanceNoAward[classId]) return 'done';
+    return 'pending';
+}
 
 function attToggleAward(studentId) {
     attendanceAwards[studentId] = !attendanceAwards[studentId];
     if (!attendanceAwards[studentId]) delete attendanceAwards[studentId];
+    // 只要有人被勾選全勤，就跟「無人全勤」互斥，自動取消該班的無人全勤標記
+    if (attendanceAwards[studentId] && selectedAttClassId) {
+        delete attendanceNoAward[selectedAttClassId];
+    }
+    renderAttendanceRoster();
+    saveAttendanceOnly();
+}
+
+function attToggleNoAward() {
+    if (!selectedAttClassId) return;
+    const list = students.filter(s => s.classId === selectedAttClassId);
+    const awardedCount = list.filter(s => attendanceAwards[s.id]).length;
+    if (awardedCount > 0) {
+        alert('這個班已經有學生被勾選全勤，不能同時標記「無人全勤」。\n如果要改成無人全勤，請先取消所有已勾選的學生。');
+        renderAttendanceRoster();
+        return;
+    }
+    attendanceNoAward[selectedAttClassId] = !attendanceNoAward[selectedAttClassId];
+    if (!attendanceNoAward[selectedAttClassId]) delete attendanceNoAward[selectedAttClassId];
     renderAttendanceRoster();
     saveAttendanceOnly();
 }
@@ -1971,10 +2019,12 @@ function renderAttendanceRoster() {
 
     const cls  = classes.find(c => c.id === selectedAttClassId);
     const list = selectedAttClassId ? students.filter(s => s.classId === selectedAttClassId) : [];
+    const noAward = selectedAttClassId ? !!attendanceNoAward[selectedAttClassId] : false;
+    const awardedCount = list.filter(s => attendanceAwards[s.id]).length;
 
     document.getElementById('att-roster-title').innerText = cls ? `${cls.name}（${cls.teacher || '未設定教師'}）名單` : '請先設定班級';
     document.getElementById('att-roster-count').innerText =
-        `${list.length} 人 · 全勤 ${list.filter(s => attendanceAwards[s.id]).length} 人`;
+        `${list.length} 人 · 全勤 ${awardedCount} 人`;
 
     const box = document.getElementById('att-roster-list');
     if (!list.length) {
@@ -1995,6 +2045,13 @@ function renderAttendanceRoster() {
             }).join('');
     }
 
+    // 「本班無人全勤」勾選框：有人已勾全勤時鎖住，避免互相矛盾
+    const noAwardBox = document.getElementById('att-no-award-checkbox');
+    if (noAwardBox) {
+        noAwardBox.checked = noAward;
+        noAwardBox.disabled = !list.length || awardedCount > 0;
+    }
+
     if (typeof mobAttRenderRoster === 'function') mobAttRenderRoster();
 }
 
@@ -2008,10 +2065,19 @@ function renderAttendanceAdminPanel() {
     const rows = classes.map(c => {
         const list = students.filter(s => s.classId === c.id);
         const awarded = list.filter(s => attendanceAwards[s.id]).length;
-        return `<tr class="hover:bg-gray-50">
-            <td class="px-3 py-2 border">${c.name}（${c.grade || '?'}年級・${c.subject}・${c.teacher || '未設定教師'}）</td>
+        const status = attClassStatus(c.id);
+        const statusBadge = status === 'done'
+            ? '<span class="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">✅ 已完成</span>'
+            : status === 'pending'
+                ? '<span class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">⏳ 尚未登記</span>'
+                : '<span class="text-xs bg-gray-300 text-gray-600 px-2 py-0.5 rounded-full font-bold">— 無學生</span>';
+        const rowBg = status === 'done' ? 'bg-emerald-50' : status === 'pending' ? 'bg-red-50' : '';
+        const noAwardNote = attendanceNoAward[c.id] ? '<div class="text-xs text-gray-400 mt-0.5">（本班無人全勤）</div>' : '';
+        return `<tr class="hover:brightness-95 ${rowBg}">
+            <td class="px-3 py-2 border">${c.name}（${c.grade || '?'}年級・${c.subject}・${c.teacher || '未設定教師'}）${noAwardNote}</td>
             <td class="px-3 py-2 border text-center">${list.length}</td>
             <td class="px-3 py-2 border text-center font-bold text-amber-600">${awarded}</td>
+            <td class="px-3 py-2 border text-center">${statusBadge}</td>
         </tr>`;
     }).join('');
     document.getElementById('att-summary-table').innerHTML = classes.length ? `
@@ -2020,6 +2086,7 @@ function renderAttendanceAdminPanel() {
                 <th class="px-3 py-2 border text-left">班級</th>
                 <th class="px-3 py-2 border">已分發人數</th>
                 <th class="px-3 py-2 border">全勤人數</th>
+                <th class="px-3 py-2 border">登記狀態</th>
             </tr></thead>
             <tbody>${rows}</tbody>
         </table>` : '<div class="text-center text-gray-400 py-8 text-sm">尚未設定班級</div>';
@@ -2029,13 +2096,23 @@ function exportAttendanceExcel() {
     if (!IS_ADMIN) { alert('請先登入管理員'); return; }
     const data = [];
     classes.forEach(c => {
-        students.filter(s => s.classId === c.id)
-            .sort((a, b) => (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass) || a.name.localeCompare(b.name, 'zh-Hant'))
+        const list = students.filter(s => s.classId === c.id);
+        if (!list.length) return;
+        if (!list.some(s => attendanceAwards[s.id]) && attendanceNoAward[c.id]) {
+            // 本班確認無人全勤，仍列出班級但標註無人全勤，方便管理員核對
+            data.push({
+                '扶助班級': c.name, '年級': c.grade || '', '科目': c.subject || '', '授課教師': c.teacher || '',
+                '原班級': '（本班無人全勤）', '姓名': '', '是否全勤': '否'
+            });
+            return;
+        }
+        list.sort((a, b) => (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass) || a.name.localeCompare(b.name, 'zh-Hant'))
             .forEach(s => {
                 data.push({
                     '扶助班級': c.name,
                     '年級': c.grade || '',
                     '科目': c.subject || '',
+                    '授課教師': c.teacher || '',
                     '原班級': `${s.orgGrade}年${s.orgClass}班`,
                     '姓名': s.name,
                     '是否全勤': attendanceAwards[s.id] ? '是' : '否'
@@ -2065,10 +2142,19 @@ function mobAttRenderList() {
     box.innerHTML = classes.map(c => {
         const list = students.filter(s => s.classId === c.id);
         const awarded = list.filter(s => attendanceAwards[s.id]).length;
+        const status = attClassStatus(c.id);
+        const cardCls = status === 'done' ? 'border-emerald-400 bg-emerald-50' : status === 'pending' ? 'border-red-300 bg-red-50' : 'border-gray-300';
+        const statusBadge = status === 'done'
+            ? '<span class="text-xs bg-emerald-500 text-white px-2 py-0.5 rounded-full font-bold">✅ 已完成</span>'
+            : status === 'pending'
+                ? '<span class="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">⏳ 尚未登記</span>'
+                : '';
         return `<div onclick="mobAttSelectClass('${c.id}')"
-                     class="mob-class-card border-gray-300 flex items-center justify-between cursor-pointer active:bg-gray-50">
+                     class="mob-class-card ${cardCls} flex items-center justify-between cursor-pointer active:brightness-95">
             <div>
-                <div class="font-black text-gray-800 text-base">${c.name} <span class="text-amber-600 font-bold">・${c.teacher || '未設定教師'}</span></div>
+                <div class="font-black text-gray-800 text-base flex items-center gap-2 flex-wrap">
+                    ${c.name} <span class="text-amber-600 font-bold">・${c.teacher || '未設定教師'}</span> ${statusBadge}
+                </div>
                 <div class="text-xs text-gray-400 mt-0.5">${c.grade || '?'}年級・${c.subject} · 已分發 ${list.length} 人 · 全勤 ${awarded} 人</div>
             </div>
             <span class="text-amber-500 text-xl">›</span>
@@ -2102,28 +2188,36 @@ function mobAttRenderRoster() {
 
     const cls  = classes.find(c => c.id === selectedAttClassId);
     const list = selectedAttClassId ? students.filter(s => s.classId === selectedAttClassId) : [];
+    const noAward = selectedAttClassId ? !!attendanceNoAward[selectedAttClassId] : false;
+    const awardedCount = list.filter(s => attendanceAwards[s.id]).length;
 
     titleEl.innerText = cls ? `${cls.name}（${cls.teacher || '未設定教師'}）` : '請先選擇班級';
-    countEl.innerText = `${list.length} 人 · 全勤 ${list.filter(s => attendanceAwards[s.id]).length} 人`;
+    countEl.innerText = `${list.length} 人 · 全勤 ${awardedCount} 人`;
 
     if (!list.length) {
         listEl.innerHTML = '<div class="text-center text-gray-400 py-10 text-sm">這個班級目前沒有已分發的學生</div>';
-        return;
+    } else {
+        listEl.innerHTML = [...list]
+            .sort((a, b) => (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass) || a.name.localeCompare(b.name, 'zh-Hant'))
+            .map(s => {
+                const awarded = !!attendanceAwards[s.id];
+                return `<div onclick="attToggleAward(${s.id})"
+                     class="flex items-center justify-between bg-white border rounded-xl p-3.5 cursor-pointer active:bg-gray-50 ${awarded ? 'border-amber-400 bg-amber-50' : ''}">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" ${awarded ? 'checked' : ''} class="w-5 h-5 accent-amber-500 pointer-events-none">
+                        <span class="font-bold ${awarded ? 'text-amber-700' : 'text-gray-700'}">${s.name}</span>
+                        <span class="text-xs text-gray-400">${s.orgGrade}年${s.orgClass}班</span>
+                        ${awarded ? '<span class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">🏅</span>' : ''}
+                    </div>
+                </div>`;
+            }).join('');
     }
-    listEl.innerHTML = [...list]
-        .sort((a, b) => (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass) || a.name.localeCompare(b.name, 'zh-Hant'))
-        .map(s => {
-            const awarded = !!attendanceAwards[s.id];
-            return `<div onclick="attToggleAward(${s.id})"
-                 class="flex items-center justify-between bg-white border rounded-xl p-3.5 cursor-pointer active:bg-gray-50 ${awarded ? 'border-amber-400 bg-amber-50' : ''}">
-                <div class="flex items-center gap-3">
-                    <input type="checkbox" ${awarded ? 'checked' : ''} class="w-5 h-5 accent-amber-500 pointer-events-none">
-                    <span class="font-bold ${awarded ? 'text-amber-700' : 'text-gray-700'}">${s.name}</span>
-                    <span class="text-xs text-gray-400">${s.orgGrade}年${s.orgClass}班</span>
-                    ${awarded ? '<span class="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">🏅</span>' : ''}
-                </div>
-            </div>`;
-        }).join('');
+
+    const noAwardBox = document.getElementById('mob-att-no-award-checkbox');
+    if (noAwardBox) {
+        noAwardBox.checked = noAward;
+        noAwardBox.disabled = !list.length || awardedCount > 0;
+    }
 }
 </script>
 

@@ -280,6 +280,77 @@ tr.teacher-row.visible{display:table-row}
 .header-legend .b-pc{background:rgba(219,234,254,.2);color:#93C5FD}
 .leg-item{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600}
 .leg-dot{width:8px;height:8px;border-radius:50%}
+
+/* ── Mobile ─────────────────────────────── */
+@media(max-width:700px){
+  header{
+    height:auto;padding:8px 12px;flex-wrap:wrap;gap:6px;
+  }
+  .app-logo{font-size:17px;order:0}
+  .tabs{order:1;flex:1;justify-content:flex-end}
+  .tab-btn{font-size:11px;padding:4px 10px}
+  /* Second row */
+  .toggle-teacher-btn{order:3;font-size:10px;padding:3px 9px}
+  .header-legend{order:4;flex:1}
+  .save-badge{order:5;margin-left:auto}
+  .edit-mode-btn{order:6;margin-left:0}
+  .ext-link-btn{order:7;font-size:10px;padding:4px 9px}
+
+  .main-content{padding:8px}
+
+  /* Stack weeks vertically, make table scrollable */
+  .week-block{margin-bottom:16px}
+  .week-head{margin-bottom:6px}
+
+  /* Mobile table: shrink columns, allow horizontal scroll */
+  .main-content{overflow-x:auto}
+  table.sch{min-width:520px;font-size:10px}
+  .th-head{font-size:10px;padding:4px 5px}
+  .th-date{font-size:10px}
+  .th-dow{font-size:8px}
+  .rl{width:38px;font-size:9px;padding:3px 3px}
+  .dc{padding:2px}
+  .drop-empty{height:36px;font-size:9px}
+  .placed{min-height:36px;padding:2px 4px}
+  .p-name{font-size:10px;gap:3px}
+  .badge{font-size:8px;padding:1px 3px}
+  .p-count{font-size:8px}
+  .p-rm{font-size:9px;top:1px;right:2px}
+  .loc-cell{padding:3px 2px}
+  .loc-input{width:54px;font-size:8px}
+
+  /* Sidebar becomes bottom drawer in edit mode */
+  body.edit-mode aside.sidebar{
+    position:fixed;bottom:0;left:0;right:0;
+    width:100%;min-width:unset;
+    max-height:55vh;height:55vh;
+    border-right:none;border-top:2px solid var(--border);
+    border-radius:16px 16px 0 0;
+    flex-direction:row;flex-wrap:wrap;
+    padding:12px;gap:0;
+    overflow-y:auto;z-index:150;
+    box-shadow:0 -4px 24px rgba(0,0,0,.15);
+  }
+  body.edit-mode aside.sidebar .s-section{
+    flex:1 1 160px;min-width:140px;max-width:50%;
+    margin-bottom:8px;padding-right:10px;
+  }
+  body.edit-mode aside.sidebar .reset-btn{
+    width:100%;margin-top:0;
+  }
+  body.edit-mode .main-content{
+    padding-bottom:calc(55vh + 16px);
+  }
+  /* Drag handle hint */
+  body.edit-mode aside.sidebar::before{
+    content:'';display:block;width:100%;
+    height:4px;margin-bottom:10px;
+  }
+  body.edit-mode aside.sidebar::after{
+    content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);
+    width:36px;height:4px;background:var(--border);border-radius:2px;
+  }
+}
 </style>
 </head>
 <body>

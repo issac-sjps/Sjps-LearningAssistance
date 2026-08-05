@@ -387,7 +387,7 @@ const SUBJ_CYCLE=['國語','數學','英語','未定'];
 function mkDefault(){
   return {
     testType:'篩選',
-    startDate:'',
+    startDate:{'篩選':'','成長':''},
     counts: mkDefaultCounts(),
     rooms:{morning:'3F-E化教室',lunch:'4F-電腦教室2'},
     sched:{'篩選':mkEmptySched(),'成長':mkEmptySched()},
@@ -432,7 +432,12 @@ async function loadST(){
       const data = snap.data();
       // merge to ensure all keys exist
       ST.testType  = data.testType  ?? ST.testType;
-      ST.startDate = data.startDate ?? ST.startDate;
+      // migrate old single startDate
+      if(data.startDate && typeof data.startDate === 'string'){
+        ST.startDate = {'篩選': data.startDate, '成長': data.startDate};
+      } else {
+        ST.startDate = Object.assign({'篩選':'','成長':''}, data.startDate ?? {});
+      }
       ST.counts    = Object.assign(mkDefaultCounts(), data.counts ?? {});
       // migrate old flat counts format
       if(data.counts && typeof Object.keys(data.counts)[0] === 'string' && !data.counts['篩選']){
@@ -501,8 +506,9 @@ function findInSched(id){
 //  Date helpers
 // ─────────────────────────────────────────────────────────
 function weekDates(wi){
-  if(!ST.startDate) return Array(5).fill(null);
-  const base=new Date(ST.startDate+'T00:00:00');
+  const sd = ST.startDate[ST.testType] || '';
+  if(!sd) return Array(5).fill(null);
+  const base=new Date(sd+'T00:00:00');
   // Go to Monday of the week containing base (week starts Mon)
   const dow=base.getDay(); // 0=Sun,1=Mon...6=Sat
   const toMon=dow===0?-6:1-dow; // how many days to Monday

@@ -1,196 +1,386 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sjps 學習輔助系統門戶</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        :root {
-            --primary-color: #2563eb;
-            --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            --card-bg: rgba(255, 255, 255, 0.9);
-            --text-main: #1e293b;
-            --text-muted: #64748b;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sjps 學習輔助系統 — 工具總覽</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root{
+    --ink:#1c2b24;
+    --paper:#f4f1e8;
+    --paper-2:#ece7d8;
+    --line:#c9c2a8;
+    --stamp:#a3402e;
+    --stamp-soft:#c9805c;
+    --pine:#2f5945;
+    --pine-soft:#7d9c8b;
+    --mono:'JetBrains Mono', monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{
+    font-family:'Noto Sans TC','Zen Kaku Gothic New',sans-serif;
+    background:
+      radial-gradient(circle at 15% 8%, rgba(163,64,46,0.06), transparent 40%),
+      repeating-linear-gradient(0deg, transparent, transparent 38px, rgba(0,0,0,0.025) 39px),
+      var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    padding: 3rem 1.5rem 4rem;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Noto Sans TC', sans-serif;
-        }
+  /* header — filing ledger tab */
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:1.5rem;
+    border-bottom:3px solid var(--ink);
+    padding-bottom:1.5rem;
+    margin-bottom:0.5rem;
+  }
+  .title-block .eyebrow{
+    font-family:var(--mono);
+    font-size:0.75rem;
+    letter-spacing:0.12em;
+    color:var(--pine);
+    text-transform:uppercase;
+    margin-bottom:0.5rem;
+  }
+  .title-block h1{
+    font-family:'Zen Kaku Gothic New',sans-serif;
+    font-weight:900;
+    font-size:clamp(2rem, 5vw, 3.1rem);
+    letter-spacing:0.02em;
+    line-height:1.1;
+  }
+  .title-block h1 span{color:var(--stamp);}
+  .title-block p{
+    margin-top:0.6rem;
+    color:#5b5646;
+    font-size:0.95rem;
+  }
+  .stamp{
+    font-family:var(--mono);
+    font-size:0.72rem;
+    border:2px solid var(--stamp);
+    color:var(--stamp);
+    padding:0.5rem 0.9rem;
+    transform:rotate(-3deg);
+    border-radius:3px;
+    white-space:nowrap;
+    letter-spacing:0.05em;
+  }
 
-        body {
-            background: var(--bg-gradient);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            color: var(--text-main);
-        }
+  /* search / filter bar */
+  .controls{
+    display:flex;
+    gap:0.75rem;
+    flex-wrap:wrap;
+    align-items:center;
+    margin:1.75rem 0 2.25rem;
+  }
+  .search-box{
+    flex:1 1 240px;
+    position:relative;
+  }
+  .search-box i{
+    position:absolute;left:0.9rem;top:50%;transform:translateY(-50%);
+    color:var(--pine-soft);
+  }
+  .search-box input{
+    width:100%;
+    font-family:'Noto Sans TC',sans-serif;
+    font-size:0.95rem;
+    padding:0.75rem 1rem 0.75rem 2.4rem;
+    background:var(--paper-2);
+    border:1.5px solid var(--line);
+    border-radius:4px;
+    color:var(--ink);
+    outline:none;
+    transition:border-color .2s;
+  }
+  .search-box input:focus{border-color:var(--pine);}
+  .search-box input::placeholder{color:#8b8468;}
 
-        header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
+  .filters{display:flex;gap:0.5rem;flex-wrap:wrap;}
+  .filter-btn{
+    font-family:var(--mono);
+    font-size:0.72rem;
+    letter-spacing:0.03em;
+    padding:0.55rem 0.85rem;
+    background:transparent;
+    border:1.5px solid var(--line);
+    border-radius:20px;
+    color:#5b5646;
+    cursor:pointer;
+    transition:all .2s;
+  }
+  .filter-btn:hover{border-color:var(--pine);color:var(--pine);}
+  .filter-btn.active{background:var(--ink);border-color:var(--ink);color:var(--paper);}
 
-        header h1 {
-            font-size: 2.5rem;
-            letter-spacing: 2px;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
+  /* category sections */
+  .category{margin-bottom:2.75rem;}
+  .category-head{
+    display:flex;
+    align-items:baseline;
+    gap:0.75rem;
+    margin-bottom:1rem;
+  }
+  .category-head .num{
+    font-family:var(--mono);
+    font-size:0.8rem;
+    color:var(--stamp-soft);
+  }
+  .category-head h2{
+    font-size:1.15rem;
+    font-weight:700;
+    letter-spacing:0.02em;
+  }
+  .category-head .rule{
+    flex:1;
+    height:1px;
+    background:repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 10px);
+  }
 
-        header p {
-            color: var(--text-muted);
-            font-size: 1.1rem;
-        }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(240px,1fr));
+    gap:0.9rem;
+  }
 
-        .container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            width: 100%;
-            max-width: 1200px;
-        }
+  .card{
+    display:block;
+    background:var(--paper-2);
+    border:1.5px solid var(--line);
+    border-radius:6px;
+    padding:1.2rem 1.15rem;
+    text-decoration:none;
+    color:inherit;
+    position:relative;
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    overflow:hidden;
+  }
+  .card::after{
+    content:"";
+    position:absolute;
+    top:0;left:0;bottom:0;
+    width:4px;
+    background:var(--pine);
+    transform:scaleY(0);
+    transform-origin:top;
+    transition:transform .22s ease;
+  }
+  .card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 8px 18px -8px rgba(28,43,36,0.25);
+    border-color:var(--pine-soft);
+    background:#fbf9f1;
+  }
+  .card:hover::after{transform:scaleY(1);}
 
-        .card {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 2.5rem 1.5rem;
-            text-align: center;
-            text-decoration: none;
-            color: inherit;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(10px);
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:0.65rem;
+  }
+  .card-top i{font-size:1.15rem;color:var(--pine);}
+  .card-top .tag{
+    font-family:var(--mono);
+    font-size:0.62rem;
+    color:var(--stamp);
+    border:1px solid var(--stamp-soft);
+    border-radius:3px;
+    padding:0.1rem 0.4rem;
+    letter-spacing:0.03em;
+  }
+  .card h3{
+    font-size:1.02rem;
+    font-weight:700;
+    margin-bottom:0.35rem;
+  }
+  .card p{
+    font-size:0.82rem;
+    color:#5b5646;
+    line-height:1.55;
+  }
+  .card .fname{
+    display:block;
+    margin-top:0.7rem;
+    font-family:var(--mono);
+    font-size:0.68rem;
+    color:#8b8468;
+  }
 
-        .card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            background: #ffffff;
-        }
+  .empty-msg{
+    display:none;
+    text-align:center;
+    padding:3rem 0;
+    color:#8b8468;
+    font-family:var(--mono);
+    font-size:0.85rem;
+  }
 
-        .card::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: var(--primary-color);
-            opacity: 0;
-            transition: var(--transition);
-        }
+  footer{
+    margin-top:3.5rem;
+    padding-top:1.5rem;
+    border-top:1.5px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:0.5rem;
+    font-family:var(--mono);
+    font-size:0.72rem;
+    color:#8b8468;
+  }
 
-        .card:hover::before {
-            opacity: 1;
-        }
-
-        .icon-box {
-            width: 80px;
-            height: 80px;
-            background: #eff6ff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-            color: var(--primary-color);
-            font-size: 2rem;
-            transition: var(--transition);
-        }
-
-        .card:hover .icon-box {
-            background: var(--primary-color);
-            color: white;
-            transform: rotateY(360deg);
-        }
-
-        .card h2 {
-            font-size: 1.5rem;
-            margin-bottom: 0.75rem;
-            font-weight: 700;
-        }
-
-        .card p {
-            font-size: 0.95rem;
-            color: var(--text-muted);
-            line-height: 1.6;
-        }
-
-        footer {
-            margin-top: 4rem;
-            color: var(--text-muted);
-            font-size: 0.875rem;
-            text-align: center;
-        }
-
-        /* 針對行動裝置微調 */
-        @media (max-width: 640px) {
-            header h1 { font-size: 1.8rem; }
-            .container { grid-template-columns: 1fr; }
-        }
-    </style>
+  @media (max-width:640px){
+    header{flex-direction:column;align-items:flex-start;}
+  }
+</style>
 </head>
 <body>
+<div class="wrap">
 
-    <header>
-        <h1>Sjps-Learning Assistance</h1>
-        <p>學習輔助系統管理門戶 (Portal)</p>
-    </header>
+  <header>
+    <div class="title-block">
+      <div class="eyebrow">STUDENT AFFAIRS · 教學行政工具箱</div>
+      <h1>Sjps <span>學習輔助</span>系統</h1>
+      <p>依用途分類的工具索引 — 從學期準備到考試列印，一站找到你要的頁面</p>
+    </div>
+    <div class="stamp">TOOLBOX No.14</div>
+  </header>
 
-    <main class="container">
-        <a href="ClassSystem.html" class="card">
-            <div class="icon-box">
-                <i class="fas fa-users-rectangle"></i>
+  <div class="controls">
+    <div class="search-box">
+      <i class="fas fa-magnifying-glass"></i>
+      <input type="text" id="searchInput" placeholder="搜尋工具名稱、用途或檔名…">
+    </div>
+    <div class="filters" id="filterBar">
+      <button class="filter-btn active" data-filter="all">全部</button>
+      <button class="filter-btn" data-filter="semester">學期準備</button>
+      <button class="filter-btn" data-filter="exam">考試管理</button>
+      <button class="filter-btn" data-filter="roster">名單／名牌</button>
+      <button class="filter-btn" data-filter="print">列印輸出</button>
+      <button class="filter-btn" data-filter="system">系統管理</button>
+    </div>
+  </div>
+
+  <div id="categoriesRoot"></div>
+  <div class="empty-msg" id="emptyMsg">找不到符合的工具，換個關鍵字試試。</div>
+
+  <footer>
+    <span>&copy; 2026 Sjps Learning Assistance</span>
+    <span>issac-sjps / Sjps-LearningAssistance</span>
+  </footer>
+</div>
+
+<script>
+const data = [
+  {
+    cat:"semester", catLabel:"01 · 學期準備", icon:"fa-calendar-plus",
+    items:[
+      {name:"ListUpdate.html", title:"學生名單更新", desc:"新學期開學時使用，更新／匯入班級學生名單資料。", tag:"開學必用"},
+      {name:"6_to_7_school.html", title:"六升七年級轉銜", desc:"處理六年級升七年級的學籍與班級資料轉換作業。", tag:"升學轉銜"},
+      {name:"TestListUpdate2Upload.html", title:"名單上傳更新", desc:"將整理好的名單資料匯出後上傳至系統，同步最新狀態。", tag:""},
+    ]
+  },
+  {
+    cat:"exam", catLabel:"02 · 考試管理", icon:"fa-clipboard-list",
+    items:[
+      {name:"ExamList.html", title:"考試清單", desc:"檢視與整理所有考試科目、範圍與細項資料。", tag:""},
+      {name:"ExamSchedule.html", title:"考試時程", desc:"追蹤考試日期與時間安排，確保進度同步。", tag:""},
+      {name:"ExamScheduleSTD.html", title:"考試時程（標準版）", desc:"標準格式的考試時程檢視，供列印或公告使用。", tag:""},
+      {name:"ExamChecker.html", title:"考試檢查工具", desc:"檢核考試資料是否有缺漏或衝突，開考前確認用。", tag:""},
+    ]
+  },
+  {
+    cat:"roster", catLabel:"03 · 名單／名牌工具", icon:"fa-id-card",
+    items:[
+      {name:"Exam_ID_Excel.html", title:"准考證座號 Excel", desc:"產生考試用准考證號碼與座位對照的 Excel 檔案。", tag:""},
+      {name:"NameTag2Excel.html", title:"名牌製作 Excel", desc:"將學生資料轉換為可列印的桌牌／名牌用 Excel 格式。", tag:""},
+      {name:"Compare2Excel.html", title:"雙表比對工具", desc:"比對兩份 Excel 名單資料的差異，快速抓出異動項目。", tag:""},
+    ]
+  },
+  {
+    cat:"print", catLabel:"04 · 列印輸出", icon:"fa-print",
+    items:[
+      {name:"PrintNotice.html", title:"列印須知", desc:"格式化輸出規範與文件列印注意事項說明。", tag:""},
+      {name:"PrintScore.html", title:"成績列印", desc:"將成績資料排版整理，輸出為可列印文件。", tag:""},
+    ]
+  },
+  {
+    cat:"system", catLabel:"05 · 系統管理", icon:"fa-gear",
+    items:[
+      {name:"ClassSystem.html", title:"班級系統", desc:"管理班級資料與成員結構，核心架構存取介面。", tag:"核心系統"},
+      {name:"admin.html", title:"管理後台", desc:"系統管理員專用後台，設定與權限管理。", tag:"管理員"},
+      {name:"old.html", title:"舊版頁面", desc:"保留的舊版介面，供對照或備用查閱。", tag:"封存"},
+    ]
+  },
+];
+
+const root = document.getElementById('categoriesRoot');
+const emptyMsg = document.getElementById('emptyMsg');
+
+function render(filter, query){
+  root.innerHTML = '';
+  let anyVisible = false;
+  data.forEach(section=>{
+    if(filter!=='all' && filter!==section.cat) return;
+    const matched = section.items.filter(item=>{
+      if(!query) return true;
+      const hay = (item.title+item.desc+item.name).toLowerCase();
+      return hay.includes(query);
+    });
+    if(matched.length===0) return;
+    anyVisible = true;
+
+    const catDiv = document.createElement('div');
+    catDiv.className = 'category';
+    catDiv.innerHTML = `
+      <div class="category-head">
+        <span class="num"><i class="fas ${section.icon}"></i></span>
+        <h2>${section.catLabel}</h2>
+        <div class="rule"></div>
+      </div>
+      <div class="grid">
+        ${matched.map(item=>`
+          <a class="card" href="${item.name}">
+            <div class="card-top">
+              <i class="fas fa-file-lines"></i>
+              ${item.tag ? `<span class="tag">${item.tag}</span>` : ''}
             </div>
-            <h2>班級系統</h2>
-            <p>Class System (CS)<br>管理班級資料與成員結構，核心架構存取介面。</p>
-        </a>
+            <h3>${item.title}</h3>
+            <p>${item.desc}</p>
+            <span class="fname">${item.name}</span>
+          </a>
+        `).join('')}
+      </div>
+    `;
+    root.appendChild(catDiv);
+  });
+  emptyMsg.style.display = anyVisible ? 'none' : 'block';
+}
 
-        <a href="ExamList.html" class="card">
-            <div class="icon-box">
-                <i class="fas fa-clipboard-list"></i>
-            </div>
-            <h2>考試清單</h2>
-            <p>Examination List (EL)<br>檢視與整理所有考試科目及細項資料。</p>
-        </a>
+let currentFilter = 'all';
+document.getElementById('filterBar').addEventListener('click', e=>{
+  const btn = e.target.closest('.filter-btn');
+  if(!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.dataset.filter;
+  render(currentFilter, document.getElementById('searchInput').value.trim().toLowerCase());
+});
 
-        <a href="ExamSchedule.html" class="card">
-            <div class="icon-box">
-                <i class="fas fa-calendar-check"></i>
-            </div>
-            <h2>考試時程</h2>
-            <p>Examination Schedule (ES)<br>追蹤考試日期與時間安排，確保學習進度同步。</p>
-        </a>
+document.getElementById('searchInput').addEventListener('input', e=>{
+  render(currentFilter, e.target.value.trim().toLowerCase());
+});
 
-        <a href="PrintNotice.html" class="card">
-            <div class="icon-box">
-                <i class="fas fa-print"></i>
-            </div>
-            <h2>列印須知</h2>
-            <p>Print Notice (PN)<br>格式化輸出規範與文件列印注意事項說明。</p>
-        </a>
-    </main>
-
-    <footer>
-        &copy; 2026 Sjps Learning Assistance. All rights reserved.
-    </footer>
-
+render('all','');
+</script>
 </body>
 </html>

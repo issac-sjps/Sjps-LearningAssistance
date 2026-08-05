@@ -508,13 +508,12 @@ function findInSched(id){
 function weekDates(wi){
   const sd = ST.startDate[ST.testType] || '';
   if(!sd) return Array(5).fill(null);
-  const base=new Date(sd+'T00:00:00');
-  // Go to Monday of the week containing base (week starts Mon)
-  const dow=base.getDay(); // 0=Sun,1=Mon...6=Sat
-  const toMon=dow===0?-6:1-dow; // how many days to Monday
-  base.setDate(base.getDate()+toMon);
-  base.setDate(base.getDate()+wi*7);
-  return Array.from({length:5},(_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return d;});
+  const origin=new Date(sd+'T00:00:00');
+  const dow=origin.getDay(); // 0=Sun,1=Mon...6=Sat
+  const toMon=dow===0?-6:1-dow; // days to Monday of same week
+  const monday=new Date(origin);
+  monday.setDate(origin.getDate()+toMon+wi*7);
+  return Array.from({length:5},(_,i)=>{const d=new Date(monday);d.setDate(monday.getDate()+i);return d;});
 }
 function fmt(d){return d?`${d.getMonth()+1}/${d.getDate()}`:'—'}
 
@@ -529,7 +528,7 @@ function renderAll(){
 }
 
 function renderSettings(){
-  document.getElementById('startDate').value=ST.startDate||'';
+  document.getElementById('startDate').value=ST.startDate[ST.testType]||'';
   document.getElementById('morningRoom').value=ST.rooms.morning;
   document.getElementById('lunchRoom').value=ST.rooms.lunch;
   document.getElementById('tab-篩選').className='tab-btn'+(ST.testType==='篩選'?' active':'');
@@ -789,7 +788,7 @@ window.cycleWeekSubj = (w)=>{
   saveST();renderSchedule();
 };
 window.switchTab = (tt)=>{ST.testType=tt;saveST();renderAll()};
-window.onStartDate = ()=>{ST.startDate=document.getElementById('startDate').value;saveST();renderSchedule()};
+window.onStartDate = ()=>{ST.startDate[ST.testType]=document.getElementById('startDate').value;saveST();renderSchedule()};
 window.onClassroom = ()=>{ST.rooms.morning=document.getElementById('morningRoom').value;ST.rooms.lunch=document.getElementById('lunchRoom').value;saveST();renderSchedule()};
 window.onRoom      = (field,val)=>{ST.rooms[field]=val;document.getElementById(field==='morning'?'morningRoom':'lunchRoom').value=val;saveST();renderSchedule()};
 window.onCount = (tt,key,v)=>{ST.counts[tt][key]=parseInt(v)||0;saveST();renderPool();renderSchedule()};

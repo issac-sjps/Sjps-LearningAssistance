@@ -144,6 +144,25 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
 .perm-banner{display:none;margin:8px 0;padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:12px;color:#991B1B;line-height:1.6}
 .perm-banner.show{display:block}
 
+/* Date bar */
+.date-bar{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:8px 14px;margin-bottom:10px;box-shadow:var(--shadow);
+}
+.date-bar-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);white-space:nowrap}
+.date-bar-item{display:flex;align-items:center;gap:6px}
+.date-bar-tag{font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;white-space:nowrap}
+.date-tag-sieve{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
+.date-tag-growth{background:#DBEAFE;color:#1E40AF;border:1px solid #BFDBFE}
+.date-bar-input{
+  padding:4px 8px;border:1px solid var(--border);border-radius:5px;
+  font-family:inherit;font-size:12px;background:var(--bg);color:var(--text);
+}
+.date-bar-input:focus{outline:none;border-color:#94A3B8;background:#FFF}
+.date-bar-hint{font-size:10px;color:var(--text-muted);white-space:nowrap}
+.date-bar-note{font-size:10px;color:#94A3B8;margin-left:auto;white-space:nowrap}
+
 /* Print */
 .print-page-header{display:none}
 
@@ -350,6 +369,22 @@ body:not(.edit-mode) .drop-empty{pointer-events:none}
     <div class="perm-banner" id="permBanner">
       ⚠️ <strong>Firebase 權限不足</strong> — 請確認 Firestore Rules 已開放 student_schedule 讀寫。
     </div>
+    <div class="date-bar no-print" id="dateBar">
+      <span class="date-bar-label">起始日期設定</span>
+      <div class="date-bar-item">
+        <span class="date-bar-tag date-tag-sieve">篩選測驗</span>
+        <input type="date" class="date-bar-input" id="startDate-篩選"
+          onchange="onStartDateChange('篩選',this.value)">
+        <span class="date-bar-hint" id="hint-篩選"></span>
+      </div>
+      <div class="date-bar-item">
+        <span class="date-bar-tag date-tag-growth">成長測驗</span>
+        <input type="date" class="date-bar-input" id="startDate-成長"
+          onchange="onStartDateChange('成長',this.value)">
+        <span class="date-bar-hint" id="hint-成長"></span>
+      </div>
+      <span class="date-bar-note">※ 未設定時自動沿用考試排程的起始日期</span>
+    </div>
     <div id="scheduleArea"></div>
   </main>
 </div>
@@ -443,7 +478,7 @@ const GRADE_NAMES=['','一','二','三','四','五','六'];
 function gradeFromId(id){ if(!id)return''; const g=parseInt(id.split('-')[1]); return GRADE_NAMES[g]||''; }
 
 // ─── Exam data (read-only from schedule/main) ────────────
-let examData={startDate:'',counts:{},rooms:{morning:'3F-E化教室',lunch:'4F-電腦教室2'},sched:{'篩選':{},'成長':{}}};
+let examData={startDate:'',startDates:{'篩選':'','成長':''},counts:{},rooms:{morning:'3F-E化教室',lunch:'4F-電腦教室2'},sched:{'篩選':{},'成長':{}}};
 
 function subjFromId(id){
   if(!id)return null;
@@ -475,7 +510,14 @@ function setSyncStatus(ok,msg){
 onSnapshot(EXAM_REF,snap=>{
   if(snap.exists()){
     const d=snap.data();
-    examData.startDate=d.startDate||'';
+    // startDate: new format is object {'篩選':'...','成長':'...'}, old is string
+    if(d.startDate && typeof d.startDate === 'object'){
+      examData.startDate=''; // clear shared fallback
+      examData.startDates['篩選']=d.startDate['篩選']||'';
+      examData.startDates['成長']=d.startDate['成長']||'';
+    } else {
+      examData.startDate=d.startDate||''; // old string format fallback
+    }
     examData.counts=d.counts||{};
     examData.rooms={
       morning:(d.rooms?.morning||'3F-E化教室'),
@@ -491,7 +533,7 @@ onSnapshot(EXAM_REF,snap=>{
 // Key format: `${w}-${d}-${slot}-${role}-${si}`
 // slot = 'morning' | 'lunch'
 let ST=mkDefault(),drag=null,saveTimer=null,isEditMode=false;
-function mkDefault(){return{testType:'篩選',roster:[],sched:{'篩選':mkEmptySched(),'成長':mkEmptySched()}};}
+function mkDefault(){return{testType:'篩選',roster:[],startDates:{'篩選':'','成長':''},sched:{'篩選':mkEmptySched(),'成長':mkEmptySched()}};}
 function mkEmptySched(){
   const s={};
   for(let w=0;w<WEEKS;w++)for(let d=0;d<DAYS;d++)
@@ -519,6 +561,7 @@ async function loadST(){
     const snap=await getDoc(STUDENT_REF);
     if(snap.exists()){
       const d=snap.data();ST.testType=d.testType??ST.testType;ST.roster=d.roster??[];
+      if(d.startDates){ST.startDates['篩選']=d.startDates['篩選']||'';ST.startDates['成長']=d.startDates['成長']||'';}
       for(const tt of['篩選','成長'])if(d.sched?.[tt])ST.sched[tt]=Object.assign(mkEmptySched(),d.sched[tt]);
     }
     setStatus('#10B981','已載入');showPermError(false);
@@ -624,8 +667,10 @@ function renderPool(){
 }
 
 // ─── Dates ────────────────────────────────────────────────
-function weekDates(wi){
-  const sd=examData.startDate||'';if(!sd)return Array(5).fill(null);
+function weekDates(wi, tt){
+  const t=tt||ST.testType;
+  const sd=examData.startDates[t]||examData.startDate||'';
+  if(!sd)return Array(5).fill(null);
   const base=new Date(sd+'T00:00:00');const dow=base.getDay();
   base.setDate(base.getDate()+(dow===0?-6:1-dow)+wi*7);
   return Array.from({length:5},(_,i)=>{const d=new Date(base);d.setDate(base.getDate()+i);return d;});
@@ -636,6 +681,22 @@ function fmt(d){return d?`${d.getMonth()+1}/${d.getDate()}`:'—';}
 function renderAll(){
   document.getElementById('tab-篩選').className='tab-btn'+(ST.testType==='篩選'?' active':'');
   document.getElementById('tab-成長').className='tab-btn'+(ST.testType==='成長'?' active':'');
+  // Populate date inputs
+  for(const tt of['篩選','成長']){
+    const inp=document.getElementById('startDate-'+tt);
+    const hint=document.getElementById('hint-'+tt);
+    if(inp){
+      inp.value=ST.startDates[tt]||'';
+      if(hint){
+        if(ST.startDates[tt]){
+          const d=new Date(ST.startDates[tt]+'T00:00:00');
+          hint.textContent=`→ 第一週從 ${d.getMonth()+1}/${d.getDate()} 開始`;
+        } else {
+          hint.textContent='（沿用考試排程）';
+        }
+      }
+    }
+  }
   renderPool();renderSchedule();
 }
 
@@ -748,6 +809,12 @@ function weekTableHTML(w,sc,ws){
 
 function renderSchedule(){
   const area=document.getElementById('scheduleArea');if(!area)return;
+  // Priority: 1) 使用者手動設定 (ST.startDates)  2) 考試排程讀到的 (examData.startDates)  3) 舊格式 (examData.startDate)
+  for(const tt of['篩選','成長']){
+    if(ST.startDates[tt]) examData.startDates[tt]=ST.startDates[tt];
+    else if(!examData.startDates[tt]) examData.startDates[tt]=examData.startDate||'';
+    // else: keep what was loaded from exam schedule (examData.startDates[tt] already set)
+  }
   const sc=ST.sched[ST.testType];
   const ws=examData.weekSubjs||{'篩選':['未定','未定','未定','未定'],'成長':['未定','未定','未定','未定']};
   const wsT=ws[ST.testType]||['未定','未定','未定','未定'];
@@ -774,6 +841,21 @@ window.doPrint=()=>window.print();
 
 // ─── Handlers ─────────────────────────────────────────────
 window.switchTab=tt=>{ST.testType=tt;saveST();renderAll();};
+window.onStartDateChange=(tt,val)=>{
+  ST.startDates[tt]=val;
+  saveST();
+  // Update hint
+  const hint=document.getElementById('hint-'+tt);
+  if(hint){
+    if(val){
+      const d=new Date(val+'T00:00:00');
+      hint.textContent=`→ 第一週從 ${d.getMonth()+1}/${d.getDate()} 開始`;
+    } else {
+      hint.textContent='（沿用考試排程）';
+    }
+  }
+  renderSchedule();
+};
 window.doReset=()=>{
   if(!confirm(`確定清除「${ST.testType}測驗」的全部排班？`))return;
   ST.sched[ST.testType]=mkEmptySched();saveST();renderPool();renderSchedule();

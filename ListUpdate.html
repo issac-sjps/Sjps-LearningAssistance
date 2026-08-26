@@ -34,7 +34,7 @@
   }
 
   .header {
-    max-width: 1100px;
+    max-width: 98%;
     margin: 0 auto 32px;
   }
 
@@ -51,7 +51,7 @@
 
   .subtitle { color: var(--text2); font-size: 0.87rem; line-height: 1.6; }
 
-  .container { max-width: 1100px; margin: 0 auto; }
+  .container { max-width: 98%; margin: 0 auto; }
 
   /* ── Upload ── */
   .upload-grid {
@@ -236,7 +236,7 @@
   .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
 
   .footer {
-    max-width: 1100px;
+    max-width: 98%;
     margin: 24px auto 0;
     padding-top: 16px;
     border-top: 1px solid var(--border);
@@ -283,12 +283,6 @@
 
   <!-- Actions -->
   <div class="actions">
-    <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px;">
-      <label style="font-size:0.83rem;color:var(--text2);white-space:nowrap;">📅 當前學年度</label>
-      <input type="number" id="currentYear" value="114" min="100" max="200"
-        style="width:70px;background:transparent;border:none;border-bottom:1px solid var(--accent);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:600;text-align:center;outline:none;padding:2px 4px;">
-      <span style="font-size:0.78rem;color:var(--text2);">學年度（用於年級↔入學年度換算）</span>
-    </div>
     <button class="btn btn-primary" id="btnMatch" disabled onclick="doMatch()">🔍 開始比對</button>
     <button class="btn btn-success" id="btnExport" disabled onclick="doExport(false)">⬇️ 匯出全部名單</button>
     <button class="btn btn-warn" id="btnExportChanged" disabled onclick="doExport(true)">⬇️ 只匯出有修正的名單</button>
@@ -324,6 +318,7 @@
       <option value="matched">✅ 已比對成功</option>
       <option value="unmatched">❌ 未找到對應</option>
       <option value="changed">🔔 資料有更動</option>
+      <option value="emptyIdentity">🚨 身分類別空白</option>
     </select>
     <input type="text" id="searchInput" placeholder="🔎 搜尋姓名 / 身分證號…" oninput="renderTable()">
   </div>
@@ -350,6 +345,8 @@ let data1 = [], data2 = [], resultRows = [];
 const ID_COLS_1  = ['身分證統一編號','身份證統一編號','身分證號','身份證號','身分證'];
 const ID_COLS_2  = ['身分證號','身分證統一編號','身份證號','身份證統一編號','身分證'];
 const NAME_COLS  = ['學生姓名','姓名','名稱'];
+const NUM_COLS_1 = ['序號','編號'];
+const IDENTITY_COLS_1 = ['身分類別'];
 const GRADE_COLS = ['年級'];
 const CLS_COLS_2 = ['班級'];
 const SEAT_COLS_2= ['座號'];
@@ -359,8 +356,32 @@ const CLS_COLS_1 = ['目前班級','班級'];
 const SEAT_COLS_1= ['座號(選填)','座號'];
 
 function detectCol(row, candidates) {
+  const keys = Object.keys(row);
+  // 1. 先找完全一致的欄位名稱
   for (const c of candidates) if (c in row) return c;
+  // 2. 找不到就改用「開頭比對」，因為系統範例檔的欄位常接有括號說明，
+  //    例如「身分類別(必填，多重身分請以空白分隔)」、「座號(選填)」
+  for (const c of candidates) {
+    const hit = keys.find(k => k.startsWith(c));
+    if (hit) return hit;
+  }
   return null;
+}
+
+/* 自動辨識全校名單「班級」欄位格式：
+   - "6"   → 班級 6
+   - "606" → 年級6 + 班級06 → 取後兩碼 → 班級 6
+   長度 >2 碼時視為「年級+班級」合併格式，取最後兩碼；否則直接當班級號碼。 */
+function extractClassNum(raw) {
+  const s = String(raw == null ? '' : raw).trim();
+  if (!s) return 0;
+  if (s.length > 2) {
+    const tail = s.slice(-2);
+    const n = parseInt(tail, 10);
+    if (!isNaN(n)) return n;
+  }
+  const n = parseInt(s, 10);
+  return isNaN(n) ? 0 : n;
 }
 
 /* ── File parsing ── */
@@ -419,16 +440,12 @@ function doMatch() {
   if (!data1.length || !data2.length) return;
   document.getElementById('msgArea').innerHTML = '';
 
-  const currentYear = parseInt(document.getElementById('currentYear').value, 10) || 114;
-  // Excel2 年級1 → 入學年度 = currentYear, 年級2 → currentYear-1, ...
-  // grade → enrollYear: enrollYear = currentYear - grade + 1
-  // enrollYear → grade: grade = currentYear - enrollYear + 1
-
   const sample1 = data1[0], sample2 = data2[0];
 
   const idCol1    = detectCol(sample1, ID_COLS_1);
   const idCol2    = detectCol(sample2, ID_COLS_2);
   const nameCol1  = detectCol(sample1, NAME_COLS);
+  const numCol1   = detectCol(sample1, NUM_COLS_1); // Excel1 序號
   const gradeCol2 = detectCol(sample2, GRADE_COLS);
   const clsCol2   = detectCol(sample2, CLS_COLS_2);   // Excel2 班級：01, 02...
   const seatCol2  = detectCol(sample2, SEAT_COLS_2);
@@ -456,18 +473,18 @@ function doMatch() {
     out.__matched = false;
     out.__changed = false;
     out.__changes = {};
+    out.__sortNum = numCol1
+      ? (parseInt(String(r[numCol1] || '').trim(), 10) || 0)
+      : idx;
 
     if (ref) {
       out.__matched = true;
 
       // Excel2 的年級（1~6）
       const grade2    = parseInt(ref[gradeCol2] || '0', 10);
-      // Excel2 的班級（01, 02...）→ 取數字
-      const cls2Num   = parseInt(ref[clsCol2]   || '0', 10);
+      // Excel2 的班級 → 自動辨識「6」或「606」格式，取班級號碼
+      const cls2Num   = extractClassNum(ref[clsCol2]);
       const newSeat   = ref[seatCol2] != null ? String(ref[seatCol2]).trim() : '';
-
-      // 由年級換算 → 入學年度（Excel1 格式）
-      const correctEnrollYear = currentYear - grade2 + 1;  // e.g. 114-1+1=114, 114-2+1=113
 
       // 目前班級 = 年級 + 班級補零2位，e.g. 年級1 + 班01 = 101
       const correctClsName = String(grade2) + String(cls2Num).padStart(2, '0');  // "101","102"
@@ -475,26 +492,18 @@ function doMatch() {
       out.__newGrade    = grade2;
       out.__newCls      = cls2Num;
       out.__newSeat     = newSeat;
-      out.__newEnroll   = correctEnrollYear;
       out.__newClsName  = correctClsName;
-
-      /* ── 比對並更新「入學年度」 ── */
-      if (yearCol1) {
-        const oldYear = parseInt(String(out[yearCol1] || '').trim(), 10);
-        if (!isNaN(oldYear) && oldYear !== correctEnrollYear) {
-          out.__changes[yearCol1] = { from: String(oldYear), to: String(correctEnrollYear) };
-          out[yearCol1] = correctEnrollYear;
-          out.__changed = true;
-        }
-      }
 
       /* ── 比對並更新「目前班級」 ──
          Excel1「目前班級」存的是「班級號碼」（1, 2, 3...），
-         對應 Excel2 的「班級」欄（1, 2, 3...），數值相同不更動。 */
+         對應 Excel2 的「班級」欄（1, 2, 3...），數值相同不更動。
+         原本空白（如轉學生、新生尚未填班級）也要自動填入。 */
       if (clsCol1) {
-        const oldCls = parseInt(String(out[clsCol1] || '').trim(), 10);
-        if (!isNaN(oldCls) && oldCls !== cls2Num) {
-          out.__changes[clsCol1] = { from: String(oldCls), to: String(cls2Num) };
+        const oldClsStr = String(out[clsCol1] || '').trim();
+        const oldCls     = parseInt(oldClsStr, 10);
+        const isEmpty    = oldClsStr === '';
+        if (isEmpty || (!isNaN(oldCls) && oldCls !== cls2Num)) {
+          out.__changes[clsCol1] = { from: isEmpty ? '' : String(oldCls), to: String(cls2Num) };
           out[clsCol1] = cls2Num;
           out.__changed = true;
         }
@@ -531,16 +540,22 @@ function doMatch() {
     return out;
   });
 
-  /* 依年級 → 班級 → 座號排序（僅影響畫面顯示，匯出順序不變） */
-  resultRows.sort((a, b) =>
-    a.__sortGrade - b.__sortGrade ||
-    a.__sortCls   - b.__sortCls   ||
-    a.__sortSeat  - b.__sortSeat
-  );
+  /* 依 Excel 1「序號」欄位由小到大排序（僅影響畫面顯示，匯出順序不變） */
+  resultRows.sort((a, b) => a.__sortNum - b.__sortNum);
 
   const matched   = resultRows.filter(r => r.__matched).length;
   const unmatched = resultRows.length - matched;
   const changed   = resultRows.filter(r => r.__changed).length;
+
+  /* ── 檢查「身分類別」欄位是否有空白（此欄為系統匯入必填，空白會導致靜默匯入失敗） ── */
+  const identityCol1 = detectCol(sample1, IDENTITY_COLS_1);
+  let emptyIdentity = 0;
+  if (identityCol1) {
+    resultRows.forEach(r => {
+      r.__emptyIdentity = !String(r[identityCol1] || '').trim();
+      if (r.__emptyIdentity) emptyIdentity++;
+    });
+  }
 
   document.getElementById('stTotal').textContent    = resultRows.length;
   document.getElementById('stMatched').textContent  = matched;
@@ -552,9 +567,11 @@ function doMatch() {
   document.getElementById('btnExportChanged').disabled = changed === 0;
 
   const msgs = [];
+  if (!identityCol1) msgs.push(`⚠️ 找不到「身分類別」欄位，請確認 Excel 1 是否包含此欄（系統匯入必填，未填會導致匯入失敗）。`);
+  if (emptyIdentity > 0) msgs.push(`🚨 有 <strong>${emptyIdentity}</strong> 筆「身分類別」欄位是空白的！系統匯入規定此欄必填（無特殊身分請填 99），空白會造成整批匯入失敗，請務必補齊後再匯出。`);
   if (unmatched > 0) msgs.push(`⚠️ 有 <strong>${unmatched}</strong> 筆在全校名單中找不到對應身分證號，請人工確認。`);
   if (changed > 0)   msgs.push(`🔔 已自動更新 <strong>${changed}</strong> 筆資料（班級 / 座號）。`);
-  if (msgs.length)   showMsg(msgs.join('<br>'), unmatched > 0 ? 'warn' : 'success');
+  if (msgs.length)   showMsg(msgs.join('<br>'), (unmatched > 0 || emptyIdentity > 0 || !identityCol1) ? 'warn' : 'success');
   else               showMsg('✅ 比對完成，所有資料均已是最新，無需更動。', 'success');
 
   renderTable();
@@ -570,14 +587,16 @@ function renderTable() {
   const sample1  = data1[0];
   const idCol1   = detectCol(sample1, ID_COLS_1);
   const nameCol1 = detectCol(sample1, NAME_COLS);
-  const yearCol1 = detectCol(sample1, YEAR_COLS);
-  const clsCol1  = detectCol(sample1, CLS_COLS_1);
-  const seatCol1 = detectCol(sample1, SEAT_COLS_1);
+  const identityCol1 = detectCol(sample1, IDENTITY_COLS_1);
+
+  // Excel1 所有原始欄位（依原始順序），排除內部用的 __ 開頭欄位
+  const allCols1 = Object.keys(sample1).filter(k => !k.startsWith('__'));
 
   let rows = resultRows.filter(r => {
     if (filter === 'matched'   && !r.__matched) return false;
     if (filter === 'unmatched' &&  r.__matched) return false;
     if (filter === 'changed'   && !r.__changed) return false;
+    if (filter === 'emptyIdentity' && !r.__emptyIdentity) return false;
     if (search) {
       const name = String(r[nameCol1] || '').toLowerCase();
       const id   = String(r.__idKey  || '').toLowerCase();
@@ -592,17 +611,9 @@ function renderTable() {
     return;
   }
 
-  const showYear = !!yearCol1;
-  const showCls  = !!clsCol1;
-  const showSeat = !!seatCol1;
-
   let html = `<table><thead><tr>
     <th>#</th>
-    <th>學生姓名</th>
-    <th>身分證號</th>
-    ${showYear ? '<th>入學年度（更新後）</th>' : ''}
-    ${showCls  ? '<th>目前班級（更新後）</th>' : ''}
-    ${showSeat ? '<th>座號（更新後）</th>' : ''}
+    ${allCols1.map(c => `<th>${c}</th>`).join('')}
     <th>全校名單<br>年級</th>
     <th>全校名單<br>班級</th>
     <th>全校名單<br>座號</th>
@@ -610,41 +621,18 @@ function renderTable() {
   </tr></thead><tbody>`;
 
   rows.forEach(r => {
-    const name  = r[nameCol1] || '—';
-    const idRaw = r.__idKey  || '—';
-
-    /* 入學年度欄 */
-    let yearCell = '—';
-    if (showYear) {
-      const ch = r.__changes?.[yearCol1];
+    /* 逐一輸出 Excel1 所有原始欄位，若該欄有被更新則標示 舊值→新值 */
+    const cellsHtml = allCols1.map(col => {
+      const ch = r.__changes?.[col];
       if (ch) {
-        yearCell = `<span class="changed-cell">${ch.from || '（空）'}</span><span class="arrow">→</span><span class="new-val">${ch.to}</span>`;
-      } else {
-        yearCell = String(r[yearCol1] ?? '—');
+        return `<td><span class="changed-cell">${ch.from || '（空）'}</span><span class="arrow">→</span><span class="new-val">${ch.to}</span></td>`;
       }
-    }
-
-    /* 目前班級欄 */
-    let clsCell = '—';
-    if (showCls) {
-      const ch = r.__changes?.[clsCol1];
-      if (ch) {
-        clsCell = `<span class="changed-cell">${ch.from || '（空）'}</span><span class="arrow">→</span><span class="new-val">${ch.to}</span>`;
-      } else {
-        clsCell = String(r[clsCol1] ?? '—');
+      const val = r[col];
+      if (col === identityCol1 && (val === '' || val == null || !String(val).trim())) {
+        return `<td><span class="tag tag-nomatch">⚠️ 空白（必填）</span></td>`;
       }
-    }
-
-    /* 座號欄 */
-    let seatCell = '—';
-    if (showSeat) {
-      const ch = r.__changes?.[seatCol1];
-      if (ch) {
-        seatCell = `<span class="changed-cell">${ch.from || '（空）'}</span><span class="arrow">→</span><span class="new-val">${ch.to}</span>`;
-      } else {
-        seatCell = String(r[seatCol1] ?? '—');
-      }
-    }
+      return `<td>${val === '' || val == null ? '—' : String(val)}</td>`;
+    }).join('');
 
     /* Status tag */
     let tag;
@@ -658,11 +646,7 @@ function renderTable() {
 
     html += `<tr>
       <td class="row-num">${r.__rowIdx}</td>
-      <td>${name}</td>
-      <td class="mono">${idRaw}</td>
-      ${showYear ? `<td>${yearCell}</td>` : ''}
-      ${showCls  ? `<td>${clsCell}</td>` : ''}
-      ${showSeat ? `<td>${seatCell}</td>` : ''}
+      ${cellsHtml}
       <td>${r.__matched ? (r.__newGrade   || '—') : '—'}</td>
       <td>${r.__matched ? (r.__newCls     || '—') : '—'}</td>
       <td>${r.__matched ? (r.__newSeat    || '—') : '—'}</td>

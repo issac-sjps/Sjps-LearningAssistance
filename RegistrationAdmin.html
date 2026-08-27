@@ -299,9 +299,10 @@ function exportExcel() {
         .filter(r => filter === '__all__' || (r.period || '(無期別)') === filter)
         .sort((a,b) => (a.grade-b.grade)||(a.class-b.class)||(a.seat-b.seat))
         .map(r => ({
-            期別: r.period || '', 年級: r.grade, 班級: r.class, 座號: r.seat, 姓名: r.name,
-            報名科目: (r.subjects||[]).join('、'),
-            父親電話: r.phone1 || '', 母親電話: r.phone2 || '', 其他電話: r.phone3 || ''
+            姓名: r.name, 年級: r.grade, 班級: r.class, 座號: r.seat,
+            報名意願: (r.subjects||[]).join('、'),
+            期別: r.period || '',
+            家長一行動電話: r.phone1 || '', 家長二行動電話: r.phone2 || '', 其他電話: r.phone3 || ''
         }));
     if (!rows.length) return alert('目前沒有資料可以匯出');
     const ws = XLSX.utils.json_to_sheet(rows);

@@ -10,7 +10,7 @@
 <script type="module">
     import { initializeApp }
         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut }
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
         from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc, deleteDoc,
               collection, onSnapshot, query, where, getDocs }
@@ -84,18 +84,34 @@
     const ADMIN_EMAILS = ['issac@sjps.kh.edu.tw'];
     const googleProvider = new GoogleAuthProvider();
 
+    // 共用：判斷某個已登入的 user 是否為管理員
+    async function checkAdmin(user) {
+        const email = user.email || '';
+        if (ADMIN_EMAILS.includes(email)) return { ok: true, email };
+        try {
+            const userSnap = await getDoc(doc(db, 'users', user.uid));
+            if (userSnap.exists() && userSnap.data().role === 'admin') return { ok: true, email };
+        } catch (inner) { console.error(inner); }
+        return { ok: false, email };
+    }
+
+    // 頁面重新整理時，若瀏覽器仍記得登入狀態，自動嘗試恢復管理員畫面
+    onAuthStateChanged(auth, async (user) => {
+        if (user && window._onAuthRestore) {
+            const res = await checkAdmin(user);
+            window._onAuthRestore(res.ok ? res : null);
+        } else if (!user && window._onAuthRestore) {
+            window._onAuthRestore(null);
+        }
+    });
+
     window._fbAdminLogin = async () => {
         try {
             const result = await signInWithPopup(auth, googleProvider);
-            const email  = result.user.email || '';
-            const uid    = result.user.uid;
-            if (ADMIN_EMAILS.includes(email)) return { ok: true, email };
-            try {
-                const userSnap = await getDoc(doc(db, 'users', uid));
-                if (userSnap.exists() && userSnap.data().role === 'admin') return { ok: true, email };
-            } catch (inner) { console.error(inner); }
+            const res = await checkAdmin(result.user);
+            if (res.ok) return { ok: true, email: res.email };
             await signOut(auth);
-            return { ok: false, message: `此 Google 帳號（${email}）沒有管理員權限` };
+            return { ok: false, message: `此 Google 帳號（${res.email}）沒有管理員權限` };
         } catch (e) {
             console.error(e);
             return { ok: false, message: '登入失敗或已取消：' + (e.message || '未知錯誤') };
@@ -185,22 +201,36 @@ let currentPeriod = '';
 let allRegistrations = [];
 let unsubReg = null;
 
-async function doAdminLogin() {
-    const res = await window._fbAdminLogin();
-    if (res.ok) {
-        IS_ADMIN = true;
-        document.getElementById('admin-badge').textContent = '✏️ 管理員（' + res.email + '）';
-        document.getElementById('admin-badge').className = 'text-xs font-bold px-2 py-1 rounded-full bg-green-100 text-green-700';
-        document.getElementById('admin-login-btn').classList.add('hidden');
-        document.getElementById('admin-logout-btn').classList.remove('hidden');
-        document.getElementById('admin-locked').classList.add('hidden');
-        document.getElementById('admin-panel').classList.remove('hidden');
+function applyAdminUI(email) {
+    IS_ADMIN = true;
+    document.getElementById('admin-badge').textContent = '✏️ 管理員（' + email + '）';
+    document.getElementById('admin-badge').className = 'text-xs font-bold px-2 py-1 rounded-full bg-green-100 text-green-700';
+    document.getElementById('admin-login-btn').classList.add('hidden');
+    document.getElementById('admin-logout-btn').classList.remove('hidden');
+    document.getElementById('admin-locked').classList.add('hidden');
+    document.getElementById('admin-panel').classList.remove('hidden');
+}
 
+// 重新整理頁面時，Firebase 記得的登入狀態會經由這裡自動恢復管理員畫面
+window._onAuthRestore = async (res) => {
+    if (res && res.ok) {
+        applyAdminUI(res.email);
         const settings = await window._fbGetSettings();
         currentPeriod = settings.period;
         document.getElementById('period-input').value = settings.period;
         document.getElementById('classtime-input').value = settings.classTime;
+        startWatchingRegistrations();
+    }
+};
 
+async function doAdminLogin() {
+    const res = await window._fbAdminLogin();
+    if (res.ok) {
+        applyAdminUI(res.email);
+        const settings = await window._fbGetSettings();
+        currentPeriod = settings.period;
+        document.getElementById('period-input').value = settings.period;
+        document.getElementById('classtime-input').value = settings.classTime;
         startWatchingRegistrations();
     } else {
         alert(res.message);

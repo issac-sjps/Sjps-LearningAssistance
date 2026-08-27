@@ -36,12 +36,16 @@
 
     // 管理員：更新期別
     window._fbSetPeriod = async (period) => {
-        try { await setDoc(SETTINGS_REF, { period }); return true; }
+        try { await setDoc(SETTINGS_REF, { period }, { merge: true }); return true; }
         catch (e) { console.error('期別更新失敗', e); return false; }
     };
-    window._fbGetPeriod = async () => {
+    window._fbGetSettings = async () => {
         const snap = await getDoc(SETTINGS_REF);
-        return snap.exists() ? (snap.data().period || '') : '';
+        return snap.exists() ? { period: snap.data().period || '', classTime: snap.data().classTime || '' } : { period: '', classTime: '' };
+    };
+    window._fbSetClassTime = async (classTime) => {
+        try { await setDoc(SETTINGS_REF, { classTime }, { merge: true }); return true; }
+        catch (e) { console.error('上課時間更新失敗', e); return false; }
     };
 
     // 管理員：即時監聽全部報名資料
@@ -130,6 +134,14 @@
                 <button onclick="savePeriod()" class="bg-blue-600 text-white font-bold px-4 rounded-lg">儲存</button>
             </div>
             <p class="text-xs text-gray-400 mt-2">留空＝暫停開放報名，家長端會顯示「尚未開放報名」。</p>
+
+            <label class="block text-xs font-bold text-gray-500 mb-2 mt-5">上課時間說明（顯示在報名頁，可隨時修改）</label>
+            <div class="flex gap-2">
+                <input id="classtime-input" type="text" class="flex-1 border rounded-lg px-3 py-2"
+                       placeholder="例如：115.09.21(一)~116.01.14(四) 每週(一)(四)">
+                <button onclick="saveClassTime()" class="bg-blue-600 text-white font-bold px-4 rounded-lg">儲存</button>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">留空＝報名頁不顯示這行。</p>
         </div>
 
         <div class="bg-white rounded-2xl shadow p-5">
@@ -184,8 +196,10 @@ async function doAdminLogin() {
         document.getElementById('admin-locked').classList.add('hidden');
         document.getElementById('admin-panel').classList.remove('hidden');
 
-        currentPeriod = await window._fbGetPeriod();
-        document.getElementById('period-input').value = currentPeriod;
+        const settings = await window._fbGetSettings();
+        currentPeriod = settings.period;
+        document.getElementById('period-input').value = settings.period;
+        document.getElementById('classtime-input').value = settings.classTime;
 
         startWatchingRegistrations();
     } else {
@@ -260,6 +274,12 @@ async function savePeriod() {
     const ok = await window._fbSetPeriod(val);
     if (ok) currentPeriod = val;
     alert(ok ? '已更新期別設定' : '更新失敗，請確認管理員權限');
+}
+
+async function saveClassTime() {
+    const val = document.getElementById('classtime-input').value.trim();
+    const ok = await window._fbSetClassTime(val);
+    alert(ok ? '已更新上課時間說明' : '更新失敗，請確認管理員權限');
 }
 
 async function clearThisPeriod() {

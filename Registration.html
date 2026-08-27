@@ -32,7 +32,8 @@
     // 讀取目前開放的報名期別
     onSnapshot(SETTINGS_REF, (snap) => {
         const period = snap.exists() ? (snap.data().period || '') : '';
-        window._onPeriodUpdate && window._onPeriodUpdate(period);
+        const classTime = snap.exists() ? (snap.data().classTime || '') : '';
+        window._onPeriodUpdate && window._onPeriodUpdate(period, classTime);
     }, (err) => console.error('讀取期別設定失敗', err));
 
     // 送出報名
@@ -68,6 +69,7 @@
         <p id="period-badge" class="mt-2 inline-block text-sm font-bold text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
             載入期別中…
         </p>
+        <p id="classtime-text" class="hidden mt-2 text-sm text-gray-500 font-bold"></p>
     </div>
 
     <div id="closed-notice" class="hidden bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-4 mb-6 font-bold text-center">
@@ -134,11 +136,18 @@
 
 <script>
 let currentPeriod = '';
-window._onPeriodUpdate = (period) => {
+window._onPeriodUpdate = (period, classTime) => {
     currentPeriod = period;
     const badge = document.getElementById('period-badge');
     const closedNotice = document.getElementById('closed-notice');
     const form = document.getElementById('reg-form');
+    const classTimeEl = document.getElementById('classtime-text');
+    if (classTime) {
+        classTimeEl.textContent = '上課時間：' + classTime;
+        classTimeEl.classList.remove('hidden');
+    } else {
+        classTimeEl.classList.add('hidden');
+    }
     if (period) {
         badge.textContent = '報名期別：' + period;
         closedNotice.classList.add('hidden');

@@ -1183,23 +1183,34 @@ function renderScanList() {
     });
 
     const list = document.getElementById('scanned-list');
-    document.getElementById('count-badge').innerText =
-        filtered.length === students.length
-            ? `${students.length} 人`
-            : `${filtered.length} / ${students.length} 人`;
 
-    list.innerHTML = filtered.map(s => `
-        <div class="scan-item flex justify-between items-center bg-white p-3 mb-1 border rounded-lg ${IS_ADMIN ? 'cursor-pointer' : ''}"
+    // 統計重複姓名（以全體學生為準，不受篩選影響）
+    const nameCount = {};
+    students.forEach(s => { nameCount[s.name] = (nameCount[s.name] || 0) + 1; });
+    const dupCount = Object.values(nameCount).filter(n => n > 1).length;
+
+    document.getElementById('count-badge').innerText =
+        (filtered.length === students.length
+            ? `${students.length} 人`
+            : `${filtered.length} / ${students.length} 人`)
+        + (dupCount ? `　⚠️ 重複姓名 ${dupCount} 組` : '');
+
+    list.innerHTML = filtered.map(s => {
+        const isDup = nameCount[s.name] > 1;
+        return `
+        <div class="scan-item flex justify-between items-center ${isDup ? 'bg-red-50 border-red-400' : 'bg-white'} p-3 mb-1 border rounded-lg ${IS_ADMIN ? 'cursor-pointer' : ''}"
              ${IS_ADMIN ? `ondblclick="openEditModal(${s.id})"` : ''}>
             <div>
                 <span class="bg-gray-200 text-gray-700 font-bold px-2 py-1 text-xs rounded mr-2">${s.orgGrade}年${s.orgClass}班</span>
-                <span class="font-bold">${s.name}</span>
+                <span class="font-bold ${isDup ? 'text-red-600' : ''}">${s.name}</span>
+                ${isDup ? `<span class="ml-2 text-xs text-red-500 font-bold">⚠ 重複姓名</span>` : ''}
             </div>
             <div class="flex items-center gap-2">
                 <div>${s.subjects.map(sub => `<span class="dot ${SUB_BG[sub] || 'bg-gray-400'}"></span>`).join('')}</div>
                 ${IS_ADMIN ? `<button onclick="deleteStudent(${s.id})" class="text-red-400 hover:text-red-600 font-bold px-2 edit-only">×</button>` : ''}
             </div>
-        </div>`).join('') || '<div class="text-center text-gray-400 py-10 text-sm">沒有符合條件的學生</div>';
+        </div>`;
+    }).join('') || '<div class="text-center text-gray-400 py-10 text-sm">沒有符合條件的學生</div>';
 }
 
 // ── 班級設定 ──────────────────────────────────────────────────────

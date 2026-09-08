@@ -1858,8 +1858,11 @@ function importPhoneExcel(input) {
             const sample = rows[0];
             const keys = Object.keys(sample);
             const nameKey = keys.find(k => k.includes('姓名'));
-            const p1Key   = keys.find(k => /家長?一|家1|parent.?1/i.test(k) && !k.includes('姓名'));
-            const p2Key   = keys.find(k => /家長?二|家2|parent.?2/i.test(k) && !k.includes('姓名'));
+            // 必須同時符合「家長一/家1」等身分關鍵字，且包含「電話/手機/行動」，
+            // 避免誤抓到「家長一稱謂」「家長一職業」「家長一存歿」等非電話欄位
+            const isPhoneCol = k => /電話|手機|行動/.test(k);
+            const p1Key   = keys.find(k => /家長?一|家1|parent.?1/i.test(k) && !k.includes('姓名') && isPhoneCol(k));
+            const p2Key   = keys.find(k => /家長?二|家2|parent.?2/i.test(k) && !k.includes('姓名') && isPhoneCol(k));
 
             if (!nameKey) { alert('找不到「姓名」欄位，請確認 Excel 格式'); input.value = ''; return; }
 

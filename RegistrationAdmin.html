@@ -168,6 +168,11 @@
                 </div>
                 <div class="flex gap-2">
                     <select id="filter-period" onchange="renderTable()" class="border rounded-lg px-2 py-1.5 text-sm"></select>
+                    <select id="sort-mode" onchange="renderTable()" class="border rounded-lg px-2 py-1.5 text-sm">
+                        <option value="time-asc">依報名時間（先→後）</option>
+                        <option value="time-desc">依報名時間（後→先）</option>
+                        <option value="seat">依年級/班級/座號</option>
+                    </select>
                     <button onclick="exportExcel()" class="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg font-bold">匯出 Excel</button>
                     <button onclick="clearThisPeriod()" class="text-sm bg-red-500 text-white px-3 py-1.5 rounded-lg font-bold">清空此期別資料</button>
                 </div>
@@ -176,6 +181,7 @@
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="bg-gray-50 text-gray-500 text-xs">
+                            <th class="px-2 py-2 text-left cursor-pointer select-none" onclick="toggleTimeSort()">報名時間 ⇅</th>
                             <th class="px-2 py-2 text-left">期別</th>
                             <th class="px-2 py-2">年級</th>
                             <th class="px-2 py-2">班級</th>
@@ -269,15 +275,52 @@ function updatePeriodFilterOptions() {
     else sel.value = currentPeriod || '__all__';
 }
 
+function formatRegTime(r) {
+    // 舊資料若沒有 createdAt，就用 Firestore 文件 id 當作沒有時間資訊處理
+    if (!r.createdAt) return null;
+    const d = new Date(r.createdAt);
+    if (isNaN(d.getTime())) return null;
+    return d;
+}
+
+function sortRows(rows, mode) {
+    if (mode === 'time-asc' || mode === 'time-desc') {
+        const dir = mode === 'time-asc' ? 1 : -1;
+        return rows.sort((a, b) => {
+            const ta = a.createdAt ?? Infinity; // 沒有時間資訊的排到最後
+            const tb = b.createdAt ?? Infinity;
+            if (ta === tb) return (a.grade-b.grade)||(a.class-b.class)||(a.seat-b.seat);
+            return dir * (ta - tb);
+        });
+    }
+    // 依年級/班級/座號
+    return rows.sort((a,b) => (a.grade-b.grade)||(a.class-b.class)||(a.seat-b.seat));
+}
+
+function toggleTimeSort() {
+    const sel = document.getElementById('sort-mode');
+    sel.value = sel.value === 'time-asc' ? 'time-desc' : 'time-asc';
+    renderTable();
+}
+
 function renderTable() {
     const filter = document.getElementById('filter-period').value;
-    const rows = allRegistrations
-        .filter(r => filter === '__all__' || (r.period || '(無期別)') === filter)
-        .sort((a,b) => (a.grade-b.grade)||(a.class-b.class)||(a.seat-b.seat));
+    const mode = document.getElementById('sort-mode').value;
+    const rows = sortRows(
+        allRegistrations.filter(r => filter === '__all__' || (r.period || '(無期別)') === filter),
+        mode
+    );
 
     document.getElementById('reg-count').textContent = rows.length + ' 筆';
-    document.getElementById('reg-tbody').innerHTML = rows.map(r => `
+    document.getElementById('reg-tbody').innerHTML = rows.map((r, i) => {
+        const d = formatRegTime(r);
+        const timeLabel = d
+            ? d.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
+            : '—';
+        const order = (mode === 'time-asc') ? `<span class="text-xs text-gray-400 mr-1">#${i+1}</span>` : '';
+        return `
         <tr class="border-b hover:bg-gray-50">
+            <td class="px-2 py-2 text-xs text-gray-500 whitespace-nowrap">${order}${timeLabel}</td>
             <td class="px-2 py-2 text-xs text-gray-400">${r.period || '—'}</td>
             <td class="px-2 py-2 text-center">${r.grade}</td>
             <td class="px-2 py-2 text-center">${r.class}</td>
@@ -290,7 +333,8 @@ function renderTable() {
             <td class="px-2 py-2 text-right">
                 <button onclick="deleteRow('${r.id}')" class="text-xs text-red-500 hover:underline">刪除</button>
             </td>
-        </tr>`).join('') || `<tr><td colspan="10" class="text-center text-gray-400 py-8">目前沒有報名資料</td></tr>`;
+        </tr>`;
+    }).join('') || `<tr><td colspan="11" class="text-center text-gray-400 py-8">目前沒有報名資料</td></tr>`;
 }
 
 async function deleteRow(id) {
@@ -325,15 +369,20 @@ async function clearThisPeriod() {
 
 function exportExcel() {
     const filter = document.getElementById('filter-period').value;
-    const rows = allRegistrations
-        .filter(r => filter === '__all__' || (r.period || '(無期別)') === filter)
-        .sort((a,b) => (a.grade-b.grade)||(a.class-b.class)||(a.seat-b.seat))
-        .map(r => ({
+    const mode = document.getElementById('sort-mode').value;
+    const rows = sortRows(
+        allRegistrations.filter(r => filter === '__all__' || (r.period || '(無期別)') === filter),
+        mode
+    ).map(r => {
+        const d = formatRegTime(r);
+        return {
+            報名時間: d ? d.toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : '',
             姓名: r.name, 年級: r.grade, 班級: r.class, 座號: r.seat,
             報名意願: (r.subjects||[]).join('、'),
             期別: r.period || '',
             家長一行動電話: r.phone1 || '', 家長二行動電話: r.phone2 || '', 其他電話: r.phone3 || ''
-        }));
+        };
+    });
     if (!rows.length) return alert('目前沒有資料可以匯出');
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();

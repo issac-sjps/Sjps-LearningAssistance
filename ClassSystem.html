@@ -1499,6 +1499,7 @@ async function exportAttendanceRollExcel() {
     const holidayName = d => ATT_HOLIDAYS[`${d.getMonth() + 1}-${d.getDate()}`] || '';
 
     const CHUNK = 12; // 每一小段表格最多顯示幾個日期欄位（模擬原本分頁）
+    const DEFAULT_ROW_H = 15; // Excel 一般列高（約 15pt），教師簽名列會用這個的倍數加高
     const THIN = { style: 'thin', color: { argb: 'FF999999' } };
     const BOX  = { top: THIN, left: THIN, bottom: THIN, right: THIN };
     const wb = new ExcelJS.Workbook();
@@ -1548,7 +1549,7 @@ async function exportAttendanceRollExcel() {
             const teacherRow = ws.addRow(['', '', '教師簽名', ...chunk.map(d => holidayName(d))]);
             tableRowNums.push(teacherRow.number);
             signRowNums.push(teacherRow.number);
-            teacherRow.height = 32; // 加高，留空間給老師實際簽名
+            teacherRow.height = DEFAULT_ROW_H * 5; // 加高成約5行高，留空間給老師實際簽名
             teacherRow.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' }; // 「教師簽名」標籤維持置中
             // 假日名稱貼齊格子上緣、字體縮小，不占用簽名空間
             chunk.forEach((d, idx) => {

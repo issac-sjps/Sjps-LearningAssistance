@@ -697,9 +697,42 @@
                  class="border p-3 rounded-xl hover:bg-blue-50 cursor-pointer bg-white shadow-sm flex items-center gap-3">
                 <span class="text-2xl">📋</span><span class="font-bold text-blue-700 text-sm">下載 班級開課總表</span>
             </div>
-            <div onclick="exportRollCallExcel()"
-                 class="border p-3 rounded-xl hover:bg-pink-50 cursor-pointer bg-white shadow-sm flex items-center gap-3">
-                <span class="text-2xl">📝</span><span class="font-bold text-pink-700 text-sm">下載 各班點名單</span>
+            <div class="border-2 border-pink-400 rounded-xl bg-white shadow-sm overflow-hidden">
+                <div class="bg-pink-50 px-3 py-2 flex items-center gap-2 border-b border-pink-200">
+                    <span class="text-xl">📝</span>
+                    <span class="font-bold text-pink-700 text-sm">出缺席紀錄表</span>
+                </div>
+                <div class="p-3 space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">上課星期（可複選）</label>
+                        <div class="flex gap-1" id="att-weekday-box">
+                            ${['一','二','三','四','五'].map((w, i) => `
+                                <label class="flex-1 text-center border rounded-lg py-1.5 text-xs cursor-pointer att-wd-label">
+                                    <input type="checkbox" class="hidden att-weekday" value="${i + 1}" onchange="saveAttendanceSettings()">
+                                    週${w}
+                                </label>`).join('')}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">起始日期</label>
+                            <input type="date" id="att-start" class="w-full border p-1.5 rounded-lg text-xs" onchange="saveAttendanceSettings()">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">結束日期</label>
+                            <input type="date" id="att-end" class="w-full border p-1.5 rounded-lg text-xs" onchange="saveAttendanceSettings()">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">一天幾節（用於節數累計）</label>
+                        <input type="number" min="1" id="att-periods" class="w-full border p-1.5 rounded-lg text-xs" onchange="saveAttendanceSettings()">
+                    </div>
+                    <p class="text-[11px] text-gray-400 leading-snug">💡 教師節、元旦等國定假日會自動標註在「教師簽名」欄；農曆假期（春節/端午/中秋）需自行手動標註。</p>
+                    <button onclick="exportAttendanceExcel()"
+                            class="w-full bg-pink-600 text-white font-bold py-2 rounded-lg hover:bg-pink-700 text-sm">
+                        ⬇️ 下載 出缺席紀錄表
+                    </button>
+                </div>
             </div>
             <div class="border-2 border-purple-400 rounded-xl bg-white shadow-sm overflow-hidden">
                 <div class="bg-purple-50 px-3 py-2 flex items-center gap-2 border-b border-purple-200">
@@ -918,6 +951,7 @@ function submitGate() {
 function bootApp() {
     applyDefaultSettings(settingsData);
     loadSettingsToUI();
+    initAttendanceSettingsUI();
     document.body.classList.add('read-only-mode');
     applyModeUI();
     renderAll();
@@ -1386,17 +1420,107 @@ function exportClassSettingsExcel() {
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), '班級教師總表');
     XLSX.writeFile(wb, '班級開課總表.xlsx');
 }
-function exportRollCallExcel() {
-    const wb = XLSX.utils.book_new(); let has = false;
-    classes.forEach(c => {
-        const cs = students.filter(s => s.classId === c.id).sort((a, b) => (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass));
-        if (!cs.length) return; has = true;
-        const rows = cs.map((s, i) => ({ '座號': i + 1, '原班級': `${s.orgGrade}年${s.orgClass}班`, '學生姓名': s.name,
-            '科目': s.subjects.join('/'), '第1週': '', '第2週': '', '第3週': '', '第4週': '',
-            '第5週': '', '第6週': '', '第7週': '', '第8週': '', '備註': '' }));
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), c.name);
+// ── 出缺席紀錄表設定（存 localStorage，不需要管理員權限即可設定/下載）───
+const ATT_SETTINGS_KEY = 'attendanceSheetSettings';
+const ATT_HOLIDAYS = { // 固定國曆日期的國定假日（農曆假期需自行手動標註）
+    '1-1': '元旦', '2-28': '和平紀念日', '4-4': '兒童節', '5-1': '勞動節',
+    '9-28': '教師節', '10-10': '國慶日', '10-25': '台灣光復節', '12-25': '行憲紀念日'
+};
+function initAttendanceSettingsUI() {
+    let s = {};
+    try { s = JSON.parse(localStorage.getItem(ATT_SETTINGS_KEY) || '{}'); } catch (e) { s = {}; }
+    const weekdays = s.weekdays && s.weekdays.length ? s.weekdays : [1, 4]; // 預設週一、週四
+    document.querySelectorAll('.att-weekday').forEach(cb => {
+        cb.checked = weekdays.includes(+cb.value);
     });
-    if (!has) { alert('沒有已分發的學生'); return; } XLSX.writeFile(wb, '各班學生點名單.xlsx');
+    document.getElementById('att-start').value   = s.start   || '';
+    document.getElementById('att-end').value     = s.end     || '';
+    document.getElementById('att-periods').value = s.periods || 2;
+    refreshAttWeekdayLabels();
+}
+function refreshAttWeekdayLabels() {
+    document.querySelectorAll('.att-weekday').forEach(cb => {
+        const label = cb.closest('.att-wd-label');
+        if (!label) return;
+        label.classList.toggle('bg-pink-500', cb.checked);
+        label.classList.toggle('text-white', cb.checked);
+        label.classList.toggle('border-pink-500', cb.checked);
+    });
+}
+function saveAttendanceSettings() {
+    refreshAttWeekdayLabels();
+    const weekdays = [...document.querySelectorAll('.att-weekday:checked')].map(cb => +cb.value);
+    const s = {
+        weekdays,
+        start:   document.getElementById('att-start').value,
+        end:     document.getElementById('att-end').value,
+        periods: +document.getElementById('att-periods').value || 2,
+    };
+    localStorage.setItem(ATT_SETTINGS_KEY, JSON.stringify(s));
+    return s;
+}
+function exportAttendanceExcel() {
+    const s = saveAttendanceSettings();
+    if (!s.weekdays.length) { alert('請至少勾選一個上課星期'); return; }
+    if (!s.start || !s.end) { alert('請選擇上課起訖日期'); return; }
+    const startD = new Date(s.start + 'T00:00:00');
+    const endD   = new Date(s.end   + 'T00:00:00');
+    if (endD < startD) { alert('結束日期不能早於起始日期'); return; }
+
+    // 產生所有符合星期設定的授課日期
+    const dates = [];
+    for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+        const wd = d.getDay(); // 0=日 ... 6=六
+        if (s.weekdays.includes(wd === 0 ? 7 : wd)) dates.push(new Date(d));
+    }
+    if (!dates.length) { alert('選取的日期範圍內沒有符合星期設定的授課日'); return; }
+
+    const fmt = d => `${d.getMonth() + 1}/${d.getDate()}`;
+    const holidayName = d => ATT_HOLIDAYS[`${d.getMonth() + 1}-${d.getDate()}`] || '';
+
+    const CHUNK = 12; // 每一小段表格最多顯示幾個日期欄位（模擬原本分頁）
+    const wb = XLSX.utils.book_new();
+    let has = false;
+
+    classes.forEach(c => {
+        const cs = students.filter(s2 => s2.classId === c.id)
+            .sort((a, b) => (+a.orgGrade - +b.orgGrade) || (+a.orgClass - +b.orgClass));
+        if (!cs.length) return;
+        has = true;
+
+        const rows = [];
+        rows.push([settingsData.title || '學習扶助學習輔導課程學生出缺席紀錄表']);
+        rows.push([`班級：${c.name}（${c.grade || '?'}年級・${c.subject || ''}・${c.teacher || '未設定教師'}）`]);
+        rows.push([`授課起訖日期：${fmt(startD)} ~ ${fmt(endD)}　　每次上課節數：${s.periods} 節`]);
+        rows.push([]);
+
+        let cum = 0;
+        for (let off = 0; off < dates.length; off += CHUNK) {
+            const chunk = dates.slice(off, off + CHUNK);
+            rows.push(['座號', '原班級', '學生姓名', ...chunk.map(fmt)]);
+            cs.forEach((st, i) => {
+                rows.push([i + 1, `${st.orgGrade}年${st.orgClass}班`, st.name, ...chunk.map(() => '')]);
+            });
+            rows.push(['', '', '教師簽名', ...chunk.map(d => holidayName(d))]);
+            rows.push(['', '', '節數累計', ...chunk.map(() => { cum += s.periods; return cum; })]);
+            rows.push([]); // 區塊間空一列
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        const maxCols = rows.reduce((m, r) => Math.max(m, r.length), 3);
+        ws['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: maxCols - 1 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: maxCols - 1 } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: maxCols - 1 } },
+        ];
+        ws['!cols'] = [{ wch: 6 }, { wch: 10 }, { wch: 10 }, ...Array(Math.max(0, maxCols - 3)).fill({ wch: 7 })];
+
+        const sheetName = c.name.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName || `班級${classes.indexOf(c) + 1}`);
+    });
+
+    if (!has) { alert('沒有已分發的學生'); return; }
+    XLSX.writeFile(wb, '出缺席紀錄表.xlsx');
 }
 function importExcel(input) {
     if (!IS_ADMIN) { alert('請先登入管理員'); input.value = ''; return; }

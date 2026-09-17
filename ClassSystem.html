@@ -706,11 +706,21 @@
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-1">上課星期（可複選）</label>
                         <div class="flex gap-1" id="att-weekday-box">
-                            ${['一','二','三','四','五'].map((w, i) => `
-                                <label class="flex-1 text-center border rounded-lg py-1.5 text-xs cursor-pointer att-wd-label">
-                                    <input type="checkbox" class="hidden att-weekday" value="${i + 1}" onchange="saveAttendanceSettings()">
-                                    週${w}
-                                </label>`).join('')}
+                            <label class="flex-1 text-center border rounded-lg py-1.5 text-xs cursor-pointer att-wd-label">
+                                <input type="checkbox" class="hidden att-weekday" value="1" onchange="saveAttendanceSettings()"> 週一
+                            </label>
+                            <label class="flex-1 text-center border rounded-lg py-1.5 text-xs cursor-pointer att-wd-label">
+                                <input type="checkbox" class="hidden att-weekday" value="2" onchange="saveAttendanceSettings()"> 週二
+                            </label>
+                            <label class="flex-1 text-center border rounded-lg py-1.5 text-xs cursor-pointer att-wd-label">
+                                <input type="checkbox" class="hidden att-weekday" value="3" onchange="saveAttendanceSettings()"> 週三
+                            </label>
+                            <label class="flex-1 text-center border rounded-lg py-1.5 text-xs cursor-pointer att-wd-label">
+                                <input type="checkbox" class="hidden att-weekday" value="4" onchange="saveAttendanceSettings()"> 週四
+                            </label>
+                            <label class="flex-1 text-center border rounded-lg py-1.5 text-xs cursor-pointer att-wd-label">
+                                <input type="checkbox" class="hidden att-weekday" value="5" onchange="saveAttendanceSettings()"> 週五
+                            </label>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-2">
@@ -951,7 +961,6 @@ function submitGate() {
 function bootApp() {
     applyDefaultSettings(settingsData);
     loadSettingsToUI();
-    initAttendanceSettingsUI();
     document.body.classList.add('read-only-mode');
     applyModeUI();
     renderAll();
@@ -1062,6 +1071,10 @@ function applyDefaultSettings(s) {
     if (!s.deadline) s.deadline = "9/22(一)";
     if (!s.note)     s.note     = "1. 如需請假時，請務必於 16:00 後，上課教師已到該班教室才能接聽電話。\n2. 提前告知請撥 3411373#112 由註冊組轉知。";
     if (!s.footer)   s.footer   = "各位家長您好：\n歡迎家長讓學生報名學習扶助課程，如有疑問請電洽教務處，謝謝。";
+    if (!s.attWeekdays) s.attWeekdays = [1, 4]; // 出缺席紀錄表：預設週一、週四
+    if (!s.attStart)    s.attStart    = '';
+    if (!s.attEnd)      s.attEnd      = '';
+    if (!s.attPeriods)  s.attPeriods  = 2;
 }
 
 // ── 存檔 ──────────────────────────────────────────────────────────
@@ -1080,6 +1093,15 @@ async function saveData() {
     Object.keys(fromUI).forEach(k => {
         if (fromUI[k] !== '' && fromUI[k] !== undefined) settingsData[k] = fromUI[k];
     });
+    // 出缺席紀錄表設定：星期可以整組清空（取消勾選），日期/節數維持「有值才更新」
+    const attWeekdays = [...document.querySelectorAll('.att-weekday:checked')].map(cb => +cb.value);
+    settingsData.attWeekdays = attWeekdays;
+    const attStart   = document.getElementById('att-start').value;
+    const attEnd     = document.getElementById('att-end').value;
+    const attPeriods = document.getElementById('att-periods').value;
+    if (attStart   !== '') settingsData.attStart   = attStart;
+    if (attEnd     !== '') settingsData.attEnd     = attEnd;
+    if (attPeriods !== '') settingsData.attPeriods = +attPeriods || 2;
     const el = document.getElementById('save-status');
     el.innerText = '(存檔中…)';
     const ok = await window._fbSaveMain({ students, classes, settings: settingsData });
@@ -1104,6 +1126,13 @@ function loadSettingsToUI() {
     document.getElementById('setting-deadline').value = settingsData.deadline || '';
     document.getElementById('setting-note').value      = settingsData.note     || '';
     document.getElementById('setting-footer').value   = settingsData.footer   || '';
+    // 出缺席紀錄表設定（存在 settingsData 裡，跟著 Firebase 同步）
+    const weekdays = settingsData.attWeekdays && settingsData.attWeekdays.length ? settingsData.attWeekdays : [1, 4];
+    document.querySelectorAll('.att-weekday').forEach(cb => { cb.checked = weekdays.includes(+cb.value); });
+    document.getElementById('att-start').value   = settingsData.attStart   || '';
+    document.getElementById('att-end').value     = settingsData.attEnd     || '';
+    document.getElementById('att-periods').value = settingsData.attPeriods || 2;
+    refreshAttWeekdayLabels();
 }
 function updateGlobalStats() {
     document.getElementById('stat-unassigned').innerText = students.filter(s => !s.classId).length;
@@ -1420,24 +1449,11 @@ function exportClassSettingsExcel() {
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data), '班級教師總表');
     XLSX.writeFile(wb, '班級開課總表.xlsx');
 }
-// ── 出缺席紀錄表設定（存 localStorage，不需要管理員權限即可設定/下載）───
-const ATT_SETTINGS_KEY = 'attendanceSheetSettings';
+// ── 出缺席紀錄表設定（存在 settingsData，隨 Firebase 同步，管理員存檔後全體共用）───
 const ATT_HOLIDAYS = { // 固定國曆日期的國定假日（農曆假期需自行手動標註）
     '1-1': '元旦', '2-28': '和平紀念日', '4-4': '兒童節', '5-1': '勞動節',
     '9-28': '教師節', '10-10': '國慶日', '10-25': '台灣光復節', '12-25': '行憲紀念日'
 };
-function initAttendanceSettingsUI() {
-    let s = {};
-    try { s = JSON.parse(localStorage.getItem(ATT_SETTINGS_KEY) || '{}'); } catch (e) { s = {}; }
-    const weekdays = s.weekdays && s.weekdays.length ? s.weekdays : [1, 4]; // 預設週一、週四
-    document.querySelectorAll('.att-weekday').forEach(cb => {
-        cb.checked = weekdays.includes(+cb.value);
-    });
-    document.getElementById('att-start').value   = s.start   || '';
-    document.getElementById('att-end').value     = s.end     || '';
-    document.getElementById('att-periods').value = s.periods || 2;
-    refreshAttWeekdayLabels();
-}
 function refreshAttWeekdayLabels() {
     document.querySelectorAll('.att-weekday').forEach(cb => {
         const label = cb.closest('.att-wd-label');
@@ -1447,20 +1463,22 @@ function refreshAttWeekdayLabels() {
         label.classList.toggle('border-pink-500', cb.checked);
     });
 }
+// 星期/日期/節數 一改就存檔（跟其他通知單設定一樣，需要管理員登入才會真正寫入 Firebase；
+// 未登入時仍可正常使用畫面上的值來產生本次的出缺席紀錄表，只是不會被記住）。
 function saveAttendanceSettings() {
     refreshAttWeekdayLabels();
-    const weekdays = [...document.querySelectorAll('.att-weekday:checked')].map(cb => +cb.value);
-    const s = {
-        weekdays,
-        start:   document.getElementById('att-start').value,
-        end:     document.getElementById('att-end').value,
-        periods: +document.getElementById('att-periods').value || 2,
+    saveData();
+}
+function readAttSettingsFromUI() {
+    return {
+        weekdays: [...document.querySelectorAll('.att-weekday:checked')].map(cb => +cb.value),
+        start:    document.getElementById('att-start').value,
+        end:      document.getElementById('att-end').value,
+        periods:  +document.getElementById('att-periods').value || 2,
     };
-    localStorage.setItem(ATT_SETTINGS_KEY, JSON.stringify(s));
-    return s;
 }
 function exportAttendanceExcel() {
-    const s = saveAttendanceSettings();
+    const s = readAttSettingsFromUI();
     if (!s.weekdays.length) { alert('請至少勾選一個上課星期'); return; }
     if (!s.start || !s.end) { alert('請選擇上課起訖日期'); return; }
     const startD = new Date(s.start + 'T00:00:00');

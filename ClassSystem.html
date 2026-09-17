@@ -1529,6 +1529,7 @@ async function exportAttendanceRollExcel() {
         ws.addRow([]); // 空一列
 
         let cum = 0;
+        const signRowNums = []; // 記錄「教師簽名」列，之後要單獨設定列高與對齊方式
         for (let off = 0; off < dates.length; off += CHUNK) {
             const chunk = dates.slice(off, off + CHUNK);
             const tableRowNums = [];
@@ -1544,6 +1545,16 @@ async function exportAttendanceRollExcel() {
 
             const teacherRow = ws.addRow(['', '', '教師簽名', ...chunk.map(d => holidayName(d))]);
             tableRowNums.push(teacherRow.number);
+            signRowNums.push(teacherRow.number);
+            teacherRow.height = 32; // 加高，留空間給老師實際簽名
+            teacherRow.getCell(3).alignment = { vertical: 'middle', horizontal: 'center' }; // 「教師簽名」標籤維持置中
+            // 假日名稱貼齊格子上緣、字體縮小，不占用簽名空間
+            chunk.forEach((d, idx) => {
+                if (!holidayName(d)) return;
+                const cell = teacherRow.getCell(4 + idx);
+                cell.alignment = { vertical: 'top', horizontal: 'center' };
+                cell.font = { size: 8, color: { argb: 'FFB45309' } };
+            });
 
             const cumRow = ws.addRow(['', '', '節數累計', ...chunk.map(() => { cum += s.periods; return cum; })]);
             tableRowNums.push(cumRow.number);
@@ -1560,6 +1571,7 @@ async function exportAttendanceRollExcel() {
         }
         ws.eachRow((row, rowNumber) => {
             if (rowNumber <= titleRowCount) return; // 標題列保持靠左，不覆蓋
+            if (signRowNums.includes(rowNumber)) return; // 教師簽名列已個別設定過對齊方式，跳過
             row.alignment = { vertical: 'middle', horizontal: 'center' };
         });
     });

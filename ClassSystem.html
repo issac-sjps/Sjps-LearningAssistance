@@ -6,6 +6,7 @@
     <title>新莊國小 學習扶助編班系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
     <script type="module">
@@ -1477,7 +1478,7 @@ function readAttSettingsFromUI() {
         periods:  +document.getElementById('att-periods').value || 2,
     };
 }
-function exportAttendanceRollExcel() {
+async function exportAttendanceRollExcel() {
     const s = readAttSettingsFromUI();
     if (!s.weekdays.length) { alert('請至少勾選一個上課星期'); return; }
     if (!s.start || !s.end) { alert('請選擇上課起訖日期'); return; }
@@ -1497,7 +1498,9 @@ function exportAttendanceRollExcel() {
     const holidayName = d => ATT_HOLIDAYS[`${d.getMonth() + 1}-${d.getDate()}`] || '';
 
     const CHUNK = 12; // 每一小段表格最多顯示幾個日期欄位（模擬原本分頁）
-    const wb = XLSX.utils.book_new();
+    const THIN = { style: 'thin', color: { argb: 'FF999999' } };
+    const BOX  = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+    const wb = new ExcelJS.Workbook();
     let has = false;
 
     classes.forEach(c => {
@@ -1506,39 +1509,69 @@ function exportAttendanceRollExcel() {
         if (!cs.length) return;
         has = true;
 
-        const rows = [];
-        rows.push([settingsData.title || '學習扶助學習輔導課程學生出缺席紀錄表']);
-        rows.push([`班級：${c.name}（${c.grade || '?'}年級・${c.subject || ''}・${c.teacher || '未設定教師'}）`]);
-        rows.push([`授課起訖日期：${fmt(startD)} ~ ${fmt(endD)}　　每次上課節數：${s.periods} 節`]);
-        rows.push([]);
+        const maxCols = 3 + Math.min(dates.length, CHUNK);
+        const sheetName = c.name.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31) || `班級${classes.indexOf(c) + 1}`;
+        const ws = wb.addWorksheet(sheetName);
+        ws.columns = [{ width: 6 }, { width: 10 }, { width: 10 }, ...Array(maxCols - 3).fill({ width: 7 })];
+
+        // 三行標題（合併整列，不加框線）
+        [
+            settingsData.title || '學習扶助學習輔導課程學生出缺席紀錄表',
+            `班級：${c.name}（${c.grade || '?'}年級・${c.subject || ''}・${c.teacher || '未設定教師'}）`,
+            `授課起訖日期：${fmt(startD)} ~ ${fmt(endD)}　　每次上課節數：${s.periods} 節`,
+        ].forEach(text => {
+            const row = ws.addRow([text]);
+            ws.mergeCells(row.number, 1, row.number, maxCols);
+            row.font = { bold: row.number === 1 };
+            row.alignment = { vertical: 'middle', horizontal: 'left' };
+        });
+        const titleRowCount = 3;
+        ws.addRow([]); // 空一列
 
         let cum = 0;
         for (let off = 0; off < dates.length; off += CHUNK) {
             const chunk = dates.slice(off, off + CHUNK);
-            rows.push(['座號', '原班級', '學生姓名', ...chunk.map(fmt)]);
+            const tableRowNums = [];
+
+            const headerRow = ws.addRow(['座號', '原班級', '學生姓名', ...chunk.map(fmt)]);
+            tableRowNums.push(headerRow.number);
+            headerRow.font = { bold: true };
+
             cs.forEach((st, i) => {
-                rows.push([i + 1, `${st.orgGrade}年${st.orgClass}班`, st.name, ...chunk.map(() => '')]);
+                const r = ws.addRow([i + 1, `${st.orgGrade}年${st.orgClass}班`, st.name, ...chunk.map(() => '')]);
+                tableRowNums.push(r.number);
             });
-            rows.push(['', '', '教師簽名', ...chunk.map(d => holidayName(d))]);
-            rows.push(['', '', '節數累計', ...chunk.map(() => { cum += s.periods; return cum; })]);
-            rows.push([]); // 區塊間空一列
+
+            const teacherRow = ws.addRow(['', '', '教師簽名', ...chunk.map(d => holidayName(d))]);
+            tableRowNums.push(teacherRow.number);
+
+            const cumRow = ws.addRow(['', '', '節數累計', ...chunk.map(() => { cum += s.periods; return cum; })]);
+            tableRowNums.push(cumRow.number);
+
+            // 幫這一小段表格的每個儲存格加上框線
+            const usedCols = 3 + chunk.length;
+            tableRowNums.forEach(rn => {
+                for (let col = 1; col <= usedCols; col++) {
+                    ws.getRow(rn).getCell(col).border = BOX;
+                }
+            });
+
+            ws.addRow([]); // 區塊間空一列
         }
-
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        const maxCols = rows.reduce((m, r) => Math.max(m, r.length), 3);
-        ws['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: maxCols - 1 } },
-            { s: { r: 1, c: 0 }, e: { r: 1, c: maxCols - 1 } },
-            { s: { r: 2, c: 0 }, e: { r: 2, c: maxCols - 1 } },
-        ];
-        ws['!cols'] = [{ wch: 6 }, { wch: 10 }, { wch: 10 }, ...Array(Math.max(0, maxCols - 3)).fill({ wch: 7 })];
-
-        const sheetName = c.name.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31);
-        XLSX.utils.book_append_sheet(wb, ws, sheetName || `班級${classes.indexOf(c) + 1}`);
+        ws.eachRow((row, rowNumber) => {
+            if (rowNumber <= titleRowCount) return; // 標題列保持靠左，不覆蓋
+            row.alignment = { vertical: 'middle', horizontal: 'center' };
+        });
     });
 
     if (!has) { alert('沒有已分發的學生'); return; }
-    XLSX.writeFile(wb, '出缺席紀錄表.xlsx');
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = '出缺席紀錄表.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
 }
 function importExcel(input) {
     if (!IS_ADMIN) { alert('請先登入管理員'); input.value = ''; return; }

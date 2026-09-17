@@ -1515,7 +1515,11 @@ async function exportAttendanceRollExcel() {
         const sheetName = c.name.replace(/[\\\/\?\*\[\]:]/g, '').slice(0, 31) || `班級${classes.indexOf(c) + 1}`;
         const ws = wb.addWorksheet(sheetName);
         ws.columns = [{ width: 6 }, { width: 10 }, { width: 10 }, ...Array(maxCols - 3).fill({ width: 10 })];
-        ws.pageSetup = { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+        const CM = cm => cm / 2.54; // 公分轉換成 Excel 頁面設定用的英吋
+        ws.pageSetup = {
+            orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0,
+            margins: { top: CM(0.5), bottom: CM(0.5), left: CM(0.5), right: CM(0.5), header: CM(0.5), footer: CM(0.5) },
+        };
 
         // 三行標題（合併整列，不加框線）
         [

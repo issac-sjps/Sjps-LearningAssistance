@@ -738,7 +738,7 @@
                         <input type="number" min="1" id="att-periods" class="w-full border p-1.5 rounded-lg text-xs" onchange="saveAttendanceSettings()">
                     </div>
                     <p class="text-[11px] text-gray-400 leading-snug">💡 教師節、元旦等國定假日會自動標註在「教師簽名」欄；農曆假期（春節/端午/中秋）需自行手動標註。</p>
-                    <button onclick="exportAttendanceExcel()"
+                    <button onclick="exportAttendanceRollExcel()"
                             class="w-full bg-pink-600 text-white font-bold py-2 rounded-lg hover:bg-pink-700 text-sm">
                         ⬇️ 下載 出缺席紀錄表
                     </button>
@@ -1477,7 +1477,7 @@ function readAttSettingsFromUI() {
         periods:  +document.getElementById('att-periods').value || 2,
     };
 }
-function exportAttendanceExcel() {
+function exportAttendanceRollExcel() {
     const s = readAttSettingsFromUI();
     if (!s.weekdays.length) { alert('請至少勾選一個上課星期'); return; }
     if (!s.start || !s.end) { alert('請選擇上課起訖日期'); return; }
